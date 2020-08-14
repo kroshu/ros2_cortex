@@ -8,7 +8,7 @@
 #include "rapidjson/filewritestream.h"
 #include "rapidjson/writer.h"
 
-rapidjson::Document json_doc;
+rapidjson::Document json_doc; //TODO not global...
 
 void MyErrorMsgHandler(int iLevel, char *szMsg)
 {
@@ -37,22 +37,191 @@ void MyErrorMsgHandler(int iLevel, char *szMsg)
     printf("    %s: %s\n", szLevel, szMsg);
 }
 
+void PrintMarkerData(tMarkerData* markerData, int nMarkers, rapidjson::Value& markers, rapidjson::Document::AllocatorType& allocator){
+    for (int i=0 ; i<nMarkers ; i++)
+    {
+        rapidjson::Value marker(rapidjson::kObjectType);
+        marker.AddMember("x", *markerData[0], allocator);
+        marker.AddMember("y", *markerData[1], allocator);
+        marker.AddMember("z", *markerData[2], allocator);
+        markers.PushBack(marker, allocator);
+    }
+}
+
+void PrintSegmentData(tSegmentData* segmentData, int nSegments, rapidjson::Value& segments, rapidjson::Document::AllocatorType& allocator){
+    for (int i=0 ; i<nSegments ; i++)
+    {
+        rapidjson::Value segment(rapidjson::kObjectType);
+        segment.AddMember("x", *segmentData[0], allocator);
+        segment.AddMember("y", *segmentData[1], allocator);
+        segment.AddMember("z", *segmentData[2], allocator);
+        segment.AddMember("aX", *segmentData[3], allocator);
+        segment.AddMember("aY", *segmentData[4], allocator);
+        segment.AddMember("aZ", *segmentData[5], allocator);
+        segment.AddMember("length", *segmentData[6], allocator);
+        segments.PushBack(segment, allocator);
+    }
+}
+
+void PrintForceData(tForceData* forceData, int nForceSamples, int nForcePlates, rapidjson::Value& forces, rapidjson::Document::AllocatorType& allocator){
+    for (int iSample=0; iSample<nForceSamples; iSample++)
+    {
+        for (int iPlate=0; iPlate<nForcePlates; iPlate++)
+        {
+            rapidjson::Value force(rapidjson::kObjectType);
+            force.AddMember("forcePlate", iPlate, allocator);
+            force.AddMember("x", *forceData[0], allocator);
+            force.AddMember("y", *forceData[1], allocator);
+            force.AddMember("z", *forceData[2], allocator);
+            force.AddMember("fX", *forceData[3], allocator);
+            force.AddMember("fY", *forceData[4], allocator);
+            force.AddMember("fZ", *forceData[5], allocator);
+            force.AddMember("mZ", *forceData[6], allocator);
+            forces.PushBack(force, allocator);
+        }
+    }
+}
+
+void PrintBodyDatas(sBodyData* bodyData, int nBodies, rapidjson::Value& bodies, rapidjson::Document::AllocatorType& allocator){
+    int i=0;
+    for (int iBody=0; iBody < nBodies; iBody++)
+    {
+        sBodyData *Body = &bodyData[iBody];
+        rapidjson::Value body(rapidjson::kObjectType);
+        // TODO check whether this is safe
+        body.AddMember("name", rapidjson::StringRef(Body->szName), allocator);
+
+        body.AddMember("nMarkers", Body->nMarkers, allocator);
+        rapidjson::Value markers(rapidjson::kArrayType);
+        PrintMarkerData(Body->Markers, Body->nMarkers, markers, allocator);
+        body.AddMember("markers", markers, allocator);
+        body.AddMember("fAvgMarkerResidual", Body->fAvgMarkerResidual, allocator);
+
+        body.AddMember("nSegments", Body->nSegments, allocator);
+        rapidjson::Value segments(rapidjson::kArrayType);
+        PrintSegmentData(Body->Segments, Body->nSegments, segments, allocator);
+        body.AddMember("segments", segments, allocator);
+
+        body.AddMember("nDofs", Body->nDofs, allocator);
+        rapidjson::Value dofs(rapidjson::kArrayType);
+        for (i=0 ; i<Body->nDofs ; i++)
+        {
+            dofs.PushBack(Body->Dofs[i], allocator);
+        }
+        body.AddMember("dofs", dofs, allocator);
+        body.AddMember("fAvgDofResidual", Body->fAvgDofResidual, allocator);
+        body.AddMember("nIterations", Body->nIterations, allocator);
+
+        body.AddMember("encoderZoom", Body->ZoomEncoderValue, allocator);
+        body.AddMember("encoderFocus", Body->FocusEncoderValue, allocator);
+        body.AddMember("encoderIris", Body->IrisEncoderValue, allocator);
+        rapidjson::Value camTrackParams(rapidjson::kObjectType);
+        camTrackParams.AddMember("offsetX", Body->CamTrackParams[0], allocator);
+        camTrackParams.AddMember("offsetY", Body->CamTrackParams[1], allocator);
+        camTrackParams.AddMember("offsetZ", Body->CamTrackParams[2], allocator);
+        camTrackParams.AddMember("offsetAngleX", Body->CamTrackParams[3], allocator);
+        camTrackParams.AddMember("offsetAngleY", Body->CamTrackParams[4], allocator);
+        camTrackParams.AddMember("offsetAngleZ", Body->CamTrackParams[5], allocator);
+        camTrackParams.AddMember("videoWidth", Body->CamTrackParams[6], allocator);
+        camTrackParams.AddMember("videoHeight", Body->CamTrackParams[7], allocator);
+        camTrackParams.AddMember("opticalCenterX", Body->CamTrackParams[8], allocator);
+        camTrackParams.AddMember("opticalCenterY", Body->CamTrackParams[9], allocator);
+        camTrackParams.AddMember("fovX", Body->CamTrackParams[10], allocator);
+        camTrackParams.AddMember("fovY", Body->CamTrackParams[11], allocator);
+        camTrackParams.AddMember("pixelAspect", Body->CamTrackParams[12], allocator);
+        camTrackParams.AddMember("firstCoefficient", Body->CamTrackParams[13], allocator);
+        body.AddMember("camTrackParams", camTrackParams, allocator);
+
+        body.AddMember("nEvents", Body->nEvents, allocator);
+        rapidjson::Value events(rapidjson::kArrayType);
+        for (i=0 ; i<Body->nEvents ; i++)
+        {
+            events.PushBack(rapidjson::StringRef(Body->Events[i]), allocator);
+        }
+        body.AddMember("events", events, allocator);
+
+        bodies.PushBack(body, allocator);
+    }
+    
+}
+
+void PrintAnalogData(sAnalogData& analogData, rapidjson::Value& adValue, rapidjson::Document::AllocatorType& allocator){
+    adValue.AddMember("nAnalogChannels", analogData.nAnalogChannels, allocator);
+    adValue.AddMember("nAnalogSamples", analogData.nAnalogSamples, allocator);
+
+    int nSamples = analogData.nAnalogSamples;
+    int nChannels = analogData.nAnalogChannels;
+    short *pSample = analogData.AnalogSamples;
+    rapidjson::Value analogSamples(rapidjson::kArrayType);
+    for (int iSample=0 ; iSample<nSamples ; iSample++)
+    {
+        for (int iChannel=0 ; iChannel<nChannels ; iChannel++)
+        {
+            rapidjson::Value sample(rapidjson::kObjectType);
+            sample.AddMember("channel", iChannel, allocator);
+            sample.AddMember("value", *pSample, allocator);
+            analogSamples.PushBack(sample, allocator);
+            pSample++;
+        }
+    }
+    adValue.AddMember("analogSamples", analogSamples, allocator);
+
+    adValue.AddMember("nForcePlates", analogData.nForcePlates, allocator);
+    adValue.AddMember("nForceSamples", analogData.nForceSamples, allocator);
+    rapidjson::Value forces(rapidjson::kArrayType);
+    PrintForceData(analogData.Forces, analogData.nForceSamples, analogData.nForcePlates, forces, allocator);
+    adValue.AddMember("forces", forces, allocator);
+
+    adValue.AddMember("nAngleEncoders", analogData.nAngleEncoders, allocator);
+    adValue.AddMember("nAngleEncoderSamples", analogData.nAngleEncoderSamples, allocator);
+
+    int nAngleEncoders = analogData.nAngleEncoders;
+	int nAngleEncoderSamples = analogData.nAngleEncoderSamples;
+    double* AngleEncoderSamples = analogData.AngleEncoderSamples;
+    double *ptr = AngleEncoderSamples;
+    rapidjson::Value angleEncoderSamples(rapidjson::kArrayType);
+    for (int iSample=0 ; iSample<nAngleEncoderSamples ; iSample++)
+	{
+		for (int i=0 ; i<nAngleEncoders ; i++)
+	    {
+		    rapidjson::Value sample(rapidjson::kObjectType);
+            sample.AddMember("encoder", i, allocator);
+            sample.AddMember("value", *ptr, allocator);
+            angleEncoderSamples.PushBack(sample, allocator);
+			ptr++;
+		}
+	}
+    adValue.AddMember("angleEncoderSamples", angleEncoderSamples, allocator);
+}
+
 void PrintFrameOfData(sFrameOfData *FrameOfData)
 {
-    int iBody;
-    int i;
-
-    rapidjson::Document::AllocatorType& allocator = json_doc.GetAllocator(); //TODO maybe instead get as param??
+    rapidjson::Document::AllocatorType& allocator = json_doc.GetAllocator(); // TODO maybe instead get as param??
     rapidjson::Value frame(rapidjson::kObjectType);
     frame.AddMember("frame", FrameOfData->iFrame, allocator);
     frame.AddMember("frameDelay", FrameOfData->fDelay, allocator);
     frame.AddMember("nBodies", FrameOfData->nBodies, allocator);
-    //TODO bodies
+
+    rapidjson::Value bodies(rapidjson::kArrayType);
+    PrintBodyDatas(FrameOfData->BodyData, FrameOfData->nBodies, bodies, allocator);
+    frame.AddMember("bodies", bodies, allocator);
 
     frame.AddMember("nUnidentifiedMarkers", FrameOfData->nUnidentifiedMarkers, allocator);
-    //TODO unid markers
+    rapidjson::Value uiMarkers(rapidjson::kArrayType);
+    PrintMarkerData(FrameOfData->UnidentifiedMarkers, FrameOfData->nUnidentifiedMarkers, uiMarkers, allocator);
+    frame.AddMember("unidentifiedMarkers", uiMarkers, allocator);
 
-    //TODO analog data
+    rapidjson::Value analogData(rapidjson::kObjectType);
+    PrintAnalogData(FrameOfData->AnalogData, analogData, allocator);
+    frame.AddMember("analogData", analogData, allocator);
+
+    sRecordingStatus *RC = &FrameOfData->RecordingStatus;
+    rapidjson::Value rcstatus_value(rapidjson::kObjectType);
+    rcstatus_value.AddMember("recording", RC->bRecording, allocator);
+    rcstatus_value.AddMember("recordFirstFrame", RC->iFirstFrame, allocator);
+    rcstatus_value.AddMember("recordLastFrame", RC->iLastFrame, allocator);
+    rcstatus_value.AddMember("captureFileName", rapidjson::StringRef(RC->szFilename), allocator);
+    frame.AddMember("recordingStatus", rcstatus_value, allocator);
 
     rapidjson::Value timecode_value(rapidjson::kObjectType);
     sTimeCode* TC = &FrameOfData->TimeCode;
@@ -68,24 +237,17 @@ void PrintFrameOfData(sFrameOfData *FrameOfData)
         case 4: timecode_value.AddMember("standard", "SYSTEMCLOCK", allocator); break;
     }
     frame.AddMember("timeCode", timecode_value, allocator);
-
-    sRecordingStatus *RC = &FrameOfData->RecordingStatus;
-    rapidjson::Value rcstatus_value(rapidjson::kObjectType);
-    rcstatus_value.AddMember("recording", RC->bRecording, allocator);
-    rcstatus_value.AddMember("recordFirstFrame", RC->iFirstFrame, allocator);
-    rcstatus_value.AddMember("recordLastFrame", RC->iLastFrame, allocator);
-    //TODO RC->szFileName
-
+    
     json_doc["framesArray"].PushBack(frame, allocator);
 }
 
 void MyDataHandler(sFrameOfData* FrameOfData)
 {
     static int Count=0;
-    if (Count >= 7231) return;
-    if (Count >= 7230)
+    if (Count >= 12286) return;
+    if (Count >= 12285)
     {
-        FILE* fp = fopen("CaptureWithPlots1.json", "wb");
+        FILE* fp = fopen("CaptureWithPlots4.json", "wb");
 
         char writeBuffer[65536];
         rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
