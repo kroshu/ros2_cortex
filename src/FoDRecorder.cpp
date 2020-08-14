@@ -218,8 +218,8 @@ void PrintFrameOfData(sFrameOfData *FrameOfData)
     sRecordingStatus *RC = &FrameOfData->RecordingStatus;
     rapidjson::Value rcstatus_value(rapidjson::kObjectType);
     rcstatus_value.AddMember("recording", RC->bRecording, allocator);
-    rcstatus_value.AddMember("recordFirstFrame", RC->iFirstFrame, allocator);
-    rcstatus_value.AddMember("recordLastFrame", RC->iLastFrame, allocator);
+    rcstatus_value.AddMember("firstFrame", RC->iFirstFrame, allocator);
+    rcstatus_value.AddMember("lastFrame", RC->iLastFrame, allocator);
     rcstatus_value.AddMember("captureFileName", rapidjson::StringRef(RC->szFilename), allocator);
     frame.AddMember("recordingStatus", rcstatus_value, allocator);
 
@@ -244,10 +244,10 @@ void PrintFrameOfData(sFrameOfData *FrameOfData)
 void MyDataHandler(sFrameOfData* FrameOfData)
 {
     static int Count=0;
-    if (Count >= 12286) return;
-    if (Count >= 12285)
+    if (Count >= 7231) return;
+    if (Count >= 7230)
     {
-        FILE* fp = fopen("CaptureWithPlots4.json", "wb");
+        FILE* fp = fopen("CaptureWithPlots1.json", "wb");
 
         char writeBuffer[65536];
         rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
