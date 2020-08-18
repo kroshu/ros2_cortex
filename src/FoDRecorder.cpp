@@ -230,13 +230,7 @@ void PrintFrameOfData(sFrameOfData *FrameOfData)
     timecode_value.AddMember("minutes", TC->iMinutes, allocator);
     timecode_value.AddMember("seconds", TC->iSeconds, allocator);
     timecode_value.AddMember("frames", TC->iFrames, allocator);
-    switch (TC->iStandard)
-    {
-        case 1: timecode_value.AddMember("standard", "SMPTE", allocator); break;
-        case 2: timecode_value.AddMember("standard", "FILM", allocator); break;
-        case 3: timecode_value.AddMember("standard", "EBU", allocator); break;
-        case 4: timecode_value.AddMember("standard", "SYSTEMCLOCK", allocator); break;
-    }
+    timecode_value.AddMember("standard", TC->iStandard, allocator);
     frame.AddMember("timeCode", timecode_value, allocator);
     
     json_doc["framesArray"].PushBack(frame, allocator);

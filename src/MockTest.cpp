@@ -2,7 +2,7 @@
  * MockTest.cpp
  *
  *  Created on: Aug 17, 2020
- *      Author: rosdeveloper
+ *      Author: Gergely Kovács
  */
 
 #include <iostream>
@@ -21,8 +21,8 @@ void connectionLostCallback(char * talk_to_host_address, int talk_to_host_port){
 
 int main(int argc, char **argv) {
 	CortexMock cortex_mock("CaptureWithPlots1.json");
-	char* addr = "127.0.0.1";
-	int port_num = 3010; // TODO ??
+	char addr[] = "127.0.0.1";
+	int port_num = 1510; // TODO ??
 	cortex_mock.setDataHandlerFunc(dataHandlerFunc);
 
 	std::unique_ptr<kuka_sunrise::TCPConnection> tcp_connection;
@@ -30,9 +30,9 @@ int main(int argc, char **argv) {
 		tcp_connection = std::make_unique<kuka_sunrise::TCPConnection>(
 		  addr,
 		  port_num,
-		  [this](sFrameOfData* p_frame_of_data) {dataHandlerFunc(p_frame_of_data);},
-		  [this](const char * server_addr,
-		  int server_port) {connectionLostCallback(addr,port_num);});
+		  [](sFrameOfData* p_frame_of_data) {dataHandlerFunc(p_frame_of_data);},
+		  [](char * server_addr,
+		  int server_port) {connectionLostCallback(server_addr, server_port);});
 	} catch (...) {
 		tcp_connection.reset();
 	}

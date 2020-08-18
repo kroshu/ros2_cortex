@@ -1,11 +1,11 @@
 #include <string.h>
-
+#include <iostream>
 
 #include "CortexMock.hpp"
 #include "rapidjson/filereadstream.h"
 
 CortexMock::CortexMock(const std::string capture_file_name):capture_file_name_(capture_file_name) {
-	FILE* fp = fopen((const char*)capture_file_name_, "r");
+	FILE* fp = fopen(capture_file_name_.data(), "r");
 	char read_buffer[65536];
 	rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
 
@@ -77,9 +77,9 @@ void CortexMock::setThreadPriorities(maThreadPriority ListenForHost, maThreadPri
 int CortexMock::configurePortNumbers(int TalkToHostPort,
 										int HostPort, 
 										int HostMulticastPort, 
-										int TalkToClientsRequestPort = 0,
-										int TalkToClientsMulticastPort = 0,
-										int ClientsMulticastPort = -1){
+										int TalkToClientsRequestPort,
+										int TalkToClientsMulticastPort,
+										int ClientsMulticastPort){
     
     talk_to_host_port_ = TalkToHostPort;
     host_port_ = HostPort;
@@ -95,26 +95,26 @@ int CortexMock::configurePortNumbers(int TalkToHostPort,
 
 int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
 							char* szHostNicCardAddress,
-							char* szHostMulticastAddress = (char*)"225.1.1.1",
-							char* szTalkToClientsNicCardAddress = 0,
-							char* szClientsMulticastAddress = (char*)"225.1.1.2"){
-	inet_aton(szHostNicCardAddress, &host_machine_address_);
-	inet_aton(szHostMulticastAddress, &host_multicast_address_);
-	inet_aton(szTalkToHostNicCardAddress, &talk_to_host_address_);
-	inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
-	inet_aton(szClientsMulticastAddress, &host_machine_address_);
+							char* szHostMulticastAddress,
+							char* szTalkToClientsNicCardAddress,
+							char* szClientsMulticastAddress){
+	// inet_aton(szHostNicCardAddress, &host_machine_address_);
+	// inet_aton(szHostMulticastAddress, &host_multicast_address_);
+	// inet_aton(szTalkToHostNicCardAddress, &talk_to_host_address_);
+	// inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
+	// inet_aton(szClientsMulticastAddress, &host_machine_address_);
 
 	//establish connection here
-	try {
-	    tcp_connection_ = std::make_unique<kuka_sunrise::TCPConnection>(
-	      talk_to_client_address_,
-	      talk_to_clients_request_port_,
-	      [this](sFrameOfData* pFrameOfData) {this->dataHandlerFunc(pFrameOfData);},
-	      [this](const char * server_addr,
-	      int server_port) {this->connectionLostCallback(&talk_to_client_address_, talk_to_clients_request_port_);});
-	  } catch (...) {
-	    tcp_connection_.reset();
-	  }
+	// try {
+	//     tcp_connection_ = std::make_unique<kuka_sunrise::TCPConnection>(
+	//       talk_to_client_address_,
+	//       talk_to_clients_request_port_,
+	//       [this](sFrameOfData* pFrameOfData) {this->dataHandlerFunc(pFrameOfData);},
+	//       [this](const char * server_addr,
+	//       int server_port) {this->connectionLostCallback(inet_ntoa(talk_to_client_address_), talk_to_clients_request_port_);});
+	//   } catch (...) {
+	//     tcp_connection_.reset();
+	//   }
 
 	run();
 	return RC_Okay;
@@ -151,7 +151,7 @@ int CortexMock::getAddresses(char* szTalkToHostNicCardAddress,
 
 int CortexMock::getHostInfo(sHostInfo *pHostInfo){
     pHostInfo->bFoundHost = true;
-    pHostInfo->LatestConfirmationTime = current_frame_;
+    pHostInfo->LatestConfirmationTime = current_framenum_;
     strcpy(pHostInfo->szHostMachineName, "CortexHost");
     inet_aton((char*)pHostInfo->HostMachineAddress, &host_machine_address_);
     getSdkVersion(pHostInfo->HostProgramVersion);
@@ -217,55 +217,56 @@ void CortexMock::extractEulerAngles(double matrix[3][3],int iRotationOrder, doub
 }
 
 void CortexMock::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value){
-	int n_bodies = fod.nBodies;
+	int n_bodies = fod.nBodies; 
 	for (int i = 0; i < n_bodies; ++i) {
-		rapidjson::Value i_body_json = parent_value["bodies"][i];
+		const rapidjson::Value& i_body_json = parent_value["bodies"][i];
 		sBodyData& i_body_data = fod.BodyData[i];
-		i_body_data.szName = i_body_json["name"];
-		i_body_data.nMarkers = i_body_json["nMarkers"];
+		strcpy(i_body_data.szName,i_body_json["name"].GetString());
+		i_body_data.nMarkers = i_body_json["nMarkers"].GetInt();
 		extractMarkers(i_body_data.Markers, i_body_data.nMarkers, i_body_json["markers"]);
-		i_body_data.fAvgMarkerResidual = i_body_json["fAvgMarkerResidual"];
-		i_body_data.nSegments = i_body_json["nSegments"];
+		i_body_data.fAvgMarkerResidual = i_body_json["fAvgMarkerResidual"].GetFloat();
+		i_body_data.nSegments = i_body_json["nSegments"].GetInt();
 		extractSegments(i_body_data.Segments, i_body_data.nSegments, i_body_json["segments"]);
-		i_body_data.nDofs = i_body_json["nDofs"];
+		i_body_data.nDofs = i_body_json["nDofs"].GetInt();
 
 		int n_dofs = i_body_data.nDofs;
 		if(n_dofs > 0){
 			i_body_data.Dofs = new double[n_dofs];
 			for (int i_dof = 0; i_dof < n_dofs; ++i_dof) {
-				i_body_data.Dofs[i] = i_body_json["dofs"][i];
+				i_body_data.Dofs[i] = i_body_json["dofs"][i].GetDouble();
 			}
 		}
 
 
-		i_body_data.fAvgDofResidual = i_body_json["fAvgDofResidual"];
-		i_body_data.nIterations = i_body_json["nIterations"];
-		i_body_data.ZoomEncoderValue = i_body_json["encoderZoom"];
-		i_body_data.FocusEncoderValue = i_body_json["encoderFocus"];
-		i_body_data.IrisEncoderValue = i_body_json["encoderIris"];
+		i_body_data.fAvgDofResidual = i_body_json["fAvgDofResidual"].GetFloat();
+		i_body_data.nIterations = i_body_json["nIterations"].GetInt();
+		i_body_data.ZoomEncoderValue = i_body_json["encoderZoom"].GetInt();
+		i_body_data.FocusEncoderValue = i_body_json["encoderFocus"].GetInt();
+		i_body_data.IrisEncoderValue = i_body_json["encoderIris"].GetInt();
 
-		rapidjson::Value cam_track_params = i_body_json["camTrackParams"];
-		i_body_data.CamTrackParams[0] = cam_track_params["offsetX"];
-		i_body_data.CamTrackParams[1] = cam_track_params["offsetY"];
-		i_body_data.CamTrackParams[2] = cam_track_params["offsetZ"];
-		i_body_data.CamTrackParams[3] = cam_track_params["offsetAngleX"];
-		i_body_data.CamTrackParams[4] = cam_track_params["offsetAngleY"];
-		i_body_data.CamTrackParams[5] = cam_track_params["offsetAngleZ"];
-		i_body_data.CamTrackParams[6] = cam_track_params["videoWidth"];
-		i_body_data.CamTrackParams[7] = cam_track_params["videoHeight"];
-		i_body_data.CamTrackParams[8] = cam_track_params["opticalCenterX"];
-		i_body_data.CamTrackParams[9] = cam_track_params["opticalCenterY"];
-		i_body_data.CamTrackParams[10] = cam_track_params["fovX"];
-		i_body_data.CamTrackParams[11] = cam_track_params["fovY"];
-		i_body_data.CamTrackParams[12] = cam_track_params["pixelAspect"];
-		i_body_data.CamTrackParams[13] = cam_track_params["firstCoefficient"];
+		const rapidjson::Value& cam_track_params = i_body_json["camTrackParams"];
+		i_body_data.CamTrackParams[0] = cam_track_params["offsetX"].GetDouble();
+		i_body_data.CamTrackParams[1] = cam_track_params["offsetY"].GetDouble();
+		i_body_data.CamTrackParams[2] = cam_track_params["offsetZ"].GetDouble();
+		i_body_data.CamTrackParams[3] = cam_track_params["offsetAngleX"].GetDouble();
+		i_body_data.CamTrackParams[4] = cam_track_params["offsetAngleY"].GetDouble();
+		i_body_data.CamTrackParams[5] = cam_track_params["offsetAngleZ"].GetDouble();
+		i_body_data.CamTrackParams[6] = cam_track_params["videoWidth"].GetDouble();
+		i_body_data.CamTrackParams[7] = cam_track_params["videoHeight"].GetDouble();
+		i_body_data.CamTrackParams[8] = cam_track_params["opticalCenterX"].GetDouble();
+		i_body_data.CamTrackParams[9] = cam_track_params["opticalCenterY"].GetDouble();
+		i_body_data.CamTrackParams[10] = cam_track_params["fovX"].GetDouble();
+		i_body_data.CamTrackParams[11] = cam_track_params["fovY"].GetDouble();
+		i_body_data.CamTrackParams[12] = cam_track_params["pixelAspect"].GetDouble();
+		i_body_data.CamTrackParams[13] = cam_track_params["firstCoefficient"].GetDouble();
 
-		i_body_data.nEvents = i_body_json["nEvents"];
+		i_body_data.nEvents = i_body_json["nEvents"].GetInt();
 
 		int n_events = i_body_data.nEvents;
 		if(n_events > 0){
 			i_body_data.Events = new char*[n_events];
 			for (int i_event = 0; i_event < n_events; ++i_event) {
+				i_body_data.Events[i_event] = new char[i_body_json["events"][i].GetStringLength()];
 				strcpy(i_body_data.Events[i_event], i_body_json["events"][i].GetString());
 			}
 		}
@@ -275,15 +276,15 @@ void CortexMock::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent
 void CortexMock::extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value){
 	markers = new tMarkerData[n_markers];
 	for (int i_marker = 0; i_marker < n_markers; ++i_marker) {
-		markers[i_marker][0] = parent_value[i_marker]["x"];
-		markers[i_marker][1] = parent_value[i_marker]["y"];
-		markers[i_marker][2] = parent_value[i_marker]["z"];
+		markers[i_marker][0] = parent_value[i_marker]["x"].GetFloat();
+		markers[i_marker][1] = parent_value[i_marker]["y"].GetFloat();
+		markers[i_marker][2] = parent_value[i_marker]["z"].GetFloat();
 	}
 }
 
 void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value){
-	int n_channels = adata.nAnalogChannels = parent_value["nAnalogChannels"];
-	int n_samples = adata.nAnalogSamples = parent_value["nAnalogSamples"];
+	int n_channels = adata.nAnalogChannels = parent_value["nAnalogChannels"].GetInt();
+	int n_samples = adata.nAnalogSamples = parent_value["nAnalogSamples"].GetInt();
 	adata.AnalogSamples = new short[n_samples*n_channels];
 	int index = 0;
 	for (int i_sample=0 ; i_sample<n_samples ; i_sample++)
@@ -291,39 +292,38 @@ void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& p
 		for (int i_channel=0 ; i_channel<n_channels ; i_channel++)
 		{
 			index = i_sample*n_samples+i_channel;
-			adata.AnalogSamples[index] = parent_value["analogSamples"][index]["value"];
+			adata.AnalogSamples[index] = parent_value["analogSamples"][index]["value"].GetInt();
 		}
 	}
 
-	int n_force_plates = adata.nForcePlates = parent_value["nForcePlates"];
-	int n_force_samples = adata.nForceSamples = parent_value["nForceSamples"];
+	int n_force_plates = adata.nForcePlates = parent_value["nForcePlates"].GetInt();
+	int n_force_samples = adata.nForceSamples = parent_value["nForceSamples"].GetInt();
 	adata.Forces = new tForceData[n_force_samples*n_force_plates];
 	for (int i_sample=0; i_sample<n_force_samples; i_sample++)
 	{
 		for (int i_plate=0; i_plate<n_force_plates; i_plate++)
 		{
 			index = i_sample*n_samples+i_plate;
-			auto force_json = parent_value["forces"][index];
-			adata.Forces[index][0] = force_json["x"];
-			adata.Forces[index][1] = force_json["y"];
-			adata.Forces[index][2] = force_json["z"];
-			adata.Forces[index][3] = force_json["fX"];
-			adata.Forces[index][4] = force_json["fY"];
-			adata.Forces[index][5] = force_json["fZ"];
-			adata.Forces[index][6] = force_json["mZ"];
+			const rapidjson::Value& force_json = parent_value["forces"][index];
+			adata.Forces[index][0] = force_json["x"].GetFloat();
+			adata.Forces[index][1] = force_json["y"].GetFloat();
+			adata.Forces[index][2] = force_json["z"].GetFloat();
+			adata.Forces[index][3] = force_json["fX"].GetFloat();
+			adata.Forces[index][4] = force_json["fY"].GetFloat();
+			adata.Forces[index][5] = force_json["fZ"].GetFloat();
+			adata.Forces[index][6] = force_json["mZ"].GetFloat();
 		}
 	}
 
-	int n_angle_encoders = adata.nAngleEncoders = parent_value["nAngleEncoders"];
-	int n_angle_encoder_samples = adata.nAngleEncoderSamples = parent_value["nAngleEncoderSamples"];
+	int n_angle_encoders = adata.nAngleEncoders = parent_value["nAngleEncoders"].GetInt();
+	int n_angle_encoder_samples = adata.nAngleEncoderSamples = parent_value["nAngleEncoderSamples"].GetInt();
 	adata.AngleEncoderSamples = new double[n_angle_encoders*n_angle_encoder_samples];
-	int index = 0;
 	for (int i_sample=0 ; i_sample<n_angle_encoder_samples ; i_sample++)
 	{
 		for (int i_enc=0 ; i_enc<n_angle_encoders ; i_enc++)
 		{
 			index = i_sample*n_angle_encoder_samples+i_enc;
-			adata.AngleEncoderSamples[index] = parent_value["angleEncoderSamples"][index]["value"];
+			adata.AngleEncoderSamples[index] = parent_value["angleEncoderSamples"][index]["value"].GetDouble();
 		}
 	}
 }
@@ -331,87 +331,108 @@ void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& p
 void CortexMock::extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value){
 	segments = new tSegmentData[n_segments];
 	for (int i_segment = 0; i_segment < n_segments; ++i_segment) {
-		segments[i_segment][0] = parent_value[i_segment]["x"];
-		segments[i_segment][1] = parent_value[i_segment]["y"];
-		segments[i_segment][2] = parent_value[i_segment]["z"];
-		segments[i_segment][3] = parent_value[i_segment]["aX"];
-		segments[i_segment][4] = parent_value[i_segment]["aY"];
-		segments[i_segment][5] = parent_value[i_segment]["aZ"];
-		segments[i_segment][6] = parent_value[i_segment]["length"];
+		segments[i_segment][0] = parent_value[i_segment]["x"].GetDouble();
+		segments[i_segment][1] = parent_value[i_segment]["y"].GetDouble();
+		segments[i_segment][2] = parent_value[i_segment]["z"].GetDouble();
+		segments[i_segment][3] = parent_value[i_segment]["aX"].GetDouble();
+		segments[i_segment][4] = parent_value[i_segment]["aY"].GetDouble();
+		segments[i_segment][5] = parent_value[i_segment]["aZ"].GetDouble();
+		segments[i_segment][6] = parent_value[i_segment]["length"].GetDouble();
 	}
 }
 
-void freeFrameOfData(sFrameOfData& fod){
+void CortexMock::freeFrameOfData(sFrameOfData& fod){
 	// TODO empty values(?)
 
-
 	int n_bodies = fod.nBodies;
-	for (int i_body = 0; i_body < n_bodies; ++i_body) {
-		// free markers
-//		int n_markers = fod.BodyData[i_body].nMarkers;
-//		for (int i_marker = 0; i_marker < n_markers; ++i_marker) {
-//			delete fod.BodyData[i_body].Markers[i_marker]; // TODO is this necessary?
-//		}
-		delete fod.BodyData[i_body].Markers;
+	if(n_bodies > 0){
+		for (int i_body = 0; i_body < n_bodies; ++i_body) {
+			sBodyData& i_body_data = fod.BodyData[i_body];
+			// free markers
+	//		int n_markers = i_body_data.nMarkers;
+	//		for (int i_marker = 0; i_marker < n_markers; ++i_marker) {
+	//			delete i_body_data.Markers[i_marker]; // TODO is this necessary?
+	//		}
+			
+			if(i_body_data.nMarkers > 0) delete [] i_body_data.Markers;
 
-		// free segments
-//		int n_segments = fod.BodyData[i_body].nSegments;
-//		for (int i_segment = 0; i_segment < n_segments; ++i_segment) {
-//			delete fod.BodyData[i_body].Segments[i_segment]; // TODO is this necessary?
-//		}
-		delete fod.BodyData[i_body].Segments;
+			// free segments
+	//		int n_segments = i_body_data.nSegments;
+	//		for (int i_segment = 0; i_segment < n_segments; ++i_segment) {
+	//			delete i_body_data.Segments[i_segment]; // TODO is this necessary?
+	//		}
+			if(i_body_data.nSegments > 0) delete [] i_body_data.Segments;
 
-		// free dofs
-		delete fod.BodyData[i_body].Dofs;
-		// free events
-		int n_events = fod.BodyData[i_body].nEvents;
-		for (int i_event = 0; i_event < n_events; ++i_event) {
-			delete fod.BodyData[i_body].Events[i_event];
+			// free dofs
+			if(i_body_data.nDofs > 0) delete [] i_body_data.Dofs;
+			// free events
+			int n_events = i_body_data.nEvents;
+			for (int i_event = 0; i_event < n_events; ++i_event) {
+				if(i_body_data.Events[i_event] != nullptr) delete [] i_body_data.Events[i_event];
+			}
+			if(i_body_data.nEvents > 0) delete [] i_body_data.Events;
 		}
-		delete fod.BodyData[i_body].Events;
 	}
-	delete fod.BodyData;
 
 	// free uimarkers
 //	int n_ui_markers = fod.nUnidentifiedMarkers;
 //	for (int i_ui_marker = 0; i_ui_marker < n_ui_markers; ++i_ui_marker) {
 //		delete fod.UnidentifiedMarkers[i_ui_marker];
 //	}
-	delete fod.UnidentifiedMarkers;
+	if(fod.nUnidentifiedMarkers > 0) delete [] fod.UnidentifiedMarkers;
 
 	// free analogdata
-	delete fod.AnalogData.AnalogSamples;
-	delete fod.AnalogData.Forces;
-	delete fod.AnalogData.AngleEncoderSamples;
+	if(fod.AnalogData.nAnalogSamples > 0 && fod.AnalogData.nAnalogChannels > 0) delete [] fod.AnalogData.AnalogSamples;
+	if(fod.AnalogData.nForceSamples > 0 && fod.AnalogData.nForcePlates > 0) delete [] fod.AnalogData.Forces;
+	if(fod.AnalogData.nAngleEncoderSamples > 0 && fod.AnalogData.nAngleEncoders > 0) delete [] fod.AnalogData.AngleEncoderSamples;
 }
 
 void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 	freeFrameOfData(fod);
-	rapidjson::Value frame = document["framesArray"][iFrame];
-	fod.iFrame = frame["frame"];
-	fod.fDelay = frame["frameDelay"];
-	fod.nBodies = frame["nBodies"];
+	const rapidjson::Value& frame = document["framesArray"][iFrame];
+	fod.iFrame = frame["frame"].GetInt();
+	fod.fDelay = frame["frameDelay"].GetFloat();
+	fod.nBodies = frame["nBodies"].GetInt();
 
 	extractBodies(fod, frame);
 
-	fod.nUnidentifiedMarkers = frame["nUnidentifiedMarkers"];
+	fod.nUnidentifiedMarkers = frame["nUnidentifiedMarkers"].GetInt();
 
 	extractMarkers(fod.UnidentifiedMarkers, fod.nUnidentifiedMarkers, frame["unidentifiedMarkers"]);
 
 	extractAnalogData(fod.AnalogData, frame["analogData"]);
 
-	rapidjson::Value rc_status = frame["recordingStatus"];
-	fod.RecordingStatus.bRecording = rc_status["recording"];
-	fod.RecordingStatus.iFirstFrame = rc_status["firstFrame"];
-	fod.RecordingStatus.iLastFrame = rc_status["lastFrame"];
-	fod.RecordingStatus.szFilename = rc_status["captureFileName"];
+	const rapidjson::Value& rc_status = frame["recordingStatus"];
+	fod.RecordingStatus.bRecording = rc_status["recording"].GetInt();
+	fod.RecordingStatus.iFirstFrame = rc_status["firstFrame"].GetInt();
+	fod.RecordingStatus.iLastFrame = rc_status["lastFrame"].GetInt();
+	strcpy(fod.RecordingStatus.szFilename, rc_status["captureFileName"].GetString());
 
-	rapidjson::Value tc_value = frame["timeCode"];
-	fod.TimeCode.iHours = tc_value["hours"];
-	fod.TimeCode.iMinutes = tc_value["minutes"];
-	fod.TimeCode.iSeconds = tc_value["seconds"];
-	fod.TimeCode.iFrames = tc_value["frames"];
-	fod.TimeCode.iStandard = tc_value["standard"];
+	const rapidjson::Value& tc_value = frame["timeCode"];
+	fod.TimeCode.iHours = tc_value["hours"].GetInt();
+	fod.TimeCode.iMinutes = tc_value["minutes"].GetInt();
+	fod.TimeCode.iSeconds = tc_value["seconds"].GetInt();
+	fod.TimeCode.iFrames = tc_value["frames"].GetInt();
+
+	// Correct this by changing generation to simple int instead of converting twice
+	std::string standard = tc_value["standard"].GetString();
+	if(standard == "SMPTE"){
+		fod.TimeCode.iStandard = 1;
+	} else if(standard == "FILM"){
+		fod.TimeCode.iStandard = 2;
+	} else if(standard == "EBU"){
+		fod.TimeCode.iStandard = 3;
+	} else if(standard == "SYSTEMCLOCK"){
+		fod.TimeCode.iStandard = 4;
+	}
+}
+
+void CortexMock::dataHandlerFunc(sFrameOfData* p_frame_of_data){
+	std::cout << "Frame " << p_frame_of_data->iFrame << "\tnUnidentifiedMarkers: " << p_frame_of_data->nUnidentifiedMarkers << std::endl;
+}
+
+void CortexMock::connectionLostCallback(char * talk_to_host_address, int talk_to_host_port){
+	std::cout << "Connection lost" << std::endl;
 }
 
 void CortexMock::run(){
@@ -419,4 +440,11 @@ void CortexMock::run(){
 		extractFrame(current_frame_, i_frame);
 		dataHandlerFunc(&current_frame_);
 	}
+}
+
+int main(int argc, char **argv) {
+	CortexMock cortex_mock("CaptureWithPlots1.json");
+	char addr[] = "127.0.0.1";
+	cortex_mock.initialize(addr, addr);
+	return 0;
 }

@@ -3,10 +3,11 @@
 
 #include <string>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <memory>
 
-#include "tcp_connection.hpp"
+//#include "tcp_connection.hpp"
 #include "Cortex.h"
 #include "rapidjson/document.h"
 
@@ -62,16 +63,16 @@ class CortexMock{
         void extractEulerAngles(double matrix[3][3],int iRotationOrder, double angles[3]);
 
     private:
-        int min_time_out_=500, n_frames;
+        int min_time_out_=500, n_frames, current_framenum_ = 0;
         in_addr host_machine_address_, host_multicast_address_, talk_to_host_address_, talk_to_client_address_, client_multicast_address_;
         const std::string capture_file_name_;
         int talk_to_host_port_ = 0, host_port_ = 1510, host_multicast_port_ = 1001;
         int talk_to_clients_request_port_ = 0, talk_to_clients_multicast_port_ = 0, clients_multicast_port_ = -1;
-        std::unique_ptr<kuka_sunrise::TCPConnection> tcp_connection_;
+        //std::unique_ptr<kuka_sunrise::TCPConnection> tcp_connection_;
         rapidjson::Document document;
         sFrameOfData current_frame_;
         void dataHandlerFunc(sFrameOfData* pFrameOfData);
-        void connectionLostCallback(in_addr * talk_to_client_address, int talk_to_clients_request_port);
+        void connectionLostCallback(char * talk_to_host_address, int talk_to_host_port);
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
         void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
