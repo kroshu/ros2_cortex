@@ -74,9 +74,11 @@ class CortexMock{
         void connectionLostCallback(in_addr * talk_to_client_address, int talk_to_clients_request_port);
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
-        void extractBodies(sFrameOfData& fod, rapidjson::Value& frame);
-        void extractMarkers(sFrameOfData& fod, rapidjson::Value& frame);
-        void extractAnalogData(sFrameOfData& fod, rapidjson::Value& frame);
+        void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
+        void extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value);
+        void extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value);
+        void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
+        void freeFrameOfData(sFrameOfData& fod);
 };
 
 #endif

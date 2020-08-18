@@ -41,9 +41,9 @@ void PrintMarkerData(tMarkerData* markerData, int nMarkers, rapidjson::Value& ma
     for (int i=0 ; i<nMarkers ; i++)
     {
         rapidjson::Value marker(rapidjson::kObjectType);
-        marker.AddMember("x", *markerData[0], allocator);
-        marker.AddMember("y", *markerData[1], allocator);
-        marker.AddMember("z", *markerData[2], allocator);
+        marker.AddMember("x", markerData[i][0], allocator);
+        marker.AddMember("y", markerData[i][1], allocator);
+        marker.AddMember("z", markerData[i][2], allocator);
         markers.PushBack(marker, allocator);
     }
 }
@@ -52,13 +52,13 @@ void PrintSegmentData(tSegmentData* segmentData, int nSegments, rapidjson::Value
     for (int i=0 ; i<nSegments ; i++)
     {
         rapidjson::Value segment(rapidjson::kObjectType);
-        segment.AddMember("x", *segmentData[0], allocator);
-        segment.AddMember("y", *segmentData[1], allocator);
-        segment.AddMember("z", *segmentData[2], allocator);
-        segment.AddMember("aX", *segmentData[3], allocator);
-        segment.AddMember("aY", *segmentData[4], allocator);
-        segment.AddMember("aZ", *segmentData[5], allocator);
-        segment.AddMember("length", *segmentData[6], allocator);
+        segment.AddMember("x", segmentData[i][0], allocator);
+        segment.AddMember("y", segmentData[i][1], allocator);
+        segment.AddMember("z", segmentData[i][2], allocator);
+        segment.AddMember("aX", segmentData[i][3], allocator);
+        segment.AddMember("aY", segmentData[i][4], allocator);
+        segment.AddMember("aZ", segmentData[i][5], allocator);
+        segment.AddMember("length", segmentData[i][6], allocator);
         segments.PushBack(segment, allocator);
     }
 }
@@ -78,6 +78,7 @@ void PrintForceData(tForceData* forceData, int nForceSamples, int nForcePlates, 
             force.AddMember("fZ", *forceData[5], allocator);
             force.AddMember("mZ", *forceData[6], allocator);
             forces.PushBack(force, allocator);
+            forceData++;
         }
     }
 }

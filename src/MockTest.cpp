@@ -11,11 +11,11 @@
 #include "tcp_connection.hpp"
 
 void dataHandlerFunc(sFrameOfData* p_frame_of_data){
-	std::cout << "Frame " << p_frame_of_data->iFrame << "\tBody with name: " << p_frame_of_data->BodyData->szName;
+	std::cout << "Frame " << p_frame_of_data->iFrame << "\tBody with name: " << p_frame_of_data->BodyData->szName << std::endl;
 }
 
 void connectionLostCallback(char * talk_to_host_address, int talk_to_host_port){
-
+	std::cout << "Connection lost" << std::endl;
 }
 
 
