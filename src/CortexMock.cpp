@@ -98,23 +98,30 @@ int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
 							char* szHostMulticastAddress,
 							char* szTalkToClientsNicCardAddress,
 							char* szClientsMulticastAddress){
-	// inet_aton(szHostNicCardAddress, &host_machine_address_);
-	// inet_aton(szHostMulticastAddress, &host_multicast_address_);
-	// inet_aton(szTalkToHostNicCardAddress, &talk_to_host_address_);
-	// inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
-	// inet_aton(szClientsMulticastAddress, &host_machine_address_);
+	inet_aton(szHostNicCardAddress, &host_machine_address_);
+	inet_aton(szHostMulticastAddress, &host_multicast_address_);
+	inet_aton(szTalkToHostNicCardAddress, &talk_to_host_address_);
+	inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
+	inet_aton(szClientsMulticastAddress, &host_machine_address_);
 
-	//establish connection here
+	// establish connection here
 	// try {
 	//     tcp_connection_ = std::make_unique<kuka_sunrise::TCPConnection>(
-	//       talk_to_client_address_,
-	//       talk_to_clients_request_port_,
-	//       [this](sFrameOfData* pFrameOfData) {this->dataHandlerFunc(pFrameOfData);},
+	//       inet_ntoa(talk_to_client_address_),
+	// 	  talk_to_clients_request_port_,
+	//       [this](const std::vector<std::uint8_t> & data) {this->dataRecievedCallback(data);},
 	//       [this](const char * server_addr,
-	//       int server_port) {this->connectionLostCallback(inet_ntoa(talk_to_client_address_), talk_to_clients_request_port_);});
+	//       const int server_port) {this->connectionLostCallback(server_addr, server_port);});
 	//   } catch (...) {
 	//     tcp_connection_.reset();
 	//   }
+	inet_aton(szHostNicCardAddress, &server_.sin_addr);
+	server_.sin_family = AF_INET;
+  	server_.sin_port = htons(host_port_);
+	addrlen = sizeof(server_);
+	bind(server_sock_desc_, (struct sockaddr *)&server_, (socklen_t)addrlen);
+	listen(server_sock_desc_,10);
+	client_sock_desc_ = accept(server_sock_desc_, (struct sockaddr *)&server_, (socklen_t *)&addrlen);
 
 	run();
 	return RC_Okay;
@@ -223,10 +230,16 @@ void CortexMock::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent
 		sBodyData& i_body_data = fod.BodyData[i];
 		strcpy(i_body_data.szName,i_body_json["name"].GetString());
 		i_body_data.nMarkers = i_body_json["nMarkers"].GetInt();
-		extractMarkers(i_body_data.Markers, i_body_data.nMarkers, i_body_json["markers"]);
+		if(i_body_data.nMarkers > 0){
+			i_body_data.Markers = new tMarkerData[i_body_data.nMarkers];
+			extractMarkers(i_body_data.Markers, i_body_data.nMarkers, i_body_json["markers"]);
+		}
 		i_body_data.fAvgMarkerResidual = i_body_json["fAvgMarkerResidual"].GetFloat();
 		i_body_data.nSegments = i_body_json["nSegments"].GetInt();
-		extractSegments(i_body_data.Segments, i_body_data.nSegments, i_body_json["segments"]);
+		if(i_body_data.nSegments > 0){
+			i_body_data.Segments = new tSegmentData[i_body_data.nSegments];
+			extractSegments(i_body_data.Segments, i_body_data.nSegments, i_body_json["segments"]);
+		}
 		i_body_data.nDofs = i_body_json["nDofs"].GetInt();
 
 		int n_dofs = i_body_data.nDofs;
@@ -274,7 +287,6 @@ void CortexMock::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent
 }
 
 void CortexMock::extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value){
-	markers = new tMarkerData[n_markers];
 	for (int i_marker = 0; i_marker < n_markers; ++i_marker) {
 		markers[i_marker][0] = parent_value[i_marker]["x"].GetFloat();
 		markers[i_marker][1] = parent_value[i_marker]["y"].GetFloat();
@@ -285,51 +297,56 @@ void CortexMock::extractMarkers(tMarkerData* markers, int n_markers, const rapid
 void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value){
 	int n_channels = adata.nAnalogChannels = parent_value["nAnalogChannels"].GetInt();
 	int n_samples = adata.nAnalogSamples = parent_value["nAnalogSamples"].GetInt();
-	adata.AnalogSamples = new short[n_samples*n_channels];
 	int index = 0;
-	for (int i_sample=0 ; i_sample<n_samples ; i_sample++)
-	{
-		for (int i_channel=0 ; i_channel<n_channels ; i_channel++)
+	if(n_channels > 0 || n_samples > 0){
+		adata.AnalogSamples = new short[n_samples*n_channels];
+		for (int i_sample=0 ; i_sample<n_samples ; i_sample++)
 		{
-			index = i_sample*n_samples+i_channel;
-			adata.AnalogSamples[index] = parent_value["analogSamples"][index]["value"].GetInt();
+			for (int i_channel=0 ; i_channel<n_channels ; i_channel++)
+			{
+				index = i_sample*n_samples+i_channel;
+				adata.AnalogSamples[index] = parent_value["analogSamples"][index]["value"].GetInt();
+			}
 		}
 	}
 
 	int n_force_plates = adata.nForcePlates = parent_value["nForcePlates"].GetInt();
 	int n_force_samples = adata.nForceSamples = parent_value["nForceSamples"].GetInt();
-	adata.Forces = new tForceData[n_force_samples*n_force_plates];
-	for (int i_sample=0; i_sample<n_force_samples; i_sample++)
-	{
-		for (int i_plate=0; i_plate<n_force_plates; i_plate++)
+	if(n_force_plates > 0 || n_force_samples > 0){
+		adata.Forces = new tForceData[n_force_samples*n_force_plates];
+		for (int i_sample=0; i_sample<n_force_samples; i_sample++)
 		{
-			index = i_sample*n_samples+i_plate;
-			const rapidjson::Value& force_json = parent_value["forces"][index];
-			adata.Forces[index][0] = force_json["x"].GetFloat();
-			adata.Forces[index][1] = force_json["y"].GetFloat();
-			adata.Forces[index][2] = force_json["z"].GetFloat();
-			adata.Forces[index][3] = force_json["fX"].GetFloat();
-			adata.Forces[index][4] = force_json["fY"].GetFloat();
-			adata.Forces[index][5] = force_json["fZ"].GetFloat();
-			adata.Forces[index][6] = force_json["mZ"].GetFloat();
+			for (int i_plate=0; i_plate<n_force_plates; i_plate++)
+			{
+				index = i_sample*n_samples+i_plate;
+				const rapidjson::Value& force_json = parent_value["forces"][index];
+				adata.Forces[index][0] = force_json["x"].GetFloat();
+				adata.Forces[index][1] = force_json["y"].GetFloat();
+				adata.Forces[index][2] = force_json["z"].GetFloat();
+				adata.Forces[index][3] = force_json["fX"].GetFloat();
+				adata.Forces[index][4] = force_json["fY"].GetFloat();
+				adata.Forces[index][5] = force_json["fZ"].GetFloat();
+				adata.Forces[index][6] = force_json["mZ"].GetFloat();
+			}
 		}
 	}
 
 	int n_angle_encoders = adata.nAngleEncoders = parent_value["nAngleEncoders"].GetInt();
 	int n_angle_encoder_samples = adata.nAngleEncoderSamples = parent_value["nAngleEncoderSamples"].GetInt();
-	adata.AngleEncoderSamples = new double[n_angle_encoders*n_angle_encoder_samples];
-	for (int i_sample=0 ; i_sample<n_angle_encoder_samples ; i_sample++)
-	{
-		for (int i_enc=0 ; i_enc<n_angle_encoders ; i_enc++)
+	if(n_angle_encoders > 0 || n_angle_encoder_samples > 0){
+		adata.AngleEncoderSamples = new double[n_angle_encoders*n_angle_encoder_samples];
+		for (int i_sample=0 ; i_sample<n_angle_encoder_samples ; i_sample++)
 		{
-			index = i_sample*n_angle_encoder_samples+i_enc;
-			adata.AngleEncoderSamples[index] = parent_value["angleEncoderSamples"][index]["value"].GetDouble();
+			for (int i_enc=0 ; i_enc<n_angle_encoders ; i_enc++)
+			{
+				index = i_sample*n_angle_encoder_samples+i_enc;
+				adata.AngleEncoderSamples[index] = parent_value["angleEncoderSamples"][index]["value"].GetDouble();
+			}
 		}
 	}
 }
 
 void CortexMock::extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value){
-	segments = new tSegmentData[n_segments];
 	for (int i_segment = 0; i_segment < n_segments; ++i_segment) {
 		segments[i_segment][0] = parent_value[i_segment]["x"].GetDouble();
 		segments[i_segment][1] = parent_value[i_segment]["y"].GetDouble();
@@ -394,11 +411,14 @@ void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 	fod.fDelay = frame["frameDelay"].GetFloat();
 	fod.nBodies = frame["nBodies"].GetInt();
 
-	extractBodies(fod, frame);
+	if(fod.nBodies > 0) extractBodies(fod, frame);
 
 	fod.nUnidentifiedMarkers = frame["nUnidentifiedMarkers"].GetInt();
 
-	extractMarkers(fod.UnidentifiedMarkers, fod.nUnidentifiedMarkers, frame["unidentifiedMarkers"]);
+	if(fod.UnidentifiedMarkers > 0){
+		fod.UnidentifiedMarkers = new tMarkerData[fod.nUnidentifiedMarkers];
+		extractMarkers(fod.UnidentifiedMarkers, fod.nUnidentifiedMarkers, frame["unidentifiedMarkers"]);
+	}
 
 	extractAnalogData(fod.AnalogData, frame["analogData"]);
 
@@ -427,13 +447,40 @@ void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 	}
 }
 
-void CortexMock::dataHandlerFunc(sFrameOfData* p_frame_of_data){
-	std::cout << "Frame " << p_frame_of_data->iFrame << "\tnUnidentifiedMarkers: " << p_frame_of_data->nUnidentifiedMarkers << std::endl;
+void CortexMock::fodToBytes(const sFrameOfData& fod, std::vector<std::uint8_t> & bytes_data){
+	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.iFrame));
+	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.nUnidentifiedMarkers));
+	// for (int i_ui_marker = 0; i_ui_marker < fod.nUnidentifiedMarkers; i_ui_marker++)
+	// {
+	// 	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.UnidentifiedMarkers[i_ui_marker][0]));
+	// 	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.UnidentifiedMarkers[i_ui_marker][1]));
+	// 	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.UnidentifiedMarkers[i_ui_marker][2]));
+	// }
 }
 
-void CortexMock::connectionLostCallback(char * talk_to_host_address, int talk_to_host_port){
-	std::cout << "Connection lost" << std::endl;
+void CortexMock::dataRecievedCallback(const std::vector<std::uint8_t> & data){
+	std::cout << "Data recieved at cortex mock via TCP" << std::endl;
 }
+
+void CortexMock::connectionLostCallback(const char * talk_to_host_address, const int talk_to_host_port){
+	std::cout << "Connection lost at cortex mock" << std::endl;
+}
+
+void CortexMock::dataHandlerFunc(sFrameOfData* p_frame_of_data){
+	// std::cout << "Frame " << p_frame_of_data->iFrame << "\tnUnidentifiedMarkers: " << p_frame_of_data->nUnidentifiedMarkers << std::endl;
+
+	// int n_ui_markers = p_frame_of_data->nUnidentifiedMarkers;
+	// const rapidjson::Value& frame = document["framesArray"][0];
+	// for (int i = 0; i < n_ui_markers; i++)
+	// {
+	// 	auto i_ui_marker = p_frame_of_data->UnidentifiedMarkers[i];
+	// 	std::cout << "UiMarker " << i << ": x:" << i_ui_marker[0] << " y: " << i_ui_marker[1] << " z: " << i_ui_marker[2] << std::endl;
+		
+	// }
+	std::vector<std::uint8_t> bytes_data;
+	fodToBytes(*p_frame_of_data, bytes_data);
+	write(client_sock_desc_, bytes_data.data(), bytes_data.size());
+};
 
 void CortexMock::run(){
 	for (int i_frame = 0; i_frame < n_frames; ++i_frame) {
@@ -442,9 +489,9 @@ void CortexMock::run(){
 	}
 }
 
-int main(int argc, char **argv) {
-	CortexMock cortex_mock("CaptureWithPlots1.json");
-	char addr[] = "127.0.0.1";
-	cortex_mock.initialize(addr, addr);
-	return 0;
-}
+// int main(int argc, char **argv) {
+// 	CortexMock cortex_mock("CaptureWithPlots1.json");
+// 	char addr[] = "127.0.0.1";
+// 	cortex_mock.initialize(addr, addr);
+// 	return 0;
+// }

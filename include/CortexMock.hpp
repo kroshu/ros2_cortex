@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <memory>
 
-//#include "tcp_connection.hpp"
+#include "tcp_connection.hpp"
 #include "Cortex.h"
 #include "rapidjson/document.h"
 
@@ -35,7 +35,7 @@ class CortexMock{
         int initialize(	char* szTalkToHostNicCardAddress,
 							char* szHostNicCardAddress,
 							char* szHostMulticastAddress = (char*)"225.1.1.1",
-							char* szTalkToClientsNicCardAddress = 0,
+							char* szTalkToClientsNicCardAddress = (char*)"127.0.0.1",
 							char* szClientsMulticastAddress = (char*)"225.1.1.2");
         int getPortNumbers(	int *TalkToHostPort,
 								int *HostPort, 
@@ -64,15 +64,19 @@ class CortexMock{
 
     private:
         int min_time_out_=500, n_frames, current_framenum_ = 0;
+        const int server_sock_desc_ = socket(AF_INET, SOCK_STREAM, 0);
+        int addrlen = 0;
+        int client_sock_desc_ = 0; //should this be initialized??
+        struct sockaddr_in server_;
         in_addr host_machine_address_, host_multicast_address_, talk_to_host_address_, talk_to_client_address_, client_multicast_address_;
         const std::string capture_file_name_;
-        int talk_to_host_port_ = 0, host_port_ = 1510, host_multicast_port_ = 1001;
-        int talk_to_clients_request_port_ = 0, talk_to_clients_multicast_port_ = 0, clients_multicast_port_ = -1;
-        //std::unique_ptr<kuka_sunrise::TCPConnection> tcp_connection_;
+        int talk_to_host_port_ = 30000, host_port_ = 30001, host_multicast_port_ = 30002;
+        int talk_to_clients_request_port_ = 30003, talk_to_clients_multicast_port_ = 30004, clients_multicast_port_ = 30005;
         rapidjson::Document document;
         sFrameOfData current_frame_;
         void dataHandlerFunc(sFrameOfData* pFrameOfData);
-        void connectionLostCallback(char * talk_to_host_address, int talk_to_host_port);
+        void connectionLostCallback(const char * server_addr, const int server_port);
+        void dataRecievedCallback(const std::vector<std::uint8_t> & data);
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
         void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
@@ -80,6 +84,7 @@ class CortexMock{
         void extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value);
         void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
         void freeFrameOfData(sFrameOfData& fod);
+        void fodToBytes(const sFrameOfData& fod, std::vector<std::uint8_t> & bytes_data);
 };
 
 #endif
