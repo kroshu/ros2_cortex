@@ -26,10 +26,12 @@ void bytesToFod(const std::vector<std::uint8_t> & data, sFrameOfData& p_frame_of
 	// }
 }
 
-void dataRecievedCallback(const std::vector<std::uint8_t> & data){
+void dataReceivedCallback(char* data){
 	std::cout << "Data recieved via TCP at mock test" << std::endl;
-	sFrameOfData fod;
-	bytesToFod(data, fod);
+	std::string frame_str(data);
+	std::cout << frame_str << std::endl;
+	// sFrameOfData fod;
+	// bytesToFod(data, fod);
 }
 
 void connectionLostCallback(const char * talk_to_host_address, const int talk_to_host_port){
@@ -38,24 +40,25 @@ void connectionLostCallback(const char * talk_to_host_address, const int talk_to
 
 
 int main(int argc, char **argv) {
-	CortexMock cortex_mock("CaptureWithPlots1.json");
+	//CortexMock cortex_mock("CaptureWithPlots1.json");
 	char addr[] = "127.0.0.1";
 	const int port_num = 30001; // TODO ??
 	// cortex_mock.setDataHandlerFunc(dataHandlerFunc);
-	cortex_mock.setClientCommunicationEnabled(true);
-	cortex_mock.initialize(addr, addr);
+	// cortex_mock.setClientCommunicationEnabled(true);
+	// cortex_mock.initialize(addr, addr);
 
-	std::unique_ptr<kuka_sunrise::TCPConnection> tcp_connection;
-	try {
-		tcp_connection = std::make_unique<kuka_sunrise::TCPConnection>(
-		  addr,
-		  port_num,
-		  [](const std::vector<std::uint8_t> & data) {dataRecievedCallback(data);},
-		  [](const char * server_addr,
-		  const int server_port) {connectionLostCallback(server_addr, server_port);});
-	} catch (...) {
-		tcp_connection.reset();
-	}
+	// std::unique_ptr<kuka_sunrise::TCPConnection> tcp_connection;
+	// try {
+	// 	tcp_connection = std::make_unique<kuka_sunrise::TCPConnection>(
+	// 	  addr,
+	// 	  port_num,
+	// 	  [](const std::vector<std::uint8_t> & data) {dataRecievedCallback(data);},
+	// 	  [](const char * server_addr,
+	// 	  const int server_port) {connectionLostCallback(server_addr, server_port);});
+	// } catch (...) {
+	// 	tcp_connection.reset();
+	// }
+
 	
 
 	return 0;

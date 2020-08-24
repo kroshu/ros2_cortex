@@ -1,10 +1,14 @@
 #include <string.h>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "CortexMock.hpp"
 #include "rapidjson/filereadstream.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 
-CortexMock::CortexMock(const std::string capture_file_name):capture_file_name_(capture_file_name) {
+CortexMock::CortexMock(const std::string capture_file_name):capture_file_name_(capture_file_name), server_sock_desc_(socket(AF_INET, SOCK_STREAM, 0)) {
 	FILE* fp = fopen(capture_file_name_.data(), "r");
 	char read_buffer[65536];
 	rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
@@ -16,6 +20,7 @@ CortexMock::CortexMock(const std::string capture_file_name):capture_file_name_(c
 
 CortexMock::~CortexMock(){
 	freeFrame(&current_frame_);
+	close(server_sock_desc_);
 }
 
 int CortexMock::getSdkVersion(unsigned char Version[4]){
@@ -104,24 +109,22 @@ int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
 	inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
 	inet_aton(szClientsMulticastAddress, &host_machine_address_);
 
-	// establish connection here
-	// try {
-	//     tcp_connection_ = std::make_unique<kuka_sunrise::TCPConnection>(
-	//       inet_ntoa(talk_to_client_address_),
-	// 	  talk_to_clients_request_port_,
-	//       [this](const std::vector<std::uint8_t> & data) {this->dataRecievedCallback(data);},
-	//       [this](const char * server_addr,
-	//       const int server_port) {this->connectionLostCallback(server_addr, server_port);});
-	//   } catch (...) {
-	//     tcp_connection_.reset();
-	//   }
 	inet_aton(szHostNicCardAddress, &server_.sin_addr);
 	server_.sin_family = AF_INET;
   	server_.sin_port = htons(host_port_);
 	addrlen = sizeof(server_);
-	bind(server_sock_desc_, (struct sockaddr *)&server_, (socklen_t)addrlen);
-	listen(server_sock_desc_,10);
-	client_sock_desc_ = accept(server_sock_desc_, (struct sockaddr *)&server_, (socklen_t *)&addrlen);
+	if(bind(server_sock_desc_, (struct sockaddr *)&server_, (socklen_t)addrlen)<0){
+		std::cout << "Bind failed" << std::endl; 
+        return RC_NetworkError;
+	}
+	if(listen(server_sock_desc_,3) < 0){
+		std::cout << "Listening failed" << std::endl; 
+        return RC_NetworkError;
+	}
+	if((client_sock_desc_ = accept(server_sock_desc_, (struct sockaddr *)&server_, (socklen_t *)&addrlen)) < 0){
+		std::cout << "Accepting failed" << std::endl;
+        return RC_NetworkError;
+	}
 
 	run();
 	return RC_Okay;
@@ -467,31 +470,35 @@ void CortexMock::connectionLostCallback(const char * talk_to_host_address, const
 }
 
 void CortexMock::dataHandlerFunc(sFrameOfData* p_frame_of_data){
-	// std::cout << "Frame " << p_frame_of_data->iFrame << "\tnUnidentifiedMarkers: " << p_frame_of_data->nUnidentifiedMarkers << std::endl;
-
-	// int n_ui_markers = p_frame_of_data->nUnidentifiedMarkers;
-	// const rapidjson::Value& frame = document["framesArray"][0];
-	// for (int i = 0; i < n_ui_markers; i++)
-	// {
-	// 	auto i_ui_marker = p_frame_of_data->UnidentifiedMarkers[i];
-	// 	std::cout << "UiMarker " << i << ": x:" << i_ui_marker[0] << " y: " << i_ui_marker[1] << " z: " << i_ui_marker[2] << std::endl;
-		
-	// }
 	std::vector<std::uint8_t> bytes_data;
 	fodToBytes(*p_frame_of_data, bytes_data);
-	write(client_sock_desc_, bytes_data.data(), bytes_data.size());
+	send(client_sock_desc_, bytes_data.data(), bytes_data.size(), 0);
+	std::cout << "Data of frame " << p_frame_of_data->iFrame << " sent from cortex mock via TCP" << std::endl;
 };
+
+void CortexMock::sendFrameJSON(const int i_frame){
+	rapidjson::StringBuffer buffer;
+	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+	document["framesArray"][i_frame].Accept(writer);
+	send(client_sock_desc_, buffer.GetString(), buffer.GetSize(), 0);
+	std::cout << "Data of frame " << i_frame << " sent from cortex mock via TCP" << std::endl;
+	std::cout << "Number of Ui Markers: " << document["framesArray"][i_frame]["nUnidentifiedMarkers"].GetInt() << std::endl;
+}
 
 void CortexMock::run(){
 	for (int i_frame = 0; i_frame < n_frames; ++i_frame) {
-		extractFrame(current_frame_, i_frame);
-		dataHandlerFunc(&current_frame_);
+		// extractFrame(current_frame_, i_frame);
+		// dataHandlerFunc(&current_frame_);
+		sendFrameJSON(i_frame);
+		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 	}
 }
 
-// int main(int argc, char **argv) {
-// 	CortexMock cortex_mock("CaptureWithPlots1.json");
-// 	char addr[] = "127.0.0.1";
-// 	cortex_mock.initialize(addr, addr);
-// 	return 0;
-// }
+int main(int argc, char **argv) {
+	CortexMock cortex_mock("CaptureWithPlots1.json");
+	char addr[] = "127.0.0.1";
+	cortex_mock.initialize(addr, addr);
+
+
+	return 0;
+}

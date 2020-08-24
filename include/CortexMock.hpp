@@ -64,7 +64,7 @@ class CortexMock{
 
     private:
         int min_time_out_=500, n_frames, current_framenum_ = 0;
-        const int server_sock_desc_ = socket(AF_INET, SOCK_STREAM, 0);
+        const int server_sock_desc_;
         int addrlen = 0;
         int client_sock_desc_ = 0; //should this be initialized??
         struct sockaddr_in server_;
@@ -85,6 +85,7 @@ class CortexMock{
         void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
         void freeFrameOfData(sFrameOfData& fod);
         void fodToBytes(const sFrameOfData& fod, std::vector<std::uint8_t> & bytes_data);
+        void sendFrameJSON(const int i_frame);
 };
 
 #endif
