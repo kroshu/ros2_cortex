@@ -35,7 +35,7 @@ void dataReceivedCallback(char* data){
 }
 
 void connectionLostCallback(const char * talk_to_host_address, const int talk_to_host_port){
-	std::cout << "Connection lost at mock test" << std::endl;
+	std::cerr << "Connection lost at mock test" << std::endl;
 }
 
 

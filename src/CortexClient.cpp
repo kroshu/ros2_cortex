@@ -9,6 +9,7 @@
 CortexClient::~CortexClient(){
     freeFrameOfData(current_fod_);
     close(sock);
+	tcp_connection_.reset();
 }
 
 void CortexClient::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value){
@@ -211,56 +212,46 @@ void CortexClient::extractFrame(sFrameOfData& fod, const rapidjson::Value& frame
 }
 
 void CortexClient::dataReceivedCallback_(char* data){
+	std::lock_guard<std::mutex> lk(m_);
     rapidjson::StringStream s(data);
     current_frame_json_.ParseStream(s);
+	if(current_fod_.iFrame == current_frame_json_["frame"].GetInt()) return;
     extractFrame(current_fod_, current_frame_json_);
     dataHandlerFunc(current_fod_);
+	cv_.notify_one();
 }
 
 void CortexClient::connectionLostCallback_(const char *server_addr, int server_port){
-    std::cout << "Connection to server lost" << std::endl;
+    std::cerr << "Connection to server lost" << std::endl;
+	connect();
+}
+
+bool CortexClient::connect(){
+	try {
+		tcp_connection_ = std::make_unique<kuka_sunrise::TCPConnection>(
+		  server_addr_.data(),
+		  server_port_,
+		  [this](char* data) {this->dataReceivedCallback_(data);},
+		  [this](const char * server_addr,
+		  const int server_port) {this->connectionLostCallback_(server_addr, server_port);});
+	} catch (const std::exception &e) {
+		std::cout << e.what() << std::endl;
+		tcp_connection_.reset();
+		return false;
+	}
+	return true;
+}
+
+bool CortexClient::isConnected()
+{
+  if (tcp_connection_) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void CortexClient::run(){
-	struct sockaddr_in socket_serv_addr;
-	char msg_buffer[max_json_frame_size_];
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
-    { 
-    	std::cout << "Socket creation error" << std::endl; 
-    	return; 
-    } 
-	socket_serv_addr.sin_family = AF_INET; 
-    socket_serv_addr.sin_port = htons(server_port_);
-
-	if(inet_pton(AF_INET, server_addr_.data(), &socket_serv_addr.sin_addr)<=0)
-    { 
-        std::cout << "Invalid address/ Address not supported" << std::endl;
-        return; 
-    } 
-   
-    if (connect(sock, (struct sockaddr *)&socket_serv_addr, sizeof(socket_serv_addr)) < 0) 
-    {
-		std::cout << "Connection Failed" << std::endl;
-        return; 
-    }
-
-	while(true){
-		int length = recv(sock, msg_buffer, max_json_frame_size_, 0);
-		if (length > 0){
-            msg_buffer[length] = '\0';
-			dataReceivedCallback_(msg_buffer);
-		}
-	}
-
-    // std::unique_ptr<kuka_sunrise::TCPConnection> tcp_connection;
-	// try {
-	// 	tcp_connection = std::make_unique<kuka_sunrise::TCPConnection>(
-	// 	  server_addr_.data(),
-	// 	  server_port_,
-	// 	  [this](char* data) {dataReceivedCallback_(data);},
-	// 	  [this](const char * server_addr,
-	// 	  const int server_port) {connectionLostCallback_(server_addr, server_port);});
-	// } catch (...) {
-	// 	tcp_connection.reset();
-	// }
+	connect();
+	while(isConnected()){}
 }
