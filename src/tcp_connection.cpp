@@ -19,9 +19,6 @@
 
 #include "tcp_connection.hpp"
 
-namespace kuka_sunrise
-{
-
 TCPConnection::TCPConnection(
   const char * server_addr, int server_port,
   std::function<void(char * data)> data_received_callback,
@@ -30,39 +27,16 @@ TCPConnection::TCPConnection(
     connection_lost_callback), socket_desc_(socket(AF_INET, SOCK_STREAM, 0)), cancelled_(false), connected_(false)
 {
   if (socket_desc_ == -1) {
-    throw std::runtime_error("Could not create socket");
-  }
-  if (inet_aton(server_addr, &server_.sin_addr) == 0) {
-    close(socket_desc_);
-    std::string errormsg = std::string("Received invalid server IP address: ") +
-      std::string(server_addr);
-    throw std::invalid_argument(errormsg.c_str());
-  }
-  server_.sin_family = AF_INET;
-  server_.sin_port = htons(server_port);
-  if (connect(socket_desc_, (struct sockaddr *)&server_, sizeof(server_))) {
-    throw std::runtime_error("Could not connect to server");
-  }
-  connected_ = true;
-  pthread_create(&read_thread_, NULL, &TCPConnection::listen_helper, this);
-}
-
-bool TCPConnection::sendByte(std::uint8_t data)
-{
-  int sent_length = write(socket_desc_, &data, 1);
-  if (sent_length < 0) {
-    return false;
-  }  // TODO(resizoltan) handle other kind of errors?
-  return true;
-}
-
-bool TCPConnection::sendBytes(const std::vector<std::uint8_t> & data)
-{
-  int sent_length = write(socket_desc_, data.data(), data.size());
-  if (sent_length < 0) {
-    return false;
-  }  // TODO(resizoltan) handle other kind of errors?
-  return true;
+        throw std::runtime_error("Could not create socket");
+    }
+    if (inet_aton(server_addr, &server_.sin_addr) == 0) {
+        close(socket_desc_);
+        std::string errormsg = std::string("Received invalid server IP address: ") +
+            std::string(server_addr);
+        throw std::invalid_argument(errormsg.c_str());
+    }
+    server_.sin_family = AF_INET;
+    server_.sin_port = htons(server_port);
 }
 
 void TCPConnection::closeConnection()
@@ -89,26 +63,3 @@ void * TCPConnection::listen_helper(void * tcpConnection)
   reinterpret_cast<TCPConnection *>(tcpConnection)->listen();
   return NULL;
 }
-
-void TCPConnection::listen()
-{
-  char msg_buffer[max_buffer_size_];
-  while (!cancelled_.load()) {
-    int length = recv(socket_desc_, msg_buffer, max_buffer_size_, 0);
-    if (length < 0) {
-      if (cancelled_.load()) {
-        break;
-      }
-      // TODO(resizoltan) handle error
-    } else if (length == 0) {  // TODO(resizoltan) is this the way to check for connection loss?
-      connected_ = false;
-      connectionLostCallback_(inet_ntoa(server_.sin_addr), ntohs(server_.sin_port));
-      break;
-    } else {
-      msg_buffer[length] = '\0';
-      dataReceivedCallback_(msg_buffer);
-    }
-  }
-}
-
-}  // namespace kuka_sunrise

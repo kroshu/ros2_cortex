@@ -75,15 +75,14 @@ class CortexMock{
         rapidjson::Document document;
         sFrameOfData current_frame_;
         void dataHandlerFunc(sFrameOfData* pFrameOfData);
-        void connectionLostCallback(const char * server_addr, const int server_port);
-        void dataRecievedCallback(const std::vector<std::uint8_t> & data);
+        void connectionLostCallback_(const char * server_addr, const int server_port);
+        void dataReceivedCallback_(const std::vector<std::uint8_t> & data);
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
         void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
         void extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value);
         void extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value);
         void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
-        void freeFrameOfData(sFrameOfData& fod);
         void fodToBytes(const sFrameOfData& fod, std::vector<std::uint8_t> & bytes_data);
         void sendFrameJSON(const int i_frame);
 };

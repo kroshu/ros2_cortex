@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef KUKA_SUNRISE__TCP_CONNECTION_HPP_
-#define KUKA_SUNRISE__TCP_CONNECTION_HPP_
+#ifndef TCP_CONNECTION_HPP_
+#define TCP_CONNECTION_HPP_
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -26,9 +26,6 @@
 #include <vector>
 #include <atomic>
 
-namespace kuka_sunrise
-{
-
 class TCPConnection
 {
 public:
@@ -37,8 +34,7 @@ public:
     std::function<void(char *)> data_received_callback,
     std::function<void(const char *, const int)> connection_lost_callback);
 
-  bool sendByte(std::uint8_t data);
-  bool sendBytes(const std::vector<std::uint8_t> & data);
+  bool send(void*);
   void closeConnection();
 
   ~TCPConnection();
@@ -46,11 +42,11 @@ public:
   TCPConnection & operator=(const TCPConnection &) = delete;
   TCPConnection & operator=(TCPConnection && from);
   
-
-private:
+protected:
+  virtual void init() = 0;
   static void * listen_helper(void * tcpConnection);
-  void listen();
-  std::function<void(char *)> dataReceivedCallback_;
+  virtual void listen() = 0;
+  std::function<void(void *)> dataReceivedCallback_;
   std::function<void(const char *, int)> connectionLostCallback_;
 
   int socket_desc_;
@@ -60,7 +56,5 @@ private:
   const int max_buffer_size_ = 5000;
   bool connected_;
 };
-
-}  // namespace kuka_sunrise
 
 #endif  // KUKA_SUNRISE__TCP_CONNECTION_HPP_
