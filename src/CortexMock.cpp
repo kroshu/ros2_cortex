@@ -107,23 +107,19 @@ int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
 	inet_aton(szHostMulticastAddress, &host_multicast_address_);
 	inet_aton(szTalkToHostNicCardAddress, &talk_to_host_address_);
 	inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
-	inet_aton(szClientsMulticastAddress, &host_machine_address_);
+	inet_aton(szClientsMulticastAddress, &client_multicast_address_);
 
-	inet_aton(szHostNicCardAddress, &server_.sin_addr);
-	server_.sin_family = AF_INET;
-  	server_.sin_port = htons(host_port_);
-	addrlen = sizeof(server_);
-	if(bind(server_sock_desc_, (struct sockaddr *)&server_, (socklen_t)addrlen)<0){
-		std::cerr << "Bind failed" << std::endl; 
-        return RC_NetworkError;
-	}
-	if(listen(server_sock_desc_,3) < 0){
-		std::cerr << "Listening failed" << std::endl; 
-        return RC_NetworkError;
-	}
-	if((client_sock_desc_ = accept(server_sock_desc_, (struct sockaddr *)&server_, (socklen_t *)&addrlen)) < 0){
-		std::cerr << "Accepting failed" << std::endl;
-        return RC_NetworkError;
+	try {
+		tcp_connection_ = std::make_unique<TCPServerConnection>(
+		  inet_ntoa(host_machine_address_),
+		  host_port_,
+		  [this](void* data) {this->dataReceivedCallback_(data);},
+		  [this](const char * server_addr,
+		  const int server_port) {this->connectionLostCallback_(server_addr, server_port);});
+	} catch (const std::exception &e) {
+		std::cout << e.what() << std::endl;
+		tcp_connection_.reset();
+		return RC_NetworkError;
 	}
 
 	run();
@@ -424,18 +420,7 @@ void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 	}
 }
 
-void CortexMock::fodToBytes(const sFrameOfData& fod, std::vector<std::uint8_t> & bytes_data){
-	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.iFrame));
-	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.nUnidentifiedMarkers));
-	// for (int i_ui_marker = 0; i_ui_marker < fod.nUnidentifiedMarkers; i_ui_marker++)
-	// {
-	// 	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.UnidentifiedMarkers[i_ui_marker][0]));
-	// 	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.UnidentifiedMarkers[i_ui_marker][1]));
-	// 	bytes_data.emplace_back(static_cast<std::uint8_t>(fod.UnidentifiedMarkers[i_ui_marker][2]));
-	// }
-}
-
-void CortexMock::dataReceivedCallback_(const std::vector<std::uint8_t> & data){
+void CortexMock::dataReceivedCallback_(void* data){
 	std::cout << "Data recieved at cortex mock via TCP" << std::endl;
 }
 
@@ -443,26 +428,23 @@ void CortexMock::connectionLostCallback_(const char * talk_to_host_address, cons
 	std::cerr << "Connection lost at cortex mock" << std::endl;
 }
 
-void CortexMock::dataHandlerFunc(sFrameOfData* p_frame_of_data){
-	std::vector<std::uint8_t> bytes_data;
-	fodToBytes(*p_frame_of_data, bytes_data);
-	send(client_sock_desc_, bytes_data.data(), bytes_data.size(), 0);
-	std::cout << "Data of frame " << p_frame_of_data->iFrame << " sent from cortex mock via TCP" << std::endl;
-};
-
 void CortexMock::sendFrameJSON(const int i_frame){
 	rapidjson::StringBuffer buffer;
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 	document["framesArray"][i_frame].Accept(writer);
-	send(client_sock_desc_, buffer.GetString(), buffer.GetSize(), 0);
-	std::cout << "Data of frame " << i_frame << " sent from cortex mock via TCP, size " << buffer.GetLength() << std::endl;
-	std::cout << "Number of Ui Markers: " << document["framesArray"][i_frame]["nUnidentifiedMarkers"].GetInt() << std::endl;
+	char* data = new char[buffer.GetLength()+1]; // TODO ?? correct ??
+	strcpy(data, buffer.GetString());
+	tcp_connection_->send(data, buffer.GetLength()+1);
+	// std::cout << "Data of frame " << i_frame << " sent from cortex mock via TCP, size " << buffer.GetLength() << std::endl;
+	// std::cout << "Number of Ui Markers: " << document["framesArray"][i_frame]["nUnidentifiedMarkers"].GetInt() << std::endl;
 }
 
 void CortexMock::run(){
-	for (int i_frame = 0; i_frame < n_frames; ++i_frame) {
-		sendFrameJSON(i_frame);
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+	for (current_framenum_ = 0; current_framenum_ < n_frames; ++current_framenum_) {
+		if(tcp_connection_){
+		    sendFrameJSON(current_framenum_);
+		    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		}
 	}
 }
 

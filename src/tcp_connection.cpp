@@ -21,7 +21,7 @@
 
 TCPConnection::TCPConnection(
   const char * server_addr, int server_port,
-  std::function<void(char * data)> data_received_callback,
+  std::function<void(void * data)> data_received_callback,
   std::function<void(const char * server_addr, const int server_port)> connection_lost_callback)
 : dataReceivedCallback_(data_received_callback), connectionLostCallback_(
     connection_lost_callback), socket_desc_(socket(AF_INET, SOCK_STREAM, 0)), cancelled_(false), connected_(false)
@@ -62,4 +62,21 @@ void * TCPConnection::listen_helper(void * tcpConnection)
 {
   reinterpret_cast<TCPConnection *>(tcpConnection)->listen();
   return NULL;
+}
+
+bool TCPConnection::send(void* data, int data_len){
+    int sent_length = -1;
+    try
+    {
+      sent_length = ::send(socket_desc_, data, data_len, 0);
+    }
+    catch(...)
+    {
+      std::cerr << "send error" << '\n';
+    }
+    
+    if (sent_length < 0) {
+        return false;
+    }  // TODO(resizoltan) handle other kind of errors?
+    return true;
 }

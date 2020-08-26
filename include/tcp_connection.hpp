@@ -29,12 +29,12 @@
 class TCPConnection
 {
 public:
-  TCPConnection(
+  explicit TCPConnection(
     const char * server_addr, const int server_port,
-    std::function<void(char *)> data_received_callback,
+    std::function<void(void *)> data_received_callback,
     std::function<void(const char *, const int)> connection_lost_callback);
 
-  bool send(void*);
+  virtual bool send(void*, int);
   void closeConnection();
 
   ~TCPConnection();

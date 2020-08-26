@@ -3,6 +3,7 @@
 
 #include <condition_variable>
 
+#include "tcp_client_connection.hpp"
 #include "CortexMock.hpp"
 
 class CortexClient{
@@ -11,7 +12,7 @@ public:
     void run();
     ~CortexClient();
 private:
-    void dataReceivedCallback_(char* data);
+    void dataReceivedCallback_(void* data);
     void connectionLostCallback_(const char *server_addr, int server_port);
     void extractFrame(sFrameOfData& fod, const rapidjson::Value& frame);
     void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
@@ -27,7 +28,7 @@ private:
     const int server_port_ = 30001;
     const int max_json_frame_size_ = 10000;
     int sock = 0;
-    std::unique_ptr<kuka_sunrise::TCPConnection> tcp_connection_;
+    std::unique_ptr<TCPClientConnection> tcp_connection_;
     std::mutex m_;
     std::condition_variable cv_;
 protected:

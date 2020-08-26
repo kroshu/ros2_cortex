@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <memory>
 
-#include "tcp_connection.hpp"
+#include "tcp_server_connection.hpp"
 #include "Cortex.h"
 #include "rapidjson/document.h"
 
@@ -66,24 +66,21 @@ class CortexMock{
         int min_time_out_=500, n_frames, current_framenum_ = 0;
         const int server_sock_desc_;
         int addrlen = 0;
-        int client_sock_desc_ = 0; //should this be initialized??
-        struct sockaddr_in server_;
         in_addr host_machine_address_, host_multicast_address_, talk_to_host_address_, talk_to_client_address_, client_multicast_address_;
         const std::string capture_file_name_;
         int talk_to_host_port_ = 30000, host_port_ = 30001, host_multicast_port_ = 30002;
         int talk_to_clients_request_port_ = 30003, talk_to_clients_multicast_port_ = 30004, clients_multicast_port_ = 30005;
         rapidjson::Document document;
         sFrameOfData current_frame_;
-        void dataHandlerFunc(sFrameOfData* pFrameOfData);
+        std::unique_ptr<TCPServerConnection> tcp_connection_;
         void connectionLostCallback_(const char * server_addr, const int server_port);
-        void dataReceivedCallback_(const std::vector<std::uint8_t> & data);
+        void dataReceivedCallback_(void* data);
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
         void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
         void extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value);
         void extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value);
         void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
-        void fodToBytes(const sFrameOfData& fod, std::vector<std::uint8_t> & bytes_data);
         void sendFrameJSON(const int i_frame);
 };
 

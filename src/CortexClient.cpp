@@ -211,9 +211,9 @@ void CortexClient::extractFrame(sFrameOfData& fod, const rapidjson::Value& frame
 	}
 }
 
-void CortexClient::dataReceivedCallback_(char* data){
+void CortexClient::dataReceivedCallback_(void* data){
 	std::lock_guard<std::mutex> lk(m_);
-    rapidjson::StringStream s(data);
+    rapidjson::StringStream s(static_cast<char*>(data));
     current_frame_json_.ParseStream(s);
 	if(current_fod_.iFrame == current_frame_json_["frame"].GetInt()) return;
     extractFrame(current_fod_, current_frame_json_);
@@ -228,10 +228,10 @@ void CortexClient::connectionLostCallback_(const char *server_addr, int server_p
 
 bool CortexClient::connect(){
 	try {
-		tcp_connection_ = std::make_unique<kuka_sunrise::TCPConnection>(
+		tcp_connection_ = std::make_unique<TCPClientConnection>(
 		  server_addr_.data(),
 		  server_port_,
-		  [this](char* data) {this->dataReceivedCallback_(data);},
+		  [this](void* data) {this->dataReceivedCallback_(data);},
 		  [this](const char * server_addr,
 		  const int server_port) {this->connectionLostCallback_(server_addr, server_port);});
 	} catch (const std::exception &e) {
@@ -252,6 +252,11 @@ bool CortexClient::isConnected()
 }
 
 void CortexClient::run(){
+	// int wait_num = 10, i=0;
+	std::vector<std::uint8_t> byte_data;
+	byte_data.emplace_back(static_cast<uint8_t>(1));
 	connect();
-	while(isConnected()){}
+	while(isConnected()){
+		tcp_connection_->send(byte_data.data(), byte_data.size() * sizeof(uint8_t));
+	}
 }
