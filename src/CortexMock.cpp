@@ -1,5 +1,3 @@
-#include <string.h>
-#include <iostream>
 #include <chrono>
 #include <thread>
 
@@ -8,7 +6,18 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
-CortexMock::CortexMock(const std::string capture_file_name):capture_file_name_(capture_file_name), server_sock_desc_(socket(AF_INET, SOCK_STREAM, 0)) {
+CortexMock::CortexMock(const std::string& capture_file_name):capture_file_name_(capture_file_name) {
+	FILE* fp = fopen(capture_file_name_.data(), "r");
+	char read_buffer[65536];
+	rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
+
+	document.ParseStream(is);
+	fclose(fp);
+	n_frames = document["framesArray"].Size();
+}
+
+CortexMock::CortexMock(const CortexMock& src){
+	src.getCaptureFilename(capture_file_name_);
 	FILE* fp = fopen(capture_file_name_.data(), "r");
 	char read_buffer[65536];
 	rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
@@ -20,7 +29,10 @@ CortexMock::CortexMock(const std::string capture_file_name):capture_file_name_(c
 
 CortexMock::~CortexMock(){
 	freeFrame(&current_frame_);
-	close(server_sock_desc_);
+}
+
+void CortexMock::getCaptureFilename(std::string& dest){
+	dest = capture_file_name_;
 }
 
 int CortexMock::getSdkVersion(unsigned char Version[4]){
@@ -51,14 +63,14 @@ int CortexMock::getMinTimeout(){
     return min_time_out_;
 }
 
-int CortexMock::setErrorMsgHandlerFunc(void (*MyFunction)(int iLogLevel, char* szLogMessage)){
-	// TODO
-	return RC_GeneralError;
+int CortexMock::setErrorMsgHandlerFunc(void (*errorHandlerFunc)(int iLogLevel, char* szLogMessage)){
+	errorHandlerFunc_ = errorHandlerFunc; // TODO is this ok this way?
+	return RC_Okay;
 }
 
-int CortexMock::setDataHandlerFunc(void (*MyFunction)(sFrameOfData* pFrameOfData)){
-	// TODO
-	return RC_GeneralError;
+int CortexMock::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* pFrameOfData)){
+	dataHandlerFunc_ = dataHandlerFunc; // TODO is this ok this way?
+	return RC_Okay;
 }
 
 int CortexMock::sendDataToClients(sFrameOfData* pFrameOfData){
@@ -109,19 +121,6 @@ int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
 	inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
 	inet_aton(szClientsMulticastAddress, &client_multicast_address_);
 
-	try {
-		tcp_connection_ = std::make_unique<TCPServerConnection>(
-		  inet_ntoa(host_machine_address_),
-		  host_port_,
-		  [this](void* data) {this->dataReceivedCallback_(data);},
-		  [this](const char * server_addr,
-		  const int server_port) {this->connectionLostCallback_(server_addr, server_port);});
-	} catch (const std::exception &e) {
-		std::cout << e.what() << std::endl;
-		tcp_connection_.reset();
-		return RC_NetworkError;
-	}
-
 	run();
 	return RC_Okay;
 }
@@ -161,7 +160,7 @@ int CortexMock::getHostInfo(sHostInfo *pHostInfo){
     strcpy(pHostInfo->szHostMachineName, "CortexHost");
     inet_aton((char*)pHostInfo->HostMachineAddress, &host_machine_address_);
     getSdkVersion(pHostInfo->HostProgramVersion);
-    strcpy(pHostInfo->szHostMachineName, "Cortex.dll");
+    strcpy(pHostInfo->szHostProgramName, "CortexMock");
 
     //TODO Error handling
     return RC_Okay;
@@ -197,7 +196,74 @@ sFrameOfData* CortexMock::getCurrentFrame(){
 }
 
 int CortexMock::copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst){
-	// TODO
+	pDst->iFrame = pSrc->iFrame;
+	pDst->fDelay = pSrc->fDelay;
+	int n_bodies = pDst->nBodies = pSrc->nBodies;
+	for (int i = 0; i < n_bodies; i++)
+	{
+		strcpy(pDst->BodyData[i].szName, pSrc->BodyData[i].szName);
+
+		int n_markers = pDst->BodyData[i].nMarkers = pSrc->BodyData[i].nMarkers;
+		if(n_markers > 0){
+			memcpy(pDst->BodyData[i].Markers, pSrc->BodyData[i].Markers, n_markers * sizeof(tMarkerData));
+		}
+		pDst->BodyData[i].fAvgMarkerResidual = pSrc->BodyData[i].fAvgMarkerResidual;
+
+		int n_segments = pDst->BodyData[i].nSegments = pSrc->BodyData[i].nSegments;
+		if(n_segments > 0){
+			memcpy(pDst->BodyData[i].Segments, pSrc->BodyData[i].Segments, n_segments * sizeof(tSegmentData));
+		}
+
+		int n_dofs = pDst->BodyData[i].nDofs = pSrc->BodyData[i].nDofs;
+		if(n_dofs > 0){
+			memcpy(pDst->BodyData[i].Dofs, pSrc->BodyData[i].Dofs, n_dofs * sizeof(tDofData));
+		}
+		pDst->BodyData[i].fAvgDofResidual = pSrc->BodyData[i].fAvgDofResidual;
+		pDst->BodyData[i].nIterations = pSrc->BodyData[i].nIterations;
+
+		pDst->BodyData[i].ZoomEncoderValue = pSrc->BodyData[i].ZoomEncoderValue;
+		pDst->BodyData[i].FocusEncoderValue = pSrc->BodyData[i].FocusEncoderValue;
+		pDst->BodyData[i].IrisEncoderValue = pSrc->BodyData[i].IrisEncoderValue;
+		memcpy(pDst->BodyData[i].CamTrackParams, pSrc->BodyData[i].CamTrackParams, sizeof(tCamTrackParameters));
+
+		int n_events = pDst->BodyData[i].nEvents = pSrc->BodyData[i].nEvents;
+		for (int i = 0; i < n_events; i++)
+		{
+			// TODO how to copy char**, is it possible in this case at all?
+		}
+	}
+
+	int n_ui_markers = pDst->nUnidentifiedMarkers = pSrc->nUnidentifiedMarkers;
+    if(n_ui_markers > 0){
+		memcpy(pDst->UnidentifiedMarkers, pSrc->UnidentifiedMarkers, n_ui_markers * sizeof(tMarkerData));
+	}
+
+	pDst->AnalogData.nAnalogChannels = pSrc->AnalogData.nAnalogChannels;
+	pDst->AnalogData.nAnalogSamples = pSrc->AnalogData.nAnalogSamples;
+	int n_analogs = pDst->AnalogData.nAnalogChannels * pDst->AnalogData.nAnalogSamples;
+	memcpy(pDst->AnalogData.AnalogSamples, pSrc->AnalogData.AnalogSamples, n_analogs * sizeof(short));
+
+	pDst->AnalogData.nForcePlates = pSrc->AnalogData.nForcePlates;
+	pDst->AnalogData.nForceSamples = pSrc->AnalogData.nForceSamples;
+	int n_forces = pDst->AnalogData.nForcePlates * pDst->AnalogData.nForceSamples;
+	memcpy(pDst->AnalogData.Forces, pSrc->AnalogData.Forces, n_forces * sizeof(tForceData));
+
+	pDst->AnalogData.nAngleEncoders = pSrc->AnalogData.nAngleEncoders;
+	pDst->AnalogData.nAngleEncoderSamples = pSrc->AnalogData.nAngleEncoderSamples;
+	int n_all_ae_samples = pDst->AnalogData.nAngleEncoders * pDst->AnalogData.nAngleEncoderSamples;
+	memcpy(pDst->AnalogData.AngleEncoderSamples, pSrc->AnalogData.AngleEncoderSamples, n_all_ae_samples * sizeof(double));
+
+    pDst->RecordingStatus.bRecording = pSrc->RecordingStatus.bRecording;
+	pDst->RecordingStatus.iFirstFrame = pSrc->RecordingStatus.iFirstFrame;
+	pDst->RecordingStatus.iLastFrame = pSrc->RecordingStatus.iLastFrame;
+	strcpy(pDst->RecordingStatus.szFilename, pSrc->RecordingStatus.szFilename);
+
+	pDst->TimeCode.iFrames = pSrc->TimeCode.iFrames;
+	pDst->TimeCode.iHours = pSrc->TimeCode.iHours;
+	pDst->TimeCode.iMinutes = pSrc->TimeCode.iMinutes;
+	pDst->TimeCode.iSeconds = pSrc->TimeCode.iSeconds;
+	pDst->TimeCode.iStandard = pSrc->TimeCode.iStandard;
+
 	return RC_GeneralError;
 }
 
@@ -420,38 +486,9 @@ void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 	}
 }
 
-void CortexMock::dataReceivedCallback_(void* data){
-	std::cout << "Data recieved at cortex mock via TCP" << std::endl;
-}
-
-void CortexMock::connectionLostCallback_(const char * talk_to_host_address, const int talk_to_host_port){
-	std::cerr << "Connection lost at cortex mock" << std::endl;
-}
-
-void CortexMock::sendFrameJSON(const int i_frame){
-	rapidjson::StringBuffer buffer;
-	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-	document["framesArray"][i_frame].Accept(writer);
-	char* data = new char[buffer.GetLength()+1]; // TODO ?? correct ??
-	strcpy(data, buffer.GetString());
-	tcp_connection_->send(data, buffer.GetLength()+1);
-	// std::cout << "Data of frame " << i_frame << " sent from cortex mock via TCP, size " << buffer.GetLength() << std::endl;
-	// std::cout << "Number of Ui Markers: " << document["framesArray"][i_frame]["nUnidentifiedMarkers"].GetInt() << std::endl;
-}
-
 void CortexMock::run(){
 	for (current_framenum_ = 0; current_framenum_ < n_frames; ++current_framenum_) {
-		if(tcp_connection_){
-		    sendFrameJSON(current_framenum_);
-		    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-		}
+		extractFrame(current_frame_, current_framenum_);
+		dataHandlerFunc_(&current_frame_);
 	}
-}
-
-int main(int argc, char **argv) {
-	CortexMock cortex_mock("CaptureWithPlots1.json");
-	char addr[] = "127.0.0.1";
-	cortex_mock.initialize(addr, addr);
-
-	return 0;
 }

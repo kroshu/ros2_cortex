@@ -6,21 +6,24 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <memory>
+#include <functional>
 
-#include "tcp_server_connection.hpp"
 #include "Cortex.h"
 #include "rapidjson/document.h"
 
+// TODO consistent style
+
 class CortexMock{
     public:
-        CortexMock(const std::string captureFileName);
+        CortexMock(const std::string& captureFileName);
+        CortexMock(const CortexMock&);
         ~CortexMock();
         int getSdkVersion(unsigned char Version[4]);
         int setVerbosityLevel(int iLevel);
         int getVerbosityLevel();
         int setMinTimeout(int msTimeout);
         int getMinTimeout();
-        int setErrorMsgHandlerFunc(void (*dataHandlerFunc)(int iLogLevel, char* szLogMessage));
+        int setErrorMsgHandlerFunc(void (*errorHandlerFunc)(int iLogLevel, char* szLogMessage));
         int setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* pFrameOfData));
         int sendDataToClients(sFrameOfData* pFrameOfData);
         void setClientCommunicationEnabled(int bEnabled);
@@ -62,9 +65,10 @@ class CortexMock{
         void constructRotationMatrix(double angles[3], int iRotationOrder, double matrix[3][3]);
         void extractEulerAngles(double matrix[3][3],int iRotationOrder, double angles[3]);
 
+        void getCaptureFilename(std::string& dest) const;
+
     private:
         int min_time_out_=500, n_frames, current_framenum_ = 0;
-        const int server_sock_desc_;
         int addrlen = 0;
         in_addr host_machine_address_, host_multicast_address_, talk_to_host_address_, talk_to_client_address_, client_multicast_address_;
         const std::string capture_file_name_;
@@ -72,16 +76,14 @@ class CortexMock{
         int talk_to_clients_request_port_ = 30003, talk_to_clients_multicast_port_ = 30004, clients_multicast_port_ = 30005;
         rapidjson::Document document;
         sFrameOfData current_frame_;
-        std::unique_ptr<TCPServerConnection> tcp_connection_;
-        void connectionLostCallback_(const char * server_addr, const int server_port);
-        void dataReceivedCallback_(void* data);
+        std::function<void(sFrameOfData*)> dataHandlerFunc_;
+        std::function<void(int iLogLevel, char* szLogMessage)> errorHandlerFunc_;
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
         void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
         void extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value);
         void extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value);
         void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
-        void sendFrameJSON(const int i_frame);
 };
 
 #endif
