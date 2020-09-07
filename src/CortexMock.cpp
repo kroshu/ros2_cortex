@@ -7,17 +7,16 @@
 #include "rapidjson/stringbuffer.h"
 
 CortexMock::CortexMock(const std::string& capture_file_name):capture_file_name_(capture_file_name) {
-	FILE* fp = fopen(capture_file_name_.data(), "r");
-	char read_buffer[65536];
-	rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
-
-	document.ParseStream(is);
-	fclose(fp);
-	n_frames = document["framesArray"].Size();
+	initReadFile();
 }
 
-CortexMock::CortexMock(const CortexMock& src){
-	src.getCaptureFilename(capture_file_name_);
+// CortexMock::CortexMock(const CortexMock& src){
+// 	src.getCaptureFilename(capture_file_name_);
+// 	// TODO copy other variables??
+// 	initReadFile();
+// }
+
+void CortexMock::initReadFile(){
 	FILE* fp = fopen(capture_file_name_.data(), "r");
 	char read_buffer[65536];
 	rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
@@ -31,7 +30,7 @@ CortexMock::~CortexMock(){
 	freeFrame(&current_frame_);
 }
 
-void CortexMock::getCaptureFilename(std::string& dest){
+void CortexMock::getCaptureFilename(std::string& dest) const{
 	dest = capture_file_name_;
 }
 
@@ -205,17 +204,20 @@ int CortexMock::copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst){
 
 		int n_markers = pDst->BodyData[i].nMarkers = pSrc->BodyData[i].nMarkers;
 		if(n_markers > 0){
+			pDst->BodyData[i].Markers = new tMarkerData[n_markers];
 			memcpy(pDst->BodyData[i].Markers, pSrc->BodyData[i].Markers, n_markers * sizeof(tMarkerData));
 		}
 		pDst->BodyData[i].fAvgMarkerResidual = pSrc->BodyData[i].fAvgMarkerResidual;
 
 		int n_segments = pDst->BodyData[i].nSegments = pSrc->BodyData[i].nSegments;
 		if(n_segments > 0){
+			pDst->BodyData[i].Segments = new tSegmentData[n_segments];
 			memcpy(pDst->BodyData[i].Segments, pSrc->BodyData[i].Segments, n_segments * sizeof(tSegmentData));
 		}
 
 		int n_dofs = pDst->BodyData[i].nDofs = pSrc->BodyData[i].nDofs;
 		if(n_dofs > 0){
+			pDst->BodyData[i].Dofs = new tDofData[n_dofs];
 			memcpy(pDst->BodyData[i].Dofs, pSrc->BodyData[i].Dofs, n_dofs * sizeof(tDofData));
 		}
 		pDst->BodyData[i].fAvgDofResidual = pSrc->BodyData[i].fAvgDofResidual;
@@ -235,23 +237,34 @@ int CortexMock::copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst){
 
 	int n_ui_markers = pDst->nUnidentifiedMarkers = pSrc->nUnidentifiedMarkers;
     if(n_ui_markers > 0){
+		pDst->UnidentifiedMarkers = new tMarkerData[n_ui_markers];
 		memcpy(pDst->UnidentifiedMarkers, pSrc->UnidentifiedMarkers, n_ui_markers * sizeof(tMarkerData));
 	}
 
 	pDst->AnalogData.nAnalogChannels = pSrc->AnalogData.nAnalogChannels;
 	pDst->AnalogData.nAnalogSamples = pSrc->AnalogData.nAnalogSamples;
 	int n_analogs = pDst->AnalogData.nAnalogChannels * pDst->AnalogData.nAnalogSamples;
-	memcpy(pDst->AnalogData.AnalogSamples, pSrc->AnalogData.AnalogSamples, n_analogs * sizeof(short));
+	if(n_analogs > 0){
+		pDst->AnalogData.AnalogSamples = new short[n_analogs];
+		memcpy(pDst->AnalogData.AnalogSamples, pSrc->AnalogData.AnalogSamples, n_analogs * sizeof(short));
+	}
 
 	pDst->AnalogData.nForcePlates = pSrc->AnalogData.nForcePlates;
 	pDst->AnalogData.nForceSamples = pSrc->AnalogData.nForceSamples;
 	int n_forces = pDst->AnalogData.nForcePlates * pDst->AnalogData.nForceSamples;
-	memcpy(pDst->AnalogData.Forces, pSrc->AnalogData.Forces, n_forces * sizeof(tForceData));
+	if(n_forces > 0){
+		pDst->AnalogData.Forces = new tForceData[n_forces];
+		memcpy(pDst->AnalogData.Forces, pSrc->AnalogData.Forces, n_forces * sizeof(tForceData));
+	}
+	
 
 	pDst->AnalogData.nAngleEncoders = pSrc->AnalogData.nAngleEncoders;
 	pDst->AnalogData.nAngleEncoderSamples = pSrc->AnalogData.nAngleEncoderSamples;
 	int n_all_ae_samples = pDst->AnalogData.nAngleEncoders * pDst->AnalogData.nAngleEncoderSamples;
-	memcpy(pDst->AnalogData.AngleEncoderSamples, pSrc->AnalogData.AngleEncoderSamples, n_all_ae_samples * sizeof(double));
+	if(n_analogs > 0){
+		pDst->AnalogData.AngleEncoderSamples = new double[n_all_ae_samples];
+		memcpy(pDst->AnalogData.AngleEncoderSamples, pSrc->AnalogData.AngleEncoderSamples, n_all_ae_samples * sizeof(double));
+	}
 
     pDst->RecordingStatus.bRecording = pSrc->RecordingStatus.bRecording;
 	pDst->RecordingStatus.iFirstFrame = pSrc->RecordingStatus.iFirstFrame;
@@ -454,7 +467,7 @@ void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 
 	fod.nUnidentifiedMarkers = frame["nUnidentifiedMarkers"].GetInt();
 
-	if(fod.UnidentifiedMarkers > 0){
+	if(fod.nUnidentifiedMarkers > 0){
 		fod.UnidentifiedMarkers = new tMarkerData[fod.nUnidentifiedMarkers];
 		extractMarkers(fod.UnidentifiedMarkers, fod.nUnidentifiedMarkers, frame["unidentifiedMarkers"]);
 	}

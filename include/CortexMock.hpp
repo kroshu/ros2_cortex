@@ -16,7 +16,7 @@
 class CortexMock{
     public:
         CortexMock(const std::string& captureFileName);
-        CortexMock(const CortexMock&);
+        // CortexMock(const CortexMock&);
         ~CortexMock();
         int getSdkVersion(unsigned char Version[4]);
         int setVerbosityLevel(int iLevel);
@@ -71,7 +71,7 @@ class CortexMock{
         int min_time_out_=500, n_frames, current_framenum_ = 0;
         int addrlen = 0;
         in_addr host_machine_address_, host_multicast_address_, talk_to_host_address_, talk_to_client_address_, client_multicast_address_;
-        const std::string capture_file_name_;
+        std::string capture_file_name_;
         int talk_to_host_port_ = 30000, host_port_ = 30001, host_multicast_port_ = 30002;
         int talk_to_clients_request_port_ = 30003, talk_to_clients_multicast_port_ = 30004, clients_multicast_port_ = 30005;
         rapidjson::Document document;
@@ -84,6 +84,7 @@ class CortexMock{
         void extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value);
         void extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value);
         void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
+        void initReadFile();
 };
 
 #endif

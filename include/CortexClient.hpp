@@ -2,6 +2,7 @@
 #define CORTEX_CLIENT_HPP_
 
 #include <condition_variable>
+#include <functional>
 
 #include "CortexMock.hpp"
 
@@ -12,19 +13,14 @@ public:
     explicit CortexClient(const std::string& capture_file_name);
     void run();
     ~CortexClient();
+    virtual void dataHandlerFunc_(sFrameOfData*) = 0;
+    int setdataHandlerFunc(void (*)(sFrameOfData*));
+    int copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst);
 private:
-    void freeFrameOfData(sFrameOfData& fod);
-    bool connect();
-    bool isConnected();
     sFrameOfData current_fod_; // TODO initialize
-    const std::string server_addr_ = "127.0.0.1";
-    const int server_port_ = 30001;
-    const int max_json_frame_size_ = 10000;
-    int sock = 0;
-    std::mutex m_;
-    std::condition_variable cv_;
+    const std::string server_addr_ = "127.0.0.1"; // TODO make const and string
+    // const int server_port_ = 30001;
 protected:
-    virtual void dataHandlerFunc_(sFrameOfData* fod)=0;
     CortexMock cortex_mock_;
 };
 
