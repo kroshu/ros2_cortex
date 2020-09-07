@@ -21,9 +21,9 @@ void CortexMock::initReadFile(){
 	char read_buffer[65536];
 	rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
 
-	document.ParseStream(is);
+	document_.ParseStream(is);
 	fclose(fp);
-	n_frames = document["framesArray"].Size();
+	n_frames_ = document_["framesArray"].Size();
 }
 
 CortexMock::~CortexMock(){
@@ -43,17 +43,18 @@ int CortexMock::getSdkVersion(unsigned char Version[4]){
 }
 
 int CortexMock::setVerbosityLevel(int iLevel){
-    //TODO Logging?
-    return RC_GeneralError;
+    // TODO Logging?
+	verbosity_level_ = iLevel;
+    return RC_Okay;
 }
 
 int CortexMock::getVerbosityLevel(){
-    //TODO Logging?
-    return VL_Warning;
+    // TODO Logging?
+    return verbosity_level_;
 }
 
 int CortexMock::setMinTimeout(int msTimeout){
-    //Does using timeout make sense?
+    // Does using timeout make sense?
     min_time_out_ = msTimeout;
     return RC_Okay;
 }
@@ -62,28 +63,27 @@ int CortexMock::getMinTimeout(){
     return min_time_out_;
 }
 
-int CortexMock::setErrorMsgHandlerFunc(void (*errorHandlerFunc)(int iLogLevel, char* szLogMessage)){
-	errorHandlerFunc_ = errorHandlerFunc; // TODO is this ok this way?
+int CortexMock::setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int iLogLevel, char* szLogMessage)){
+	errorMsgHandlerFunc_ = errorMsgHandlerFunc;
 	return RC_Okay;
 }
 
 int CortexMock::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* pFrameOfData)){
-	dataHandlerFunc_ = dataHandlerFunc; // TODO is this ok this way?
+	dataHandlerFunc_ = dataHandlerFunc;
 	return RC_Okay;
 }
 
 int CortexMock::sendDataToClients(sFrameOfData* pFrameOfData){
-	// TODO
+	// TODO send through TCP? or what way?
 	return RC_GeneralError;
 }
 
 void CortexMock::setClientCommunicationEnabled(int bEnabled){
-	// TODO
+	client_comm_enabled_ = bEnabled;
 }
 
 int CortexMock::isClientCommunicationEnabled(){
-	// TODO
-	return RC_GeneralError;
+	return client_comm_enabled_;
 }
 
 void CortexMock::setThreadPriorities(maThreadPriority ListenForHost, maThreadPriority ListenForData, maThreadPriority ListenForClients){
@@ -166,14 +166,77 @@ int CortexMock::getHostInfo(sHostInfo *pHostInfo){
 }
 
 int CortexMock::exit(){
-	// TODO
-	return RC_GeneralError;
+	client_comm_enabled_ = false;
+	play_mode_ = PlayMode::paused;
+	return RC_Okay;
 }
 
 int CortexMock::request(char* szCommand, void** ppResponse, int *pnBytes){
-	// TODO
+	std::string command(szCommand), command_extra;
+	int pos = command.find('=');
+	if(pos != std::string::npos){
+		command_extra = command.substr(pos);
+		command = command.substr(0, pos);
+	}
+	auto found_it = map_string_to_request.find(command);
+	if(found_it == map_string_to_request.end()) return RC_Unrecognized;
+	Request req_type = found_it->second;
+	switch (req_type)
+	{
+	case Request::LiveMode:
+		return RC_GeneralError;
+	case Request::Pause:
+		return RC_GeneralError;
+	case Request::SetOutputName:
+		
+		break;
+	case Request::StartRecording:
+		return RC_GeneralError;
+	case Request::StopRecording:
+		return RC_GeneralError;
+	case Request::ResetIDs:
+		
+		break;
+	case Request::PostForward:
+		play_mode_ = PlayMode::forwards;
+		break;
+	case Request::PostBackward:
+		play_mode_ = PlayMode::backwards;
+		break;
+	case Request::PostPause:
+		play_mode_ = PlayMode::paused;
+		break;
+	case Request::PostGetPlayMode:
+		// TODO check out how to return
+		// int& num = &play_mode_;
+		// *ppResponse = static_cast<int&>(&play_mode_);
+		break;
+	case Request::GetContextFrameRate:
+		// TODO check out how to return
+		// *ppResponse = &frame_rate_;
+		break;
+	case Request::GetContextAnalogSampleRate:
+		// TODO
+		break;
+	case Request::GetContextAnalogBitDepth:
+		// TODO
+		break;
+	case Request::GetUpAxis:
+		// TODO
+		break;
+	case Request::GetConversionToMillimeters:
+		// TODO
+		break;
+	case Request::GetFrameOfData:
+		if(command_extra.empty()) *ppResponse = &current_frame_;
+		// TODO else return markerset base pos
+		break;
+	
+	default:
+		return RC_Unrecognized;
+	}
 
-	return RC_GeneralError;
+	return RC_Okay;
 }
 
 sSkyReturn CortexMock::*skyCommand(char *szCommand, int msTimeout){
@@ -458,7 +521,7 @@ void CortexMock::extractSegments(tSegmentData* segments, int n_segments, const r
 
 void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 	freeFrame(&fod);
-	const rapidjson::Value& frame = document["framesArray"][iFrame];
+	const rapidjson::Value& frame = document_["framesArray"][iFrame];
 	fod.iFrame = frame["frame"].GetInt();
 	fod.fDelay = frame["frameDelay"].GetFloat();
 	fod.nBodies = frame["nBodies"].GetInt();
@@ -500,8 +563,23 @@ void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 }
 
 void CortexMock::run(){
-	for (current_framenum_ = 0; current_framenum_ < n_frames; ++current_framenum_) {
-		extractFrame(current_frame_, current_framenum_);
-		dataHandlerFunc_(&current_frame_);
+	while(client_comm_enabled_) {
+		switch (play_mode_)
+		{
+		case PlayMode::forwards:
+			extractFrame(current_frame_, current_framenum_);
+			dataHandlerFunc_(&current_frame_);
+			current_framenum_ = current_framenum_ < n_frames_-1 ? current_framenum_+1 : 0;
+			break;
+		case PlayMode::backwards:
+			extractFrame(current_frame_, current_framenum_);
+			dataHandlerFunc_(&current_frame_);
+			current_framenum_ = current_framenum_ > 0 ? current_framenum_-1 : n_frames_-1;
+			break;
+
+		default:
+			break;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000/frame_rate_));
 	}
 }
