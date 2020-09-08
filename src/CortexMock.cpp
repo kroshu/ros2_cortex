@@ -28,40 +28,6 @@ void CortexMock::initReadFile(){
 	// extractBodyDefs(body_defs_, document_["bodyDefs"]);
 }
 
-void CortexMock::extractBodyDefs(sBodyDefs& body_defs, const rapidjson::Value& body_defs_json){
-    int n_body_defs = body_defs.nBodyDefs = body_defs_json["nBodyDefs"].GetInt();
-    rapidjson::Value body_def_array(rapidjson::kArrayType);
-	for (int i = 0; i < n_body_defs; i++)
-	{
-		extractBodyDef(body_defs.BodyDefs[i], body_def_array[i]);
-	}
-
-    int n_analog_channels = body_defs.nAnalogChannels = body_defs_json["nAnalogChannels"].GetInt();
-	body_defs.szAnalogChannelNames = new char*[n_analog_channels];
-	char** dst_analogch_names_ptr = body_defs.szAnalogChannelNames;
-	for (int i = 0; i < n_analog_channels; ++i, ++dst_analogch_names_ptr)
-	{
-		std::string analogch_name = body_defs_json["analogChannels"][i].GetString();
-        *dst_analogch_names_ptr = new char[analogch_name.length()+1];
-		strcpy(*dst_analogch_names_ptr, analogch_name.data());
-	}
-
-	body_defs.nForcePlates = body_defs_json["nForcePlates"].GetInt();
-	body_defs.AnalogBitDepth = body_defs_json["analogBitDepth"].GetInt();
-
-	body_defs.AnalogLoVoltage = new float[n_analog_channels];
-	body_defs.AnalogHiVoltage = new float[n_analog_channels];
-	for (int i = 0; i < n_analog_channels; i++)
-	{
-		body_defs.AnalogLoVoltage[i] = body_defs_json["analogLoVoltage"][i].GetFloat();
-		body_defs.AnalogHiVoltage[i] = body_defs_json["analogHiVoltage"][i].GetFloat();
-	}
-}
-
-void CortexMock::extractBodyDef(sBodyDef& body_def, const rapidjson::Value& body_def_json){
-    // TDOD
-}
-
 CortexMock::~CortexMock(){
 	freeFrame(&current_frame_);
 }
@@ -278,12 +244,48 @@ sSkyReturn CortexMock::*skyCommand(char *szCommand, int msTimeout){
 }
 
 sBodyDefs* CortexMock::getBodyDefs(){
-	// TODO
+	return &body_defs_;
 }
 
 int CortexMock::freeBodyDefs(sBodyDefs* pBodyDefs){
-	// TODO
-	return RC_GeneralError;
+	int n_body_defs = pBodyDefs->nBodyDefs;
+	for (int i = 0; i < n_body_defs; ++i)
+	{
+		delete [] pBodyDefs->BodyDefs[i].szName;
+
+		int n_markers = pBodyDefs->nAnalogChannels;
+		for (int i_marker_name = 0; i_marker_name < n_markers; ++i_marker_name) {
+			if(pBodyDefs->BodyDefs[i].szMarkerNames[i_marker_name] != nullptr) delete [] pBodyDefs->BodyDefs[i].szMarkerNames[i_marker_name];
+		}
+		if(n_markers > 0) delete [] pBodyDefs->BodyDefs[i].szMarkerNames;
+
+		int n_segments = pBodyDefs->BodyDefs[i].Hierarchy.nSegments;
+		for (int i_segment_name = 0; i_segment_name < n_segments; ++i_segment_name) {
+			if(pBodyDefs->BodyDefs[i].Hierarchy.szSegmentNames[i_segment_name] != nullptr)
+				delete [] pBodyDefs->BodyDefs[i].Hierarchy.szSegmentNames[i_segment_name];
+		}
+		if(n_segments > 0){
+			delete [] pBodyDefs->BodyDefs[i].Hierarchy.szSegmentNames;
+			delete [] pBodyDefs->BodyDefs[i].Hierarchy.iParents;
+		}
+
+		int n_dofs = pBodyDefs->nAnalogChannels;
+		for (int i_dof_name = 0; i_dof_name < n_dofs; ++i_dof_name) {
+			if(pBodyDefs->BodyDefs[i].szDofNames[i_dof_name] != nullptr) delete [] pBodyDefs->BodyDefs[i].szDofNames[i_dof_name];
+		}
+		if(n_markers > 0) delete [] pBodyDefs->BodyDefs[i].szDofNames;
+	}
+	
+
+	int n_analogch = pBodyDefs->nAnalogChannels;
+	for (int i_ach_name = 0; i_ach_name < n_analogch; ++i_ach_name) {
+		if(pBodyDefs->szAnalogChannelNames[i_ach_name] != nullptr) delete [] pBodyDefs->szAnalogChannelNames[i_ach_name];
+	}
+	if(n_analogch > 0) delete [] pBodyDefs->szAnalogChannelNames;
+	delete[] pBodyDefs->AnalogLoVoltage;
+	delete[] pBodyDefs->AnalogHiVoltage;
+	// TODO should i delete pBodyDefs->AllocatedSpace??
+	return RC_Okay;
 }
 
 sFrameOfData* CortexMock::getCurrentFrame(){
@@ -422,6 +424,75 @@ void CortexMock::constructRotationMatrix(double angles[3], int iRotationOrder, d
 
 void CortexMock::extractEulerAngles(double matrix[3][3],int iRotationOrder, double angles[3]){
 	// TODO
+}
+
+void CortexMock::extractBodyDefs(sBodyDefs& body_defs, const rapidjson::Value& body_defs_json){
+    int n_body_defs = body_defs.nBodyDefs = body_defs_json["nBodyDefs"].GetInt();
+    rapidjson::Value body_def_array(rapidjson::kArrayType);
+	for (int i = 0; i < n_body_defs; i++)
+	{
+		extractBodyDef(body_defs.BodyDefs[i], body_def_array[i]);
+	}
+
+    int n_analog_channels = body_defs.nAnalogChannels = body_defs_json["nAnalogChannels"].GetInt();
+	body_defs.szAnalogChannelNames = new char*[n_analog_channels];
+	char** dst_analogch_names_ptr = body_defs.szAnalogChannelNames;
+	for (int i = 0; i < n_analog_channels; ++i, ++dst_analogch_names_ptr)
+	{
+		std::string analogch_name = body_defs_json["analogChannelNames"][i].GetString();
+        *dst_analogch_names_ptr = new char[analogch_name.length()+1];
+		strcpy(*dst_analogch_names_ptr, analogch_name.data());
+	}
+
+	body_defs.nForcePlates = body_defs_json["nForcePlates"].GetInt();
+	body_defs.AnalogBitDepth = body_defs_json["analogBitDepth"].GetInt();
+
+	body_defs.AnalogLoVoltage = new float[n_analog_channels];
+	body_defs.AnalogHiVoltage = new float[n_analog_channels];
+	for (int i = 0; i < n_analog_channels; i++)
+	{
+		body_defs.AnalogLoVoltage[i] = body_defs_json["analogLoVoltage"][i].GetFloat();
+		body_defs.AnalogHiVoltage[i] = body_defs_json["analogHiVoltage"][i].GetFloat();
+	}
+}
+
+void CortexMock::extractBodyDef(sBodyDef& body_def, const rapidjson::Value& body_def_json){
+	std::string name(body_def_json["name"].GetString());
+	body_def.szName = new char[name.length()+1];
+	strcpy(body_def.szName, name.data());
+
+	int n_markers = body_def.nMarkers = body_def_json["nMarkers"].GetInt();
+	body_def.szMarkerNames = new char*[n_markers];
+	char** dst_marker_names_ptr = body_def.szMarkerNames;
+	for (int i = 0; i < n_markers; ++i, ++dst_marker_names_ptr)
+	{
+		std::string marker_name = body_def_json["markerNames"][i].GetString();
+        *dst_marker_names_ptr = new char[marker_name.length()+1];
+		strcpy(*dst_marker_names_ptr, marker_name.data());
+	}
+
+	int n_segments = body_def.Hierarchy.nSegments = body_def_json["hierarchy"]["nSegments"].GetInt();
+	body_def.Hierarchy.szSegmentNames = new char*[n_segments];
+	char** dst_segment_names_ptr = body_def.Hierarchy.szSegmentNames;
+	body_def.Hierarchy.iParents = new int[n_segments];
+	for (int i = 0; i < n_segments; ++i, ++dst_segment_names_ptr)
+	{
+		std::string segment_name = body_def_json["hierarchy"]["segmentNames"][i].GetString();
+        *dst_segment_names_ptr = new char[segment_name.length()+1];
+		strcpy(*dst_segment_names_ptr, segment_name.data());
+
+		body_def.Hierarchy.iParents[i] = body_def_json["hierarchy"]["parents"][i].GetInt();
+	}
+
+	int n_dofs = body_def.nDofs = body_def_json["nDofs"].GetInt();
+	body_def.szDofNames = new char*[n_dofs];
+	char** dst_dof_names_ptr = body_def.szDofNames;
+	for (int i = 0; i < n_dofs; ++i, ++dst_dof_names_ptr)
+	{
+		std::string dof_name = body_def_json["dofNames"][i].GetString();
+        *dst_dof_names_ptr = new char[dof_name.length()+1];
+		strcpy(*dst_dof_names_ptr, dof_name.data());
+	}
 }
 
 void CortexMock::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value){
