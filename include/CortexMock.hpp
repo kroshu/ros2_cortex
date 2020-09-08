@@ -112,11 +112,12 @@ class CortexMock{
         static void* run_helper(void* cortex_mock);
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
-        // TODO rename params
-        void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
-        void extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value);
-        void extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value);
-        void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
+        void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_frame_json);
+        // TODO check if passing vector would be better here
+        void extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& markers_json);
+        void extractAnalogData(sAnalogData& adata, const rapidjson::Value& analog_data_json);
+        // TODO check if passing vector would be better here
+        void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& segments_json);
         void extractBodyDefs(sBodyDefs& body_defs, const rapidjson::Value& body_defs_json);
         void extractBodyDef(sBodyDef& body_def, const rapidjson::Value& body_def_json);
         void initReadFile();

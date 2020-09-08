@@ -10,12 +10,6 @@ CortexMock::CortexMock(const std::string& capture_file_name):capture_file_name_(
 	initReadFile();
 }
 
-// CortexMock::CortexMock(const CortexMock& src){
-// 	src.getCaptureFilename(capture_file_name_);
-// 	// TODO copy other variables??
-// 	initReadFile();
-// }
-
 void CortexMock::initReadFile(){
 	FILE* fp = fopen(capture_file_name_.data(), "r");
 	char read_buffer[65536];
@@ -56,7 +50,7 @@ int CortexMock::getVerbosityLevel(){
 }
 
 int CortexMock::setMinTimeout(int msTimeout){
-    // Does using timeout make sense?
+    // TODO Does using timeout make sense?
     min_time_out_ = msTimeout;
     return RC_Okay;
 }
@@ -495,10 +489,10 @@ void CortexMock::extractBodyDef(sBodyDef& body_def, const rapidjson::Value& body
 	}
 }
 
-void CortexMock::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value){
+void CortexMock::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_frame_json){
 	int n_bodies = fod.nBodies; 
 	for (int i = 0; i < n_bodies; ++i) {
-		const rapidjson::Value& i_body_json = parent_value["bodies"][i];
+		const rapidjson::Value& i_body_json = parent_frame_json["bodies"][i];
 		sBodyData& i_body_data = fod.BodyData[i];
 		strcpy(i_body_data.szName,i_body_json["name"].GetString());
 		i_body_data.nMarkers = i_body_json["nMarkers"].GetInt();
@@ -558,17 +552,17 @@ void CortexMock::extractBodies(sFrameOfData& fod, const rapidjson::Value& parent
 	}
 }
 
-void CortexMock::extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value){
+void CortexMock::extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& markers_json){
 	for (int i_marker = 0; i_marker < n_markers; ++i_marker) {
-		markers[i_marker][0] = parent_value[i_marker]["x"].GetFloat();
-		markers[i_marker][1] = parent_value[i_marker]["y"].GetFloat();
-		markers[i_marker][2] = parent_value[i_marker]["z"].GetFloat();
+		markers[i_marker][0] = markers_json[i_marker]["x"].GetFloat();
+		markers[i_marker][1] = markers_json[i_marker]["y"].GetFloat();
+		markers[i_marker][2] = markers_json[i_marker]["z"].GetFloat();
 	}
 }
 
-void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value){
-	int n_channels = adata.nAnalogChannels = parent_value["nAnalogChannels"].GetInt();
-	int n_samples = adata.nAnalogSamples = parent_value["nAnalogSamples"].GetInt();
+void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& analog_data_json){
+	int n_channels = adata.nAnalogChannels = analog_data_json["nAnalogChannels"].GetInt();
+	int n_samples = adata.nAnalogSamples = analog_data_json["nAnalogSamples"].GetInt();
 	int index = 0;
 	if(n_channels > 0 || n_samples > 0){
 		adata.AnalogSamples = new short[n_samples*n_channels];
@@ -577,13 +571,13 @@ void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& p
 			for (int i_channel=0 ; i_channel<n_channels ; i_channel++)
 			{
 				index = i_sample*n_samples+i_channel;
-				adata.AnalogSamples[index] = parent_value["analogSamples"][index]["value"].GetInt();
+				adata.AnalogSamples[index] = analog_data_json["analogSamples"][index]["value"].GetInt();
 			}
 		}
 	}
 
-	int n_force_plates = adata.nForcePlates = parent_value["nForcePlates"].GetInt();
-	int n_force_samples = adata.nForceSamples = parent_value["nForceSamples"].GetInt();
+	int n_force_plates = adata.nForcePlates = analog_data_json["nForcePlates"].GetInt();
+	int n_force_samples = adata.nForceSamples = analog_data_json["nForceSamples"].GetInt();
 	if(n_force_plates > 0 || n_force_samples > 0){
 		adata.Forces = new tForceData[n_force_samples*n_force_plates];
 		for (int i_sample=0; i_sample<n_force_samples; i_sample++)
@@ -591,7 +585,7 @@ void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& p
 			for (int i_plate=0; i_plate<n_force_plates; i_plate++)
 			{
 				index = i_sample*n_samples+i_plate;
-				const rapidjson::Value& force_json = parent_value["forces"][index];
+				const rapidjson::Value& force_json = analog_data_json["forces"][index];
 				adata.Forces[index][0] = force_json["x"].GetFloat();
 				adata.Forces[index][1] = force_json["y"].GetFloat();
 				adata.Forces[index][2] = force_json["z"].GetFloat();
@@ -603,8 +597,8 @@ void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& p
 		}
 	}
 
-	int n_angle_encoders = adata.nAngleEncoders = parent_value["nAngleEncoders"].GetInt();
-	int n_angle_encoder_samples = adata.nAngleEncoderSamples = parent_value["nAngleEncoderSamples"].GetInt();
+	int n_angle_encoders = adata.nAngleEncoders = analog_data_json["nAngleEncoders"].GetInt();
+	int n_angle_encoder_samples = adata.nAngleEncoderSamples = analog_data_json["nAngleEncoderSamples"].GetInt();
 	if(n_angle_encoders > 0 || n_angle_encoder_samples > 0){
 		adata.AngleEncoderSamples = new double[n_angle_encoders*n_angle_encoder_samples];
 		for (int i_sample=0 ; i_sample<n_angle_encoder_samples ; i_sample++)
@@ -612,21 +606,21 @@ void CortexMock::extractAnalogData(sAnalogData& adata, const rapidjson::Value& p
 			for (int i_enc=0 ; i_enc<n_angle_encoders ; i_enc++)
 			{
 				index = i_sample*n_angle_encoder_samples+i_enc;
-				adata.AngleEncoderSamples[index] = parent_value["angleEncoderSamples"][index]["value"].GetDouble();
+				adata.AngleEncoderSamples[index] = analog_data_json["angleEncoderSamples"][index]["value"].GetDouble();
 			}
 		}
 	}
 }
 
-void CortexMock::extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value){
+void CortexMock::extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& segments_json){
 	for (int i_segment = 0; i_segment < n_segments; ++i_segment) {
-		segments[i_segment][0] = parent_value[i_segment]["x"].GetDouble();
-		segments[i_segment][1] = parent_value[i_segment]["y"].GetDouble();
-		segments[i_segment][2] = parent_value[i_segment]["z"].GetDouble();
-		segments[i_segment][3] = parent_value[i_segment]["aX"].GetDouble();
-		segments[i_segment][4] = parent_value[i_segment]["aY"].GetDouble();
-		segments[i_segment][5] = parent_value[i_segment]["aZ"].GetDouble();
-		segments[i_segment][6] = parent_value[i_segment]["length"].GetDouble();
+		segments[i_segment][0] = segments_json[i_segment]["x"].GetDouble();
+		segments[i_segment][1] = segments_json[i_segment]["y"].GetDouble();
+		segments[i_segment][2] = segments_json[i_segment]["z"].GetDouble();
+		segments[i_segment][3] = segments_json[i_segment]["aX"].GetDouble();
+		segments[i_segment][4] = segments_json[i_segment]["aY"].GetDouble();
+		segments[i_segment][5] = segments_json[i_segment]["aZ"].GetDouble();
+		segments[i_segment][6] = segments_json[i_segment]["length"].GetDouble();
 	}
 }
 
