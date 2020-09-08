@@ -24,6 +24,42 @@ void CortexMock::initReadFile(){
 	document_.ParseStream(is);
 	fclose(fp);
 	n_frames_ = document_["framesArray"].Size();
+	// TODO captur bodydefs too for the json files
+	// extractBodyDefs(body_defs_, document_["bodyDefs"]);
+}
+
+void CortexMock::extractBodyDefs(sBodyDefs& body_defs, const rapidjson::Value& body_defs_json){
+    int n_body_defs = body_defs.nBodyDefs = body_defs_json["nBodyDefs"].GetInt();
+    rapidjson::Value body_def_array(rapidjson::kArrayType);
+	for (int i = 0; i < n_body_defs; i++)
+	{
+		extractBodyDef(body_defs.BodyDefs[i], body_def_array[i]);
+	}
+
+    int n_analog_channels = body_defs.nAnalogChannels = body_defs_json["nAnalogChannels"].GetInt();
+	body_defs.szAnalogChannelNames = new char*[n_analog_channels];
+	char** dst_analogch_names_ptr = body_defs.szAnalogChannelNames;
+	for (int i = 0; i < n_analog_channels; ++i, ++dst_analogch_names_ptr)
+	{
+		std::string analogch_name = body_defs_json["analogChannels"][i].GetString();
+        *dst_analogch_names_ptr = new char[analogch_name.length()+1];
+		strcpy(*dst_analogch_names_ptr, analogch_name.data());
+	}
+
+	body_defs.nForcePlates = body_defs_json["nForcePlates"].GetInt();
+	body_defs.AnalogBitDepth = body_defs_json["analogBitDepth"].GetInt();
+
+	body_defs.AnalogLoVoltage = new float[n_analog_channels];
+	body_defs.AnalogHiVoltage = new float[n_analog_channels];
+	for (int i = 0; i < n_analog_channels; i++)
+	{
+		body_defs.AnalogLoVoltage[i] = body_defs_json["analogLoVoltage"][i].GetFloat();
+		body_defs.AnalogHiVoltage[i] = body_defs_json["analogHiVoltage"][i].GetFloat();
+	}
+}
+
+void CortexMock::extractBodyDef(sBodyDef& body_def, const rapidjson::Value& body_def_json){
+    // TDOD
 }
 
 CortexMock::~CortexMock(){
@@ -120,7 +156,6 @@ int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
 	inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
 	inet_aton(szClientsMulticastAddress, &client_multicast_address_);
 
-	// run();
 	pthread_create(&run_thread_, nullptr, &CortexMock::run_helper, this);
 	return RC_Okay;
 }
@@ -168,7 +203,7 @@ int CortexMock::getHostInfo(sHostInfo *pHostInfo){
 
 int CortexMock::exit(){
 	client_comm_enabled_ = false;
-	play_mode_ = PlayMode::paused;
+	play_mode_ = static_cast<int>(PlayMode::paused);
 	return RC_Okay;
 }
 
@@ -184,49 +219,47 @@ int CortexMock::request(char* szCommand, void** ppResponse, int *pnBytes){
 	Request req_type = found_it->second;
 	switch (req_type)
 	{
+	// Mock doesn't and can't deal with live mode requests
+	// TODO should it?
 	case Request::LiveMode:
 		return RC_GeneralError;
 	case Request::Pause:
 		return RC_GeneralError;
 	case Request::SetOutputName:
-		
-		break;
+		return RC_GeneralError;
 	case Request::StartRecording:
 		return RC_GeneralError;
 	case Request::StopRecording:
 		return RC_GeneralError;
 	case Request::ResetIDs:
-		
-		break;
+		return RC_GeneralError;
+	// Mock does deal with post mode requests though
 	case Request::PostForward:
-		play_mode_ = PlayMode::forwards;
+		play_mode_ = static_cast<int>(PlayMode::forwards);
 		break;
 	case Request::PostBackward:
-		play_mode_ = PlayMode::backwards;
+		play_mode_ = static_cast<int>(PlayMode::backwards);
 		break;
 	case Request::PostPause:
-		play_mode_ = PlayMode::paused;
+		play_mode_ = static_cast<int>(PlayMode::paused);
 		break;
 	case Request::PostGetPlayMode:
-		// TODO check out how to return
-		// int& num = &play_mode_;
-		// *ppResponse = static_cast<int&>(&play_mode_);
+		*ppResponse = &play_mode_;
 		break;
 	case Request::GetContextFrameRate:
-		// TODO check out how to return
-		// *ppResponse = &frame_rate_;
+		*ppResponse = &frame_rate_;
 		break;
 	case Request::GetContextAnalogSampleRate:
-		// TODO
+		*ppResponse = &analog_sample_rate_;
 		break;
 	case Request::GetContextAnalogBitDepth:
-		// TODO
+		*ppResponse = &analog_bit_depth_;
 		break;
 	case Request::GetUpAxis:
-		// TODO
+		*ppResponse = &axis_up_;
 		break;
 	case Request::GetConversionToMillimeters:
-		// TODO
+		*ppResponse = &conv_rate_to_mm_;
 		break;
 	case Request::GetFrameOfData:
 		if(command_extra.empty()) *ppResponse = &current_frame_;
@@ -293,9 +326,15 @@ int CortexMock::copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst){
 		memcpy(pDst->BodyData[i].CamTrackParams, pSrc->BodyData[i].CamTrackParams, sizeof(tCamTrackParameters));
 
 		int n_events = pDst->BodyData[i].nEvents = pSrc->BodyData[i].nEvents;
-		for (int i = 0; i < n_events; i++)
+		char** src_event_str_ptr = pSrc->BodyData[i].Events;
+		pDst->BodyData[i].Events = new char*[n_events];
+		char** dst_event_str_ptr = pDst->BodyData[i].Events;
+		// TODO test this and other functionalities too which aren't tested by capture files
+		for (int i = 0; i < n_events; ++i, ++src_event_str_ptr, ++dst_event_str_ptr)
 		{
-			// TODO how to copy char**, is it possible in this case at all?
+			std::string event_str(*src_event_str_ptr);
+            *dst_event_str_ptr = new char[event_str.length()+1];
+			strcpy(*dst_event_str_ptr, event_str.data());
 		}
 	}
 
@@ -570,7 +609,7 @@ void* CortexMock::run_helper(void* cortex_mock){
 
 void CortexMock::run(){
 	while(client_comm_enabled_) {
-		switch (play_mode_)
+		switch (static_cast<PlayMode>(play_mode_))
 		{
 		case PlayMode::forwards:
 			extractFrame(current_frame_, current_framenum_);
@@ -586,6 +625,6 @@ void CortexMock::run(){
 		default:
 			break;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000/frame_rate_));
+		std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1000.0/frame_rate_)));
 	}
 }

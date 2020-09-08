@@ -69,12 +69,12 @@ class CortexMock{
         void getCaptureFilename(std::string& dest) const;
 
     private:
-        int min_time_out_ = 500, n_frames_, current_framenum_ = 0;
-        int verbosity_level_ = 2, frame_rate_ = 200;
+        int min_time_out_ = 500, n_frames_, current_framenum_ = 0, verbosity_level_ = 2, analog_bit_depth_= 16; // a_b_d_ 12 or 16 usually
         bool client_comm_enabled_ = false;
+        float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
         pthread_t run_thread_;
         enum class PlayMode {paused=-1, forwards, backwards};
-        PlayMode play_mode_ = PlayMode::paused;
+        int play_mode_ = static_cast<int>(PlayMode::paused);
         enum class Request {LiveMode, Pause, SetOutputName, StartRecording,
                             StopRecording, ResetIDs, PostForward, PostBackward, PostPause,
                             PostGetPlayMode, GetContextFrameRate, GetContextAnalogSampleRate,
@@ -98,21 +98,27 @@ class CortexMock{
             {"GetConversionToMillimeters", Request::GetConversionToMillimeters},
             {"GetFrameOfData", Request::GetFrameOfData}
         };
+        enum class Axis {x=0, y, z};
+        int axis_up_ = static_cast<int>(Axis::z);
         in_addr host_machine_address_, host_multicast_address_, talk_to_host_address_, talk_to_client_address_, client_multicast_address_;
         std::string capture_file_name_;
         int talk_to_host_port_ = 30000, host_port_ = 30001, host_multicast_port_ = 30002;
         int talk_to_clients_request_port_ = 30003, talk_to_clients_multicast_port_ = 30004, clients_multicast_port_ = 30005;
         rapidjson::Document document_;
         sFrameOfData current_frame_;
+        sBodyDefs body_defs_;
         std::function<void(sFrameOfData*)> dataHandlerFunc_;
         std::function<void(int iLogLevel, char* szLogMessage)> errorMsgHandlerFunc_;
         static void* run_helper(void* cortex_mock);
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
+        // TODO rename params
         void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);
         void extractMarkers(tMarkerData* markers, int n_markers, const rapidjson::Value& parent_value);
         void extractAnalogData(sAnalogData& adata, const rapidjson::Value& parent_value);
         void extractSegments(tSegmentData* segments, int n_segments, const rapidjson::Value& parent_value);
+        void extractBodyDefs(sBodyDefs& body_defs, const rapidjson::Value& body_defs_json);
+        void extractBodyDef(sBodyDef& body_def, const rapidjson::Value& body_def_json);
         void initReadFile();
 };
 
