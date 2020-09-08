@@ -7,6 +7,8 @@ class SimpleFodPrinter: public CortexClient{
 
 public:
     SimpleFodPrinter(const std::string& file_name):CortexClient{file_name}{}
+
+    // TODO handle callbacks in a nicer way?
     void dataHandlerFunc_(sFrameOfData* fod){
         cortex_mock_.copyFrame(fod, &current_fod_);
         std::cout << "Frame " << current_fod_.iFrame << std::endl;
