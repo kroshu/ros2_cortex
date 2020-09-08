@@ -72,6 +72,7 @@ class CortexMock{
         int min_time_out_ = 500, n_frames_, current_framenum_ = 0;
         int verbosity_level_ = 2, frame_rate_ = 200;
         bool client_comm_enabled_ = false;
+        pthread_t run_thread_;
         enum class PlayMode {paused=-1, forwards, backwards};
         PlayMode play_mode_ = PlayMode::paused;
         enum class Request {LiveMode, Pause, SetOutputName, StartRecording,
@@ -105,6 +106,7 @@ class CortexMock{
         sFrameOfData current_frame_;
         std::function<void(sFrameOfData*)> dataHandlerFunc_;
         std::function<void(int iLogLevel, char* szLogMessage)> errorMsgHandlerFunc_;
+        static void* run_helper(void* cortex_mock);
         void run();
         void extractFrame(sFrameOfData& fod, int iFrame);
         void extractBodies(sFrameOfData& fod, const rapidjson::Value& parent_value);

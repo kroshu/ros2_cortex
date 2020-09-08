@@ -120,7 +120,8 @@ int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
 	inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
 	inet_aton(szClientsMulticastAddress, &client_multicast_address_);
 
-	run();
+	// run();
+	pthread_create(&run_thread_, nullptr, &CortexMock::run_helper, this);
 	return RC_Okay;
 }
 
@@ -560,6 +561,11 @@ void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
 	} else if(standard == "SYSTEMCLOCK"){
 		fod.TimeCode.iStandard = 4;
 	}
+}
+
+void* CortexMock::run_helper(void* cortex_mock){
+    static_cast<CortexMock*>(cortex_mock)->run();
+	return nullptr;
 }
 
 void CortexMock::run(){
