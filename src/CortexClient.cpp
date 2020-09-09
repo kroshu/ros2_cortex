@@ -14,7 +14,6 @@ CortexClient::~CortexClient(){
 void CortexClient::run(){
 	char* server_addr = new char[server_addr_.length()+1];  // TODO is there a better workaround?
 	strcpy(server_addr,server_addr_.data());
-	cortex_mock_.setClientCommunicationEnabled(true);
 	cortex_mock_.initialize(server_addr, server_addr);
 	delete [] server_addr;
 

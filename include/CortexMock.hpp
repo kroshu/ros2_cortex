@@ -12,12 +12,11 @@
 #include "Cortex.h"
 #include "rapidjson/document.h"
 
-// TODO consistent style
+// TODO consistent style - rename params
 
 class CortexMock{
     public:
         CortexMock(const std::string& captureFileName);
-        // CortexMock(const CortexMock&);
         ~CortexMock();
         int getSdkVersion(unsigned char Version[4]);
         int setVerbosityLevel(int iLevel);
@@ -69,8 +68,8 @@ class CortexMock{
         void getCaptureFilename(std::string& dest) const;
 
     private:
-        int min_time_out_ = 500, n_frames_, current_framenum_ = 0, verbosity_level_ = 2, analog_bit_depth_= 16; // a_b_d_ 12 or 16 usually
-        bool client_comm_enabled_ = false;
+        int n_frames_, current_framenum_ = 0, verbosity_level_ = 2, analog_bit_depth_= 16; // a_b_d_ 12 or 16 usually
+        bool running_ = false;
         float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
         pthread_t run_thread_;
         enum class PlayMode {paused=-1, forwards, backwards};
