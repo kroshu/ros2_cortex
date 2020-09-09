@@ -30,16 +30,16 @@ void CortexMock::getCaptureFilename(std::string& dest) const{
 	dest = capture_file_name_;
 }
 
-int CortexMock::getSdkVersion(unsigned char Version[4]){
-    Version[0] = 0;
-    Version[1] = 8;
-    Version[2] = 0;
-    Version[3] = 0;
+int CortexMock::getSdkVersion(unsigned char version[4]){
+    version[0] = 0;
+    version[1] = 8;
+    version[2] = 0;
+    version[3] = 0;
     return RC_Okay;
 }
 
-int CortexMock::setVerbosityLevel(int iLevel){
-	verbosity_level_ = iLevel;
+int CortexMock::setVerbosityLevel(int i_level){
+	verbosity_level_ = i_level;
     return RC_Okay;
 }
 
@@ -57,7 +57,7 @@ void CortexMock::errorMsgInString(int i_level, std::string msg_str){
 	}
 }
 
-int CortexMock::setMinTimeout(int msTimeout){
+int CortexMock::setMinTimeout(int ms_timeout){
     // Timeout has no use here actually,
 	// because we don't communicate with the host	
 	errorMsgInString(VL_Error, "No use of timeout in mock version");
@@ -71,23 +71,23 @@ int CortexMock::getMinTimeout(){
     return RC_ApiError;
 }
 
-int CortexMock::setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int iLogLevel, char* szLogMessage)){
+int CortexMock::setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int i_log_level, char* sz_log_message)){
 	errorMsgHandlerFunc_ = errorMsgHandlerFunc;
 	return RC_Okay;
 }
 
-int CortexMock::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* pFrameOfData)){
+int CortexMock::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* p_frame_of_data)){
 	dataHandlerFunc_ = dataHandlerFunc;
 	return RC_Okay;
 }
 
-int CortexMock::sendDataToClients(sFrameOfData* pFrameOfData){
+int CortexMock::sendDataToClients(sFrameOfData* p_frame_of_data){
 	// TODO send through TCP? or what way?
 	errorMsgInString(VL_Error, "No communication with client in mock version");
 	return RC_ApiError;
 }
 
-void CortexMock::setClientCommunicationEnabled(int bEnabled){
+void CortexMock::setClientCommunicationEnabled(int b_enabled){
 	// TODO do we enable communication with clients in the mock
 	errorMsgInString(VL_Error, "No communication with client in mock version");
 }
@@ -98,93 +98,94 @@ int CortexMock::isClientCommunicationEnabled(){
 	return RC_ApiError;
 }
 
-void CortexMock::setThreadPriorities(maThreadPriority ListenForHost, maThreadPriority ListenForData, maThreadPriority ListenForClients){
+void CortexMock::setThreadPriorities(maThreadPriority listen_for_host, maThreadPriority listen_for_data, maThreadPriority listen_for_clients){
 	// TODO if communicating with client, should we differentiate priority of listening to data and listening for clients?
 	errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 }
 
-int CortexMock::configurePortNumbers(int TalkToHostPort,
-										int HostPort, 
-										int HostMulticastPort, 
-										int TalkToClientsRequestPort,
-										int TalkToClientsMulticastPort,
-										int ClientsMulticastPort){
+int CortexMock::configurePortNumbers(int talk_to_host_port,
+										int host_port, 
+										int host_multicast_port, 
+										int talk_to_clients_request_port,
+										int talk_to_clients_multicast_port,
+										int clients_multicast_port){
 
 	errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
     
-    // talk_to_host_port_ = TalkToHostPort;
-    // host_port_ = HostPort;
-    // host_multicast_port_ = HostMulticastPort;
-    // talk_to_clients_request_port_ = TalkToClientsRequestPort;
-    // talk_to_clients_multicast_port_ = TalkToClientsMulticastPort;
-    // clients_multicast_port_ = ClientsMulticastPort;
+    // talk_to_host_port_ = talk_to_host_port;
+    // host_port_ = host_port;
+    // host_multicast_port_ = host_multicast_port;
+    // talk_to_clients_request_port_ = talk_to_clients_request_port;
+    // talk_to_clients_multicast_port_ = talk_to_clients_multicast_port;
+    // clients_multicast_port_ = clients_multicast_port;
 
     // return RC_Okay;
 }
 
-int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
-							char* szHostNicCardAddress,
-							char* szHostMulticastAddress,
-							char* szTalkToClientsNicCardAddress,
-							char* szClientsMulticastAddress){
+int CortexMock::initialize(	char* sz_talk_to_host_nic_card_address,
+							char* sz_host_nic_card_address,
+							char* sz_host_multicast_address,
+							char* sz_talk_to_clients_nic_card_address,
+							char* sz_clients_multicast_address){
 	errorMsgInString(VL_Warning, "No communication with client neither with host in mock version");
 	
-	// inet_aton(szHostNicCardAddress, &host_machine_address_);
-	// inet_aton(szHostMulticastAddress, &host_multicast_address_);
-	// inet_aton(szTalkToHostNicCardAddress, &talk_to_host_address_);
-	// inet_aton(szTalkToClientsNicCardAddress, &talk_to_client_address_);
-	// inet_aton(szClientsMulticastAddress, &client_multicast_address_);
+	// inet_aton(sz_host_nic_card_address, &host_machine_address_);
+	// inet_aton(sz_host_multicast_address, &host_multicast_address_);
+	// inet_aton(sz_talk_to_host_nic_card_address, &talk_to_host_address_);
+	// inet_aton(sz_talk_to_clients_nic_card_address, &talk_to_client_address_);
+	// inet_aton(sz_clients_multicast_address, &client_multicast_address_);
 
 	pthread_create(&run_thread_, nullptr, &CortexMock::run_helper, this);
 	return RC_Okay;
 }
 
-int CortexMock::getPortNumbers(	int *TalkToHostPort,
-								int *HostPort, 
-								int *HostMulticastPort, 
-								int *TalkToClientsRequestPort,
-								int *TalkToClientsMulticastPort,
-								int *ClientsMulticastPort){
+int CortexMock::getPortNumbers(	int *talk_to_host_port,
+								int *host_port, 
+								int *host_multicast_port, 
+								int *talk_to_clients_request_port,
+								int *talk_to_clients_multicast_port,
+								int *clients_multicast_port){
 	errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
 	
-    // *TalkToHostPort = talk_to_host_port_;
-    // *HostPort = host_port_;
-    // *HostMulticastPort = host_multicast_port_;
-    // *TalkToClientsRequestPort = talk_to_clients_request_port_;
-    // *TalkToClientsMulticastPort = talk_to_clients_multicast_port_;
-    // *ClientsMulticastPort = clients_multicast_port_;
+    // *talk_to_host_port = talk_to_host_port_;
+    // *host_port = host_port_;
+    // *host_multicast_port = host_multicast_port_;
+    // *talk_to_clients_request_port = talk_to_clients_request_port_;
+    // *talk_to_clients_multicast_port = talk_to_clients_multicast_port_;
+    // *clients_multicast_port = clients_multicast_port_;
     // return RC_Okay;
 }
 
-int CortexMock::getAddresses(char* szTalkToHostNicCardAddress,
-							char* szHostNicCardAddress,
-							char* szHostMulticastAddress,
-							char* szTalkToClientsNicCardAddress,
-							char* szClientsMulticastAddress){
+int CortexMock::getAddresses(char* sz_talk_to_host_nic_card_address,
+							char* sz_host_nic_card_address,
+							char* sz_host_multicast_address,
+							char* sz_talk_to_clients_nic_card_address,
+							char* sz_clients_multicast_address){
     errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
 	
-	// szTalkToHostNicCardAddress = inet_ntoa(talk_to_host_address_);
-    // szHostNicCardAddress = inet_ntoa(host_machine_address_);
-    // szHostMulticastAddress = inet_ntoa(host_multicast_address_);
-    // szTalkToClientsNicCardAddress = inet_ntoa(talk_to_client_address_);
-    // szClientsMulticastAddress = inet_ntoa(client_multicast_address_);
+	// TODO this is wrong here, if client comm is used this should be corrected
+	// sz_talk_to_host_nic_card_address = inet_ntoa(talk_to_host_address_);
+    // sz_host_nic_card_address = inet_ntoa(host_machine_address_);
+    // sz_host_multicast_address = inet_ntoa(host_multicast_address_);
+    // sz_talk_to_clients_nic_card_address = inet_ntoa(talk_to_client_address_);
+    // sz_clients_multicast_address = inet_ntoa(client_multicast_address_);
 
 	// return RC_Okay;
 }
 
-int CortexMock::getHostInfo(sHostInfo *pHostInfo){
+int CortexMock::getHostInfo(sHostInfo *p_host_info){
 	errorMsgInString(VL_Warning, "Found mock version, no communication with host in mock version");
 	return RC_ApiError;
 
-    // pHostInfo->bFoundHost = true;
-    // pHostInfo->LatestConfirmationTime = current_framenum_;
-    // strcpy(pHostInfo->szHostMachineName, "CortexHost");
-    // inet_aton((char*)pHostInfo->HostMachineAddress, &host_machine_address_);
-    // getSdkVersion(pHostInfo->HostProgramVersion);
-    // strcpy(pHostInfo->szHostProgramName, "CortexMock");
+    // p_host_info->bFoundHost = true;
+    // p_host_info->LatestConfirmationTime = current_framenum_;
+    // strcpy(p_host_info->szHostMachineName, "CortexHost");
+    // inet_aton((char*)p_host_info->HostMachineAddress, &host_machine_address_);
+    // getSdkVersion(p_host_info->HostProgramVersion);
+    // strcpy(p_host_info->szHostProgramName, "CortexMock");
 
     // return RC_Okay;
 }
@@ -195,8 +196,8 @@ int CortexMock::exit(){
 	return RC_Okay;
 }
 
-int CortexMock::request(char* szCommand, void** ppResponse, int *pnBytes){
-	std::string command(szCommand), command_extra;
+int CortexMock::request(char* sz_command, void** pp_response, int *pn_bytes){
+	std::string command(sz_command), command_extra;
 	int pos = command.find('=');
 	if(pos != std::string::npos){
 		command_extra = command.substr(pos);
@@ -242,25 +243,25 @@ int CortexMock::request(char* szCommand, void** ppResponse, int *pnBytes){
 		break;
 	case Request::PostGetPlayMode:
 		// TODO is returning a reference of a member var ok?
-		*ppResponse = &play_mode_;
+		*pp_response = &play_mode_;
 		break;
 	case Request::GetContextFrameRate:
-		*ppResponse = &frame_rate_;
+		*pp_response = &frame_rate_;
 		break;
 	case Request::GetContextAnalogSampleRate:
-		*ppResponse = &analog_sample_rate_;
+		*pp_response = &analog_sample_rate_;
 		break;
 	case Request::GetContextAnalogBitDepth:
-		*ppResponse = &analog_bit_depth_;
+		*pp_response = &analog_bit_depth_;
 		break;
 	case Request::GetUpAxis:
-		*ppResponse = &axis_up_;
+		*pp_response = &axis_up_;
 		break;
 	case Request::GetConversionToMillimeters:
-		*ppResponse = &conv_rate_to_mm_;
+		*pp_response = &conv_rate_to_mm_;
 		break;
 	case Request::GetFrameOfData:
-		if(command_extra.empty()) *ppResponse = &current_frame_;
+		if(command_extra.empty()) *pp_response = &current_frame_;
 		// TODO else return markerset base pos
 		break;
 	
@@ -272,7 +273,7 @@ int CortexMock::request(char* szCommand, void** ppResponse, int *pnBytes){
 	return RC_Okay;
 }
 
-sSkyReturn CortexMock::*skyCommand(char *szCommand, int msTimeout){
+sSkyReturn CortexMock::*skyCommand(char *sz_command, int ms_timeout){
 	// TODO
 }
 
@@ -280,45 +281,45 @@ sBodyDefs* CortexMock::getBodyDefs(){
 	return &body_defs_;
 }
 
-int CortexMock::freeBodyDefs(sBodyDefs* pBodyDefs){
-	if(pBodyDefs == nullptr) return RC_MemoryError;
-	int n_body_defs = pBodyDefs->nBodyDefs;
+int CortexMock::freeBodyDefs(sBodyDefs* p_body_defs){
+	if(p_body_defs == nullptr) return RC_MemoryError;
+	int n_body_defs = p_body_defs->nBodyDefs;
 	for (int i = 0; i < n_body_defs; ++i)
 	{
-		delete [] pBodyDefs->BodyDefs[i].szName;
+		delete [] p_body_defs->BodyDefs[i].szName;
 
-		int n_markers = pBodyDefs->nAnalogChannels;
+		int n_markers = p_body_defs->nAnalogChannels;
 		for (int i_marker_name = 0; i_marker_name < n_markers; ++i_marker_name) {
-			if(pBodyDefs->BodyDefs[i].szMarkerNames[i_marker_name] != nullptr) delete [] pBodyDefs->BodyDefs[i].szMarkerNames[i_marker_name];
+			if(p_body_defs->BodyDefs[i].szMarkerNames[i_marker_name] != nullptr) delete [] p_body_defs->BodyDefs[i].szMarkerNames[i_marker_name];
 		}
-		if(n_markers > 0) delete [] pBodyDefs->BodyDefs[i].szMarkerNames;
+		if(n_markers > 0) delete [] p_body_defs->BodyDefs[i].szMarkerNames;
 
-		int n_segments = pBodyDefs->BodyDefs[i].Hierarchy.nSegments;
+		int n_segments = p_body_defs->BodyDefs[i].Hierarchy.nSegments;
 		for (int i_segment_name = 0; i_segment_name < n_segments; ++i_segment_name) {
-			if(pBodyDefs->BodyDefs[i].Hierarchy.szSegmentNames[i_segment_name] != nullptr)
-				delete [] pBodyDefs->BodyDefs[i].Hierarchy.szSegmentNames[i_segment_name];
+			if(p_body_defs->BodyDefs[i].Hierarchy.szSegmentNames[i_segment_name] != nullptr)
+				delete [] p_body_defs->BodyDefs[i].Hierarchy.szSegmentNames[i_segment_name];
 		}
 		if(n_segments > 0){
-			delete [] pBodyDefs->BodyDefs[i].Hierarchy.szSegmentNames;
-			delete [] pBodyDefs->BodyDefs[i].Hierarchy.iParents;
+			delete [] p_body_defs->BodyDefs[i].Hierarchy.szSegmentNames;
+			delete [] p_body_defs->BodyDefs[i].Hierarchy.iParents;
 		}
 
-		int n_dofs = pBodyDefs->nAnalogChannels;
+		int n_dofs = p_body_defs->nAnalogChannels;
 		for (int i_dof_name = 0; i_dof_name < n_dofs; ++i_dof_name) {
-			if(pBodyDefs->BodyDefs[i].szDofNames[i_dof_name] != nullptr) delete [] pBodyDefs->BodyDefs[i].szDofNames[i_dof_name];
+			if(p_body_defs->BodyDefs[i].szDofNames[i_dof_name] != nullptr) delete [] p_body_defs->BodyDefs[i].szDofNames[i_dof_name];
 		}
-		if(n_markers > 0) delete [] pBodyDefs->BodyDefs[i].szDofNames;
+		if(n_markers > 0) delete [] p_body_defs->BodyDefs[i].szDofNames;
 	}
 	
 
-	int n_analogch = pBodyDefs->nAnalogChannels;
+	int n_analogch = p_body_defs->nAnalogChannels;
 	for (int i_ach_name = 0; i_ach_name < n_analogch; ++i_ach_name) {
-		if(pBodyDefs->szAnalogChannelNames[i_ach_name] != nullptr) delete [] pBodyDefs->szAnalogChannelNames[i_ach_name];
+		if(p_body_defs->szAnalogChannelNames[i_ach_name] != nullptr) delete [] p_body_defs->szAnalogChannelNames[i_ach_name];
 	}
-	if(n_analogch > 0) delete [] pBodyDefs->szAnalogChannelNames;
-	delete[] pBodyDefs->AnalogLoVoltage;
-	delete[] pBodyDefs->AnalogHiVoltage;
-	// TODO should i delete pBodyDefs->AllocatedSpace??
+	if(n_analogch > 0) delete [] p_body_defs->szAnalogChannelNames;
+	delete[] p_body_defs->AnalogLoVoltage;
+	delete[] p_body_defs->AnalogHiVoltage;
+	// TODO should i delete p_body_defs->AllocatedSpace??
 	return RC_Okay;
 }
 
@@ -327,44 +328,44 @@ sFrameOfData* CortexMock::getCurrentFrame(){
 	return &current_frame_;
 }
 
-int CortexMock::copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst){
-	pDst->iFrame = pSrc->iFrame;
-	pDst->fDelay = pSrc->fDelay;
-	int n_bodies = pDst->nBodies = pSrc->nBodies;
+int CortexMock::copyFrame(const sFrameOfData* p_src, sFrameOfData* p_dst){
+	p_dst->iFrame = p_src->iFrame;
+	p_dst->fDelay = p_src->fDelay;
+	int n_bodies = p_dst->nBodies = p_src->nBodies;
 	for (int i = 0; i < n_bodies; i++)
 	{
-		strcpy(pDst->BodyData[i].szName, pSrc->BodyData[i].szName);
+		strcpy(p_dst->BodyData[i].szName, p_src->BodyData[i].szName);
 
-		int n_markers = pDst->BodyData[i].nMarkers = pSrc->BodyData[i].nMarkers;
+		int n_markers = p_dst->BodyData[i].nMarkers = p_src->BodyData[i].nMarkers;
 		if(n_markers > 0){
-			pDst->BodyData[i].Markers = new tMarkerData[n_markers];
-			memcpy(pDst->BodyData[i].Markers, pSrc->BodyData[i].Markers, n_markers * sizeof(tMarkerData));
+			p_dst->BodyData[i].Markers = new tMarkerData[n_markers];
+			memcpy(p_dst->BodyData[i].Markers, p_src->BodyData[i].Markers, n_markers * sizeof(tMarkerData));
 		}
-		pDst->BodyData[i].fAvgMarkerResidual = pSrc->BodyData[i].fAvgMarkerResidual;
+		p_dst->BodyData[i].fAvgMarkerResidual = p_src->BodyData[i].fAvgMarkerResidual;
 
-		int n_segments = pDst->BodyData[i].nSegments = pSrc->BodyData[i].nSegments;
+		int n_segments = p_dst->BodyData[i].nSegments = p_src->BodyData[i].nSegments;
 		if(n_segments > 0){
-			pDst->BodyData[i].Segments = new tSegmentData[n_segments];
-			memcpy(pDst->BodyData[i].Segments, pSrc->BodyData[i].Segments, n_segments * sizeof(tSegmentData));
+			p_dst->BodyData[i].Segments = new tSegmentData[n_segments];
+			memcpy(p_dst->BodyData[i].Segments, p_src->BodyData[i].Segments, n_segments * sizeof(tSegmentData));
 		}
 
-		int n_dofs = pDst->BodyData[i].nDofs = pSrc->BodyData[i].nDofs;
+		int n_dofs = p_dst->BodyData[i].nDofs = p_src->BodyData[i].nDofs;
 		if(n_dofs > 0){
-			pDst->BodyData[i].Dofs = new tDofData[n_dofs];
-			memcpy(pDst->BodyData[i].Dofs, pSrc->BodyData[i].Dofs, n_dofs * sizeof(tDofData));
+			p_dst->BodyData[i].Dofs = new tDofData[n_dofs];
+			memcpy(p_dst->BodyData[i].Dofs, p_src->BodyData[i].Dofs, n_dofs * sizeof(tDofData));
 		}
-		pDst->BodyData[i].fAvgDofResidual = pSrc->BodyData[i].fAvgDofResidual;
-		pDst->BodyData[i].nIterations = pSrc->BodyData[i].nIterations;
+		p_dst->BodyData[i].fAvgDofResidual = p_src->BodyData[i].fAvgDofResidual;
+		p_dst->BodyData[i].nIterations = p_src->BodyData[i].nIterations;
 
-		pDst->BodyData[i].ZoomEncoderValue = pSrc->BodyData[i].ZoomEncoderValue;
-		pDst->BodyData[i].FocusEncoderValue = pSrc->BodyData[i].FocusEncoderValue;
-		pDst->BodyData[i].IrisEncoderValue = pSrc->BodyData[i].IrisEncoderValue;
-		memcpy(pDst->BodyData[i].CamTrackParams, pSrc->BodyData[i].CamTrackParams, sizeof(tCamTrackParameters));
+		p_dst->BodyData[i].ZoomEncoderValue = p_src->BodyData[i].ZoomEncoderValue;
+		p_dst->BodyData[i].FocusEncoderValue = p_src->BodyData[i].FocusEncoderValue;
+		p_dst->BodyData[i].IrisEncoderValue = p_src->BodyData[i].IrisEncoderValue;
+		memcpy(p_dst->BodyData[i].CamTrackParams, p_src->BodyData[i].CamTrackParams, sizeof(tCamTrackParameters));
 
-		int n_events = pDst->BodyData[i].nEvents = pSrc->BodyData[i].nEvents;
-		char** src_event_str_ptr = pSrc->BodyData[i].Events;
-		pDst->BodyData[i].Events = new char*[n_events];
-		char** dst_event_str_ptr = pDst->BodyData[i].Events;
+		int n_events = p_dst->BodyData[i].nEvents = p_src->BodyData[i].nEvents;
+		char** src_event_str_ptr = p_src->BodyData[i].Events;
+		p_dst->BodyData[i].Events = new char*[n_events];
+		char** dst_event_str_ptr = p_dst->BodyData[i].Events;
 		// TODO test this and other functionalities too which aren't tested by capture files
 		for (int i = 0; i < n_events; ++i, ++src_event_str_ptr, ++dst_event_str_ptr)
 		{
@@ -374,57 +375,57 @@ int CortexMock::copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst){
 		}
 	}
 
-	int n_ui_markers = pDst->nUnidentifiedMarkers = pSrc->nUnidentifiedMarkers;
+	int n_ui_markers = p_dst->nUnidentifiedMarkers = p_src->nUnidentifiedMarkers;
     if(n_ui_markers > 0){
-		pDst->UnidentifiedMarkers = new tMarkerData[n_ui_markers];
-		memcpy(pDst->UnidentifiedMarkers, pSrc->UnidentifiedMarkers, n_ui_markers * sizeof(tMarkerData));
+		p_dst->UnidentifiedMarkers = new tMarkerData[n_ui_markers];
+		memcpy(p_dst->UnidentifiedMarkers, p_src->UnidentifiedMarkers, n_ui_markers * sizeof(tMarkerData));
 	}
 
-	pDst->AnalogData.nAnalogChannels = pSrc->AnalogData.nAnalogChannels;
-	pDst->AnalogData.nAnalogSamples = pSrc->AnalogData.nAnalogSamples;
-	int n_analogs = pDst->AnalogData.nAnalogChannels * pDst->AnalogData.nAnalogSamples;
+	p_dst->AnalogData.nAnalogChannels = p_src->AnalogData.nAnalogChannels;
+	p_dst->AnalogData.nAnalogSamples = p_src->AnalogData.nAnalogSamples;
+	int n_analogs = p_dst->AnalogData.nAnalogChannels * p_dst->AnalogData.nAnalogSamples;
 	if(n_analogs > 0){
-		pDst->AnalogData.AnalogSamples = new short[n_analogs];
-		memcpy(pDst->AnalogData.AnalogSamples, pSrc->AnalogData.AnalogSamples, n_analogs * sizeof(short));
+		p_dst->AnalogData.AnalogSamples = new short[n_analogs];
+		memcpy(p_dst->AnalogData.AnalogSamples, p_src->AnalogData.AnalogSamples, n_analogs * sizeof(short));
 	}
 
-	pDst->AnalogData.nForcePlates = pSrc->AnalogData.nForcePlates;
-	pDst->AnalogData.nForceSamples = pSrc->AnalogData.nForceSamples;
-	int n_forces = pDst->AnalogData.nForcePlates * pDst->AnalogData.nForceSamples;
+	p_dst->AnalogData.nForcePlates = p_src->AnalogData.nForcePlates;
+	p_dst->AnalogData.nForceSamples = p_src->AnalogData.nForceSamples;
+	int n_forces = p_dst->AnalogData.nForcePlates * p_dst->AnalogData.nForceSamples;
 	if(n_forces > 0){
-		pDst->AnalogData.Forces = new tForceData[n_forces];
-		memcpy(pDst->AnalogData.Forces, pSrc->AnalogData.Forces, n_forces * sizeof(tForceData));
+		p_dst->AnalogData.Forces = new tForceData[n_forces];
+		memcpy(p_dst->AnalogData.Forces, p_src->AnalogData.Forces, n_forces * sizeof(tForceData));
 	}
 	
 
-	pDst->AnalogData.nAngleEncoders = pSrc->AnalogData.nAngleEncoders;
-	pDst->AnalogData.nAngleEncoderSamples = pSrc->AnalogData.nAngleEncoderSamples;
-	int n_all_ae_samples = pDst->AnalogData.nAngleEncoders * pDst->AnalogData.nAngleEncoderSamples;
+	p_dst->AnalogData.nAngleEncoders = p_src->AnalogData.nAngleEncoders;
+	p_dst->AnalogData.nAngleEncoderSamples = p_src->AnalogData.nAngleEncoderSamples;
+	int n_all_ae_samples = p_dst->AnalogData.nAngleEncoders * p_dst->AnalogData.nAngleEncoderSamples;
 	if(n_analogs > 0){
-		pDst->AnalogData.AngleEncoderSamples = new double[n_all_ae_samples];
-		memcpy(pDst->AnalogData.AngleEncoderSamples, pSrc->AnalogData.AngleEncoderSamples, n_all_ae_samples * sizeof(double));
+		p_dst->AnalogData.AngleEncoderSamples = new double[n_all_ae_samples];
+		memcpy(p_dst->AnalogData.AngleEncoderSamples, p_src->AnalogData.AngleEncoderSamples, n_all_ae_samples * sizeof(double));
 	}
 
-    pDst->RecordingStatus.bRecording = pSrc->RecordingStatus.bRecording;
-	pDst->RecordingStatus.iFirstFrame = pSrc->RecordingStatus.iFirstFrame;
-	pDst->RecordingStatus.iLastFrame = pSrc->RecordingStatus.iLastFrame;
-	strcpy(pDst->RecordingStatus.szFilename, pSrc->RecordingStatus.szFilename);
+    p_dst->RecordingStatus.bRecording = p_src->RecordingStatus.bRecording;
+	p_dst->RecordingStatus.iFirstFrame = p_src->RecordingStatus.iFirstFrame;
+	p_dst->RecordingStatus.iLastFrame = p_src->RecordingStatus.iLastFrame;
+	strcpy(p_dst->RecordingStatus.szFilename, p_src->RecordingStatus.szFilename);
 
-	pDst->TimeCode.iFrames = pSrc->TimeCode.iFrames;
-	pDst->TimeCode.iHours = pSrc->TimeCode.iHours;
-	pDst->TimeCode.iMinutes = pSrc->TimeCode.iMinutes;
-	pDst->TimeCode.iSeconds = pSrc->TimeCode.iSeconds;
-	pDst->TimeCode.iStandard = pSrc->TimeCode.iStandard;
+	p_dst->TimeCode.iFrames = p_src->TimeCode.iFrames;
+	p_dst->TimeCode.iHours = p_src->TimeCode.iHours;
+	p_dst->TimeCode.iMinutes = p_src->TimeCode.iMinutes;
+	p_dst->TimeCode.iSeconds = p_src->TimeCode.iSeconds;
+	p_dst->TimeCode.iStandard = p_src->TimeCode.iStandard;
 
 	return RC_GeneralError;
 }
 
-int CortexMock::freeFrame(sFrameOfData* pFrame){
-	if(pFrame == nullptr) return RC_MemoryError;
-	int n_bodies = pFrame->nBodies;
+int CortexMock::freeFrame(sFrameOfData* p_frame){
+	if(p_frame == nullptr) return RC_MemoryError;
+	int n_bodies = p_frame->nBodies;
 	if(n_bodies > 0){
 		for (int i_body = 0; i_body < n_bodies; ++i_body) {
-			sBodyData& i_body_data = pFrame->BodyData[i_body];
+			sBodyData& i_body_data = p_frame->BodyData[i_body];
 			if(i_body_data.nMarkers > 0) delete [] i_body_data.Markers;
 			if(i_body_data.nSegments > 0) delete [] i_body_data.Segments;
 			if(i_body_data.nDofs > 0) delete [] i_body_data.Dofs;
@@ -436,28 +437,28 @@ int CortexMock::freeFrame(sFrameOfData* pFrame){
 		}
 	}
 
-	if(pFrame->nUnidentifiedMarkers > 0) delete [] pFrame->UnidentifiedMarkers;
-	if(pFrame->AnalogData.nAnalogSamples > 0 && pFrame->AnalogData.nAnalogChannels > 0) delete [] pFrame->AnalogData.AnalogSamples;
-	if(pFrame->AnalogData.nForceSamples > 0 && pFrame->AnalogData.nForcePlates > 0) delete [] pFrame->AnalogData.Forces;
-	if(pFrame->AnalogData.nAngleEncoderSamples > 0 && pFrame->AnalogData.nAngleEncoders > 0) delete [] pFrame->AnalogData.AngleEncoderSamples;
+	if(p_frame->nUnidentifiedMarkers > 0) delete [] p_frame->UnidentifiedMarkers;
+	if(p_frame->AnalogData.nAnalogSamples > 0 && p_frame->AnalogData.nAnalogChannels > 0) delete [] p_frame->AnalogData.AnalogSamples;
+	if(p_frame->AnalogData.nForceSamples > 0 && p_frame->AnalogData.nForcePlates > 0) delete [] p_frame->AnalogData.Forces;
+	if(p_frame->AnalogData.nAngleEncoderSamples > 0 && p_frame->AnalogData.nAngleEncoders > 0) delete [] p_frame->AnalogData.AngleEncoderSamples;
 	return RC_Okay;
 }
 
-int CortexMock::sendHtr(sHierarchy *pHierarchy, tSegmentData *pFrame){
+int CortexMock::sendHtr(sHierarchy *p_hierarchy, tSegmentData *p_frame){
 	// TODO
 	return RC_GeneralError;
 }
 
-int CortexMock::setMetered(bool bActive, float fFixedLatency){
+int CortexMock::setMetered(bool b_active, float f_fixed_latency){
 	// TODO
 	return RC_GeneralError;
 }
 
-void CortexMock::constructRotationMatrix(double angles[3], int iRotationOrder, double matrix[3][3]){
+void CortexMock::constructRotationMatrix(double angles[3], int i_rotation_order, double matrix[3][3]){
 	// TODO
 }
 
-void CortexMock::extractEulerAngles(double matrix[3][3],int iRotationOrder, double angles[3]){
+void CortexMock::extractEulerAngles(double matrix[3][3],int i_rotation_order, double angles[3]){
 	// TODO
 }
 
@@ -665,9 +666,9 @@ void CortexMock::extractSegments(tSegmentData* segments, int n_segments, const r
 	}
 }
 
-void CortexMock::extractFrame(sFrameOfData& fod, int iFrame){
+void CortexMock::extractFrame(sFrameOfData& fod, int i_frame){
 	freeFrame(&fod);
-	const rapidjson::Value& frame = document_["framesArray"][iFrame];
+	const rapidjson::Value& frame = document_["framesArray"][i_frame];
 	fod.iFrame = frame["frame"].GetInt();
 	fod.fDelay = frame["frameDelay"].GetFloat();
 	fod.nBodies = frame["nBodies"].GetInt();

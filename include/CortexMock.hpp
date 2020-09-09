@@ -18,52 +18,52 @@ class CortexMock{
     public:
         CortexMock(const std::string& captureFileName);
         ~CortexMock();
-        int getSdkVersion(unsigned char Version[4]);
-        int setVerbosityLevel(int iLevel);
+        int getSdkVersion(unsigned char version[4]);
+        int setVerbosityLevel(int i_level);
         int getVerbosityLevel();
-        int setMinTimeout(int msTimeout);
+        int setMinTimeout(int ms_timeout);
         int getMinTimeout();
-        int setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int iLogLevel, char* szLogMessage));
-        int setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* pFrameOfData));
-        int sendDataToClients(sFrameOfData* pFrameOfData);
-        void setClientCommunicationEnabled(int bEnabled);
+        int setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int i_log_level, char* sz_log_message));
+        int setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* p_frame_of_data));
+        int sendDataToClients(sFrameOfData* p_frame_of_data);
+        void setClientCommunicationEnabled(int b_enabled);
         int isClientCommunicationEnabled();
-        void setThreadPriorities(maThreadPriority ListenForHost, maThreadPriority ListenForData, maThreadPriority ListenForClients);
-        int configurePortNumbers(int TalkToHostPort,                 //0 == find available
-										int HostPort,
-										int HostMulticastPort, 
-										int TalkToClientsRequestPort = 0,   //0 == find available
-										int TalkToClientsMulticastPort = 0, //0 == find available
-										int ClientsMulticastPort = -1);
-        int initialize(	char* szTalkToHostNicCardAddress,
-							char* szHostNicCardAddress,
-							char* szHostMulticastAddress = (char*)"225.1.1.1",
-							char* szTalkToClientsNicCardAddress = (char*)"127.0.0.1",
-							char* szClientsMulticastAddress = (char*)"225.1.1.2");
-        int getPortNumbers(	int *TalkToHostPort,
-								int *HostPort, 
-								int *HostMulticastPort, 
-								int *TalkToClientsRequestPort,
-								int *TalkToClientsMulticastPort,
-								int *ClientsMulticastPort);
-        int getAddresses(char* szTalkToHostNicCardAddress,
-							char* szHostNicCardAddress,
-							char* szHostMulticastAddress,
-							char* szTalkToClientsNicCardAddress,
-							char* szClientsMulticastAddress);
-        int getHostInfo(sHostInfo *pHostInfo);
+        void setThreadPriorities(maThreadPriority listen_for_host, maThreadPriority listen_for_data, maThreadPriority listen_for_clients);
+        int configurePortNumbers(int talk_to_host_port,                 //0 == find available
+										int host_port, 
+										int host_multicast_port, 
+										int talk_to_clients_request_port = 0,   //0 == find available
+										int talk_to_clients_multicast_port = 0,   //0 == find available
+										int clients_multicast_port = -1);
+        int initialize(char* sz_talk_to_host_nic_card_address,
+							char* sz_host_nic_card_address,
+							char* sz_host_multicast_address = (char*)"225.1.1.1",
+							char* sz_talk_to_clients_nic_card_address = (char*)"127.0.0.1",
+							char* sz_clients_multicast_address = (char*)"225.1.1.2");
+        int getPortNumbers(int *talk_to_host_port,
+								int *host_port, 
+								int *host_multicast_port, 
+								int *talk_to_clients_request_port,
+								int *talk_to_clients_multicast_port,
+								int *clients_multicast_port);
+        int getAddresses(char* sz_talk_to_host_nic_card_address,
+							char* sz_host_nic_card_address,
+							char* sz_host_multicast_address,
+							char* sz_talk_to_clients_nic_card_address,
+							char* sz_clients_multicast_address);
+        int getHostInfo(sHostInfo *p_host_info);
         int exit();
-        int request(char* szCommand, void** ppResponse, int *pnBytes);
-        sSkyReturn* skyCommand(char *szCommand, int msTimeout);
+        int request(char* sz_command, void** pp_response, int *pn_bytes);
+        sSkyReturn* skyCommand(char *sz_command, int ms_timeout);
         sBodyDefs* getBodyDefs();
-        int freeBodyDefs(sBodyDefs* pBodyDefs);
+        int freeBodyDefs(sBodyDefs* p_body_defs);
         sFrameOfData* getCurrentFrame();
-        int copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst);
-        int freeFrame(sFrameOfData* pFrame);
-        int sendHtr(sHierarchy *pHierarchy, tSegmentData *pFrame);
-        int setMetered(bool bActive, float fFixedLatency);
-        void constructRotationMatrix(double angles[3], int iRotationOrder, double matrix[3][3]);
-        void extractEulerAngles(double matrix[3][3],int iRotationOrder, double angles[3]);
+        int copyFrame(const sFrameOfData* p_src, sFrameOfData* p_dst);
+        int freeFrame(sFrameOfData* p_frame);
+        int sendHtr(sHierarchy *p_hierarchy, tSegmentData *p_frame);
+        int setMetered(bool b_active, float f_fixed_latency);
+        void constructRotationMatrix(double angles[3], int i_rotation_order, double matrix[3][3]);
+        void extractEulerAngles(double matrix[3][3],int i_rotation_order, double angles[3]);
 
         void getCaptureFilename(std::string& dest) const;
 

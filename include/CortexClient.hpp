@@ -10,14 +10,14 @@
 
 class CortexClient{
 public:
-    explicit CortexClient(const std::string&);
+    explicit CortexClient(const std::string& capture_file_name);
     void run();
     ~CortexClient();
-    virtual void dataHandlerFunc_(sFrameOfData*) = 0;
-    virtual void errorMsgHandlerFunc_(int, char*) = 0;
-    int setDataHandlerFunc(void (*)(sFrameOfData*));
-    int setErrorMsgHandlerFunc(void (*)(int, char*));
-    int copyFrame(const sFrameOfData*, sFrameOfData*);
+    virtual void dataHandlerFunc_(sFrameOfData* p_frame_of_data) = 0;
+    virtual void errorMsgHandlerFunc_(int i_log_level, char* sz_log_message) = 0;
+    int setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* p_frame_of_data));
+    int setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int i_log_level, char* sz_log_message));
+    int copyFrame(const sFrameOfData* p_src, sFrameOfData* p_dst);
 private:
     const std::string server_addr_ = "127.0.0.1"; // TODO make const and string
     // const int server_port_ = 30001;

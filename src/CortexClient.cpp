@@ -46,14 +46,14 @@ void CortexClient::run(){
 	cortex_mock_.exit();
 }
 
-int CortexClient::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* pFrameOfData)){
+int CortexClient::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* p_frame_of_data)){
 	cortex_mock_.setDataHandlerFunc(dataHandlerFunc);
 }
 
-int CortexClient::setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int iLogLevel, char* szLogMessage)){
+int CortexClient::setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int i_log_level, char* sz_log_message)){
 	cortex_mock_.setErrorMsgHandlerFunc(errorMsgHandlerFunc);
 }
 
-int CortexClient::copyFrame(const sFrameOfData* pSrc, sFrameOfData* pDst){
-	cortex_mock_.copyFrame(pSrc, pDst);
+int CortexClient::copyFrame(const sFrameOfData* p_src, sFrameOfData* p_dst){
+	cortex_mock_.copyFrame(p_src, p_dst);
 }
