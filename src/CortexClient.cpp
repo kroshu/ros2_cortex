@@ -36,6 +36,13 @@ void CortexClient::run(){
 	delete [] pause_comm_char;
 	std::this_thread::sleep_for(std::chrono::seconds(5));
 
+	std::string rec_comm = "StartRecording";
+	char* rec_comm_char = new char[rec_comm.length()+1];
+	strcpy(rec_comm_char, rec_comm.data());
+	cortex_mock_.request(rec_comm_char, nullptr, nullptr);
+	delete [] rec_comm_char;
+	std::this_thread::sleep_for(std::chrono::seconds(5));
+
 	cortex_mock_.exit();
 }
 

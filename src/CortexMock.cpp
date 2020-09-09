@@ -47,17 +47,27 @@ int CortexMock::getVerbosityLevel(){
     return verbosity_level_;
 }
 
+// TODO there must be a better workaround...
+void CortexMock::errorMsgInString(int i_level, std::string msg_str){
+	if(verbosity_level_ >= i_level){
+		char* error_msg = new char[msg_str.length()+1];
+		strcpy(error_msg, msg_str.data());
+		errorMsgHandlerFunc_(i_level, error_msg);
+		delete [] error_msg;
+	}
+}
+
 int CortexMock::setMinTimeout(int msTimeout){
     // Timeout has no use here actually,
-	// because we don't communicate with the host
-	if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No use of timeout in mock version");
+	// because we don't communicate with the host	
+	errorMsgInString(VL_Error, "No use of timeout in mock version");
     return RC_ApiError;
 }
 
 int CortexMock::getMinTimeout(){
     // Timeout has no use here actually,
 	// because we don't communicate with the host
-	if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No use of timeout in mock version");
+	errorMsgInString(VL_Error, "No use of timeout in mock version");
     return RC_ApiError;
 }
 
@@ -73,24 +83,24 @@ int CortexMock::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* pFrameO
 
 int CortexMock::sendDataToClients(sFrameOfData* pFrameOfData){
 	// TODO send through TCP? or what way?
-	if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No communication with client in mock version");
+	errorMsgInString(VL_Error, "No communication with client in mock version");
 	return RC_ApiError;
 }
 
 void CortexMock::setClientCommunicationEnabled(int bEnabled){
 	// TODO do we enable communication with clients in the mock
-	if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No communication with client in mock version");
+	errorMsgInString(VL_Error, "No communication with client in mock version");
 }
 
 int CortexMock::isClientCommunicationEnabled(){
 	// TODO do we enable communication with clients in the mock
-	if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No communication with client in mock version");
+	errorMsgInString(VL_Error, "No communication with client in mock version");
 	return RC_ApiError;
 }
 
 void CortexMock::setThreadPriorities(maThreadPriority ListenForHost, maThreadPriority ListenForData, maThreadPriority ListenForClients){
 	// TODO if communicating with client, should we differentiate priority of listening to data and listening for clients?
-	if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No communication with client neither with host in mock version");
+	errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 }
 
 int CortexMock::configurePortNumbers(int TalkToHostPort,
@@ -100,7 +110,7 @@ int CortexMock::configurePortNumbers(int TalkToHostPort,
 										int TalkToClientsMulticastPort,
 										int ClientsMulticastPort){
 
-	if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No communication with client neither with host in mock version");
+	errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
     
     // talk_to_host_port_ = TalkToHostPort;
@@ -118,7 +128,7 @@ int CortexMock::initialize(	char* szTalkToHostNicCardAddress,
 							char* szHostMulticastAddress,
 							char* szTalkToClientsNicCardAddress,
 							char* szClientsMulticastAddress){
-	if(verbosity_level_ >= VL_Warning) errorMsgHandlerFunc_(VL_Warning, "No communication with client neither with host in mock version");
+	errorMsgInString(VL_Warning, "No communication with client neither with host in mock version");
 	
 	// inet_aton(szHostNicCardAddress, &host_machine_address_);
 	// inet_aton(szHostMulticastAddress, &host_multicast_address_);
@@ -136,7 +146,7 @@ int CortexMock::getPortNumbers(	int *TalkToHostPort,
 								int *TalkToClientsRequestPort,
 								int *TalkToClientsMulticastPort,
 								int *ClientsMulticastPort){
-	if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No communication with client neither with host in mock version");
+	errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
 	
     // *TalkToHostPort = talk_to_host_port_;
@@ -153,7 +163,7 @@ int CortexMock::getAddresses(char* szTalkToHostNicCardAddress,
 							char* szHostMulticastAddress,
 							char* szTalkToClientsNicCardAddress,
 							char* szClientsMulticastAddress){
-    if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "No communication with client neither with host in mock version");
+    errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
 	
 	// szTalkToHostNicCardAddress = inet_ntoa(talk_to_host_address_);
@@ -166,7 +176,7 @@ int CortexMock::getAddresses(char* szTalkToHostNicCardAddress,
 }
 
 int CortexMock::getHostInfo(sHostInfo *pHostInfo){
-	if(verbosity_level_ >= VL_Warning) errorMsgHandlerFunc_(VL_Warning, "Found mock version, no communication with host in mock version");
+	errorMsgInString(VL_Warning, "Found mock version, no communication with host in mock version");
 	return RC_ApiError;
 
     // pHostInfo->bFoundHost = true;
@@ -194,7 +204,7 @@ int CortexMock::request(char* szCommand, void** ppResponse, int *pnBytes){
 	}
 	auto found_it = map_string_to_request.find(command);
 	if(found_it == map_string_to_request.end()){
-		if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "Unrecognized request");
+		errorMsgInString(VL_Error, "Unrecognized request");
 		return RC_Unrecognized;
 	}
 	Request req_type = found_it->second;
@@ -203,22 +213,22 @@ int CortexMock::request(char* szCommand, void** ppResponse, int *pnBytes){
 	// Mock doesn't and can't deal with live mode requests
 	// TODO should it?
 	case Request::LiveMode:
-		if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "Mock handles no live mode requests");
+		errorMsgInString(VL_Error, "Mock handles no live mode requests");
 		return RC_ApiError;
 	case Request::Pause:
-		if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "Mock handles no live mode requests");
+		errorMsgInString(VL_Error, "Mock handles no live mode requests");
 		return RC_ApiError;
 	case Request::SetOutputName:
-		if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "Mock handles no live mode requests");
+		errorMsgInString(VL_Error, "Mock handles no live mode requests");
 		return RC_ApiError;
 	case Request::StartRecording:
-		if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "Mock handles no live mode requests");
+		errorMsgInString(VL_Error, "Mock handles no live mode requests");
 		return RC_ApiError;
 	case Request::StopRecording:
-		if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "Mock handles no live mode requests");
+		errorMsgInString(VL_Error, "Mock handles no live mode requests");
 		return RC_ApiError;
 	case Request::ResetIDs:
-		if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "Mock handles no live mode requests");
+		errorMsgInString(VL_Error, "Mock handles no live mode requests");
 		return RC_ApiError;
 	// Mock does deal with post mode requests though
 	case Request::PostForward:
@@ -255,7 +265,7 @@ int CortexMock::request(char* szCommand, void** ppResponse, int *pnBytes){
 		break;
 	
 	default:
-		if(verbosity_level_ >= VL_Error) errorMsgHandlerFunc_(VL_Error, "Unrecognized request");
+		errorMsgInString(VL_Error, "Unrecognized request");
 		return RC_Unrecognized;
 	}
 
@@ -309,8 +319,6 @@ int CortexMock::freeBodyDefs(sBodyDefs* pBodyDefs){
 	delete[] pBodyDefs->AnalogLoVoltage;
 	delete[] pBodyDefs->AnalogHiVoltage;
 	// TODO should i delete pBodyDefs->AllocatedSpace??
-
-	delete pBodyDefs;
 	return RC_Okay;
 }
 
@@ -432,7 +440,6 @@ int CortexMock::freeFrame(sFrameOfData* pFrame){
 	if(pFrame->AnalogData.nAnalogSamples > 0 && pFrame->AnalogData.nAnalogChannels > 0) delete [] pFrame->AnalogData.AnalogSamples;
 	if(pFrame->AnalogData.nForceSamples > 0 && pFrame->AnalogData.nForcePlates > 0) delete [] pFrame->AnalogData.Forces;
 	if(pFrame->AnalogData.nAngleEncoderSamples > 0 && pFrame->AnalogData.nAngleEncoders > 0) delete [] pFrame->AnalogData.AngleEncoderSamples;
-	delete pFrame;
 	return RC_Okay;
 }
 
