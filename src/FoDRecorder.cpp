@@ -26,8 +26,8 @@ typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
 FoDRecorder::FoDRecorder(const std::string& capture_file_name, int capture_size, int file_write_buffer_size)
 :capture_file_name_(capture_file_name), capture_size_(capture_size), file_write_buffer_size_(file_write_buffer_size){
     json_doc_.SetObject();
-    rapidjson::Value framesArray(rapidjson::kArrayType);
-    json_doc_.AddMember("framesArray", framesArray, json_doc_.GetAllocator());
+    rapidjson::Value frames_array_json(rapidjson::kArrayType);
+    json_doc_.AddMember("framesArray", frames_array_json, json_doc_.GetAllocator());
 
     Callback<void(sFrameOfData*)>::func = std::bind(&FoDRecorder::dataPrinter, this, std::placeholders::_1);
     data_callback_t data_func = static_cast<data_callback_t>(Callback<void(sFrameOfData*)>::callback);      
@@ -36,9 +36,87 @@ FoDRecorder::FoDRecorder(const std::string& capture_file_name, int capture_size,
     Callback<void(int i_level, char *sz_msg)>::func = std::bind(&FoDRecorder::errorMsgPrinter, this, std::placeholders::_1, std::placeholders::_2);
     error_msg__callback_t error_msg_func = static_cast<error_msg__callback_t>(Callback<void(int i_level, char *sz_msg)>::callback);      
     Cortex_SetErrorMsgHandlerFunc(error_msg_func);
+
+    printBodyDefs(*Cortex_GetBodyDefs());
 }
 
 const std::vector<std::string> FoDRecorder:: verb_levels ({"None", "Error", "Warning", "Info", "Debug"});
+
+void FoDRecorder::printBodyDefs(sBodyDefs& body_defs){
+    rapidjson::Document::AllocatorType& allocator = json_doc_.GetAllocator();
+    rapidjson::Value body_defs_json(rapidjson::kObjectType);
+    json_doc_.AddMember("bodyDefs", body_defs_json, allocator);
+
+    body_defs_json.AddMember("nBodyDefs", body_defs.nBodyDefs, allocator);
+    int n_body_defs = body_defs.nBodyDefs;
+    rapidjson::Value body_def_array_json(rapidjson::kArrayType);
+	for (int i = 0; i < n_body_defs; i++)
+	{
+		printBodyDef(body_defs.BodyDefs[i], body_def_array_json, allocator);
+	}
+    body_defs_json.AddMember("bodyDefs", body_def_array_json, allocator);
+
+    body_defs_json.AddMember("nAnalogChannels", body_defs.nAnalogChannels, allocator);
+    int n_analog_channels = body_defs.nAnalogChannels;
+	char** src_analogch_names_ptr = body_defs.szAnalogChannelNames;
+    rapidjson::Value analogch_names_json(rapidjson::kArrayType);
+	for (int i = 0; i < n_analog_channels; ++i, ++src_analogch_names_ptr)
+	{
+        analogch_names_json.PushBack(rapidjson::StringRef(*src_analogch_names_ptr), allocator);
+	}
+    body_defs_json.AddMember("analogChannelNames", analogch_names_json, allocator);
+
+    body_defs_json.AddMember("nForcePlates", body_defs.nForcePlates, allocator);
+    body_defs_json.AddMember("analogBitDepth", body_defs.AnalogBitDepth, allocator);
+
+    rapidjson::Value analog_lo_voltage_json(rapidjson::kArrayType);
+    rapidjson::Value analog_hi_voltage_json(rapidjson::kArrayType);
+	for (int i = 0; i < n_analog_channels; i++)
+	{
+        analog_lo_voltage_json.PushBack(body_defs.AnalogLoVoltage[i], allocator);
+        analog_hi_voltage_json.PushBack(body_defs.AnalogHiVoltage[i], allocator);
+	}
+}
+
+void FoDRecorder::printBodyDef(sBodyDef& body_def, rapidjson::Value& body_def_array_json, rapidjson::Document::AllocatorType& allocator){
+    rapidjson::Value body_def_json(rapidjson::kObjectType);
+    body_def_json.AddMember("name", rapidjson::StringRef(body_def.szName), allocator);
+
+    body_def_json.AddMember("nMarkers", body_def.nMarkers, allocator);
+    int n_markers = body_def.nMarkers;
+	char** src_marker_names_ptr = body_def.szMarkerNames;
+    rapidjson::Value marker_names_json(rapidjson::kArrayType);
+	for (int i = 0; i < n_markers; ++i, ++src_marker_names_ptr)
+	{
+        marker_names_json.PushBack(rapidjson::StringRef(*src_marker_names_ptr), allocator);
+	}
+    body_def_json.AddMember("markerNames", marker_names_json, allocator);
+
+    rapidjson::Value hierarchy_json(rapidjson::kObjectType);
+    body_def_json.AddMember("nSegments", body_def.Hierarchy.nSegments, allocator);
+    int n_segments = body_def.Hierarchy.nSegments;
+    char** src_segment_names_ptr = body_def.Hierarchy.szSegmentNames;
+    rapidjson::Value segment_names_json(rapidjson::kArrayType);
+    rapidjson::Value parents_json(rapidjson::kArrayType);
+    for (int i = 0; i < n_segments; ++i, ++src_segment_names_ptr)
+	{
+        segment_names_json.PushBack(rapidjson::StringRef(*src_segment_names_ptr), allocator);
+        parents_json.PushBack(body_def.Hierarchy.iParents[i], allocator);
+    }
+    hierarchy_json.AddMember("segmentNames", segment_names_json, allocator);
+    hierarchy_json.AddMember("parents", parents_json, allocator);
+    body_def_json.AddMember("hierarchy", hierarchy_json, allocator);
+
+    body_def_json.AddMember("nDofs", body_def.nDofs, allocator);
+    int n_dofs = body_def.nDofs;
+	char** src_dof_names_ptr = body_def.szDofNames;
+    rapidjson::Value dof_names_json(rapidjson::kArrayType);
+	for (int i = 0; i < n_dofs; ++i, ++src_dof_names_ptr)
+	{
+        dof_names_json.PushBack(rapidjson::StringRef(*src_dof_names_ptr), allocator);
+	}
+    body_def_json.AddMember("dofNames", dof_names_json, allocator);
+}
 
 void FoDRecorder::errorMsgPrinter(int i_level, char *sz_msg)
 {
