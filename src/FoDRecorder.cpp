@@ -5,16 +5,44 @@
 
 #include "FoDRecorder.hpp"
 
-FoDRecorder::FoDRecorder(const std::string& capture_file_name, int capture_size, int file_write_buffer_size = 65536)
+template <typename T>
+struct Callback;
+
+template <typename Ret, typename... Params>
+struct Callback<Ret(Params...)> {
+   template <typename... Args> 
+   static Ret callback(Args... args) {                    
+      return func(args...);  
+   }
+   static std::function<Ret(Params...)> func; 
+};
+
+template <typename Ret, typename... Params>
+std::function<Ret(Params...)> Callback<Ret(Params...)>::func;
+
+typedef void (*data_callback_t)(sFrameOfData*);
+typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
+
+FoDRecorder::FoDRecorder(const std::string& capture_file_name, int capture_size, int file_write_buffer_size)
 :capture_file_name_(capture_file_name), capture_size_(capture_size), file_write_buffer_size_(file_write_buffer_size){
     json_doc_.SetObject();
     rapidjson::Value framesArray(rapidjson::kArrayType);
     json_doc_.AddMember("framesArray", framesArray, json_doc_.GetAllocator());
+
+    Callback<void(sFrameOfData*)>::func = std::bind(&FoDRecorder::dataPrinter, this, std::placeholders::_1);
+    data_callback_t data_func = static_cast<data_callback_t>(Callback<void(sFrameOfData*)>::callback);      
+    Cortex_SetDataHandlerFunc(data_func);
+
+    Callback<void(int i_level, char *sz_msg)>::func = std::bind(&FoDRecorder::errorMsgPrinter, this, std::placeholders::_1, std::placeholders::_2);
+    error_msg__callback_t error_msg_func = static_cast<error_msg__callback_t>(Callback<void(int i_level, char *sz_msg)>::callback);      
+    Cortex_SetErrorMsgHandlerFunc(error_msg_func);
 }
+
+const std::vector<std::string> FoDRecorder:: verb_levels ({"None", "Error", "Warning", "Info", "Debug"});
 
 void FoDRecorder::errorMsgPrinter(int i_level, char *sz_msg)
 {
-    std::cerr << verb_level[i_level] << ": " << sz_msg;
+    std::cerr << verb_levels[i_level] << ": " << sz_msg << std::endl;
 }
 
 void FoDRecorder::printMarkerData(const std::vector<tMarkerData>& marker_data, rapidjson::Value& markers_json, rapidjson::Document::AllocatorType& allocator){
@@ -59,15 +87,19 @@ void FoDRecorder::printBodyDatas(const std::vector<sBodyData>& body_data, rapidj
     int i=0;
     for(std::vector<sBodyData>::const_iterator it = body_data.begin(); it != body_data.end(); ++it) {
         rapidjson::Value body_json(rapidjson::kObjectType);
-        // TODO check whether this is safe
         body_json.AddMember("name", rapidjson::StringRef(it->szName), allocator);
 
         int n_markers = it->nMarkers;
         body_json.AddMember("nMarkers",n_markers, allocator);
         rapidjson::Value markers_json(rapidjson::kArrayType);
         if(n_markers > 0){
-            
-            std::vector<tMarkerData> markers(it->Markers, it->Markers + n_markers);
+            // TODO is this not fully unnecessary compared to just handing over the pointer to the function
+            std::vector<tMarkerData> markers(n_markers);
+            auto marker_ptr = it->Markers;
+            for (int i = 0; i < n_markers; ++i, ++marker_ptr)
+            {
+                memcpy(markers[i],*marker_ptr, sizeof(tMarkerData));
+            }
             printMarkerData(markers, markers_json, allocator);
         }
         body_json.AddMember("markers", markers_json, allocator);
@@ -77,7 +109,13 @@ void FoDRecorder::printBodyDatas(const std::vector<sBodyData>& body_data, rapidj
         body_json.AddMember("nSegments", n_segments, allocator);
         rapidjson::Value segments_json(rapidjson::kArrayType);
         if(n_segments > 0){
-            std::vector<tSegmentData> segments(it->Segments, it->Segments + n_segments);
+            // TODO is this not fully unnecessary compared to just handing over the pointer to the function
+            std::vector<tSegmentData> segments(n_markers);
+            auto segment_ptr = it->Segments;
+            for (int i = 0; i < n_segments; ++i, ++segment_ptr)
+            {
+                memcpy(segments[i],*segment_ptr, sizeof(tSegmentData));
+            }
             printSegmentData(segments, segments_json, allocator);
         }
         body_json.AddMember("segments", segments_json, allocator);
@@ -133,7 +171,7 @@ void FoDRecorder::printAnalogData(const sAnalogData& analog_data, rapidjson::Val
     ad_value.AddMember("nAnalogSamples", n_analog_samples, allocator);
 
     rapidjson::Value analog_samples_json(rapidjson::kArrayType);
-    if(n_analog_samples > 0 && n_analog_channels > 0){
+    if(n_analog > 0){
         const std::vector<short> analog_samples(analog_data.AnalogSamples, analog_data.AnalogSamples + n_analog);
         for(std::vector<short>::const_iterator it = analog_samples.begin(); it != analog_samples.end(); ++it) {
             rapidjson::Value sample_json(rapidjson::kObjectType);
@@ -149,8 +187,14 @@ void FoDRecorder::printAnalogData(const sAnalogData& analog_data, rapidjson::Val
     ad_value.AddMember("nForcePlates", n_force_plates, allocator);
     ad_value.AddMember("nForceSamples", n_force_samples, allocator);
     rapidjson::Value forces_json(rapidjson::kArrayType);
-    if(n_force_plates > 0 && n_force_samples > 0){
-        std::vector<tForceData> forces(analog_data.Forces, analog_data.Forces + n_forces);
+    if(n_forces > 0){
+        // TODO is this not fully unnecessary compared to just handing over the pointer to the function
+        std::vector<tForceData> forces(n_forces);
+        auto force_ptr = analog_data.Forces;
+        for (int i = 0; i < n_forces; ++i, ++force_ptr)
+        {
+            memcpy(forces[i],*force_ptr, sizeof(tForceData));
+        }
         printForceData(forces, forces_json, allocator);
         ad_value.AddMember("forces", forces_json, allocator);
     }
@@ -162,7 +206,7 @@ void FoDRecorder::printAnalogData(const sAnalogData& analog_data, rapidjson::Val
     ad_value.AddMember("nAngleEncoderSamples", n_angle_encoder_samples, allocator);
 
     rapidjson::Value angle_encoder_samples_json(rapidjson::kArrayType);
-    if(n_angle_encoders > 0 && n_angle_encoder_samples > 0){
+    if(n_all_ae__samples > 0){
         const std::vector<double> angle_encoder_samples(analog_data.AngleEncoderSamples, analog_data.AngleEncoderSamples + n_all_ae__samples);
         for(std::vector<double>::const_iterator it = angle_encoder_samples.begin(); it != angle_encoder_samples.end(); ++it) {
             rapidjson::Value sample_json(rapidjson::kObjectType);
@@ -189,11 +233,17 @@ void FoDRecorder::printFrameOfData(const sFrameOfData& frame_of_data)
     }
     frame_json.AddMember("bodies", bodies_json, allocator);
 
-    int n_unidentified_markers = frame_of_data.nUnidentifiedMarkers;
-    frame_json.AddMember("nUnidentifiedMarkers", n_unidentified_markers, allocator);
+    int n_ui_markers = frame_of_data.nUnidentifiedMarkers;
+    frame_json.AddMember("nUnidentifiedMarkers", n_ui_markers, allocator);
     rapidjson::Value ui_markers_json(rapidjson::kArrayType);
-    if(n_unidentified_markers > 0){
-        std::vector<tMarkerData> ui_markers(frame_of_data.UnidentifiedMarkers, frame_of_data.UnidentifiedMarkers + n_unidentified_markers);
+    if(n_ui_markers > 0){
+        // TODO is this not fully unnecessary compared to just handing over the pointer to the function
+        std::vector<tMarkerData> ui_markers(n_ui_markers);
+        auto ui_marker_ptr = frame_of_data.UnidentifiedMarkers;
+        for (int i = 0; i < n_ui_markers; ++i, ++ui_marker_ptr)
+        {
+            memcpy(ui_markers[i],*ui_marker_ptr, sizeof(tMarkerData));
+        }
         printMarkerData(ui_markers, ui_markers_json, allocator);
     }
     frame_json.AddMember("unidentifiedMarkers", ui_markers_json, allocator);
@@ -247,68 +297,63 @@ void FoDRecorder::dataPrinter(sFrameOfData* frame_of_data){
 int main(int argc, char* argv[])
 {
     FoDRecorder recorder("CaptureWithPlots1.json", 7230);
-    std::cout << "Usage: ClientTest <Me> <Cortex>\n";
-    std::cout << "       Me = My machine name or its IP address\n";
-    std::cout << "       Cortex = Cortex's machine name or its IP Address\n";
-    std::cout << "----------\n";
+    std::cout << "Usage: ClientTest <Me> <Cortex>" << std::endl;
+    std::cout << "       Me = My machine name or its IP address" << std::endl;
+    std::cout << "       Cortex = Cortex's machine name or its IP Address" << std::endl;
+    std::cout << "----------" << std::endl;
 
 
-    sHostInfo Cortex_HostInfo;
-    int retval;
-    unsigned char SDK_Version[4];
+    sHostInfo cortex_hostInfo;
+    int ret_val;
+    unsigned char sdk_version[4];
     char key;
-    int i;
 
     Cortex_SetVerbosityLevel(VL_Info);
-    Cortex_GetSdkVersion(SDK_Version);
-    std::cout << "Using SDK Version: "
-              << SDK_Version[1] << "."
-              << SDK_Version[2] << "."
-              << SDK_Version[3] << ".\n";
-
-    Cortex_SetErrorMsgHandlerFunc();
-    Cortex_SetDataHandlerFunc();
+    ret_val = Cortex_GetSdkVersion(sdk_version);
+    std::cout << "Using SDK Version: " << static_cast<int>(sdk_version[1]) <<
+            "." << static_cast<int>(sdk_version[2]) <<
+            "." << static_cast<int>(sdk_version[3]) << "." << std::endl;
 
     if (argc == 1)
     {
-        retval = Cortex_Initialize((char*)"", (char*)NULL);
+        ret_val = Cortex_Initialize((char*)"", (char*)NULL);
     }
     else
     if (argc == 2)
     {
-        retval = Cortex_Initialize(argv[1], (char*)NULL);
+        ret_val = Cortex_Initialize(argv[1], (char*)NULL);
     }
     else
     if (argc == 3)
     {
-        retval = Cortex_Initialize(argv[1], argv[2]);
+        ret_val = Cortex_Initialize(argv[1], argv[2]);
     }
 
-    if (retval != RC_Okay)
+    if (ret_val != RC_Okay)
     {
-        std::cerr << "Error: Unable to initialize ethernet communication\n";
+        std::cerr << "Error: Unable to initialize ethernet communication" << std::endl;
         return -1;
     }
 
-    retval = Cortex_GetHostInfo(&Cortex_HostInfo);
+    ret_val = Cortex_GetHostInfo(&cortex_hostInfo);
 
-	if (retval != RC_Okay
-     || !Cortex_HostInfo.bFoundHost)
+	if (ret_val != RC_Okay
+     || !cortex_hostInfo.bFoundHost)
     {
-        std::cerr << "Cortex not found.\n";
+        std::cerr << "Cortex not found." << std::endl;
         return -1;
     }
     else
     {
-        std::cout << "Found " << Cortex_HostInfo.szHostProgramName
-                  << " Version " << Cortex_HostInfo.HostProgramVersion[1]
-                  << "." << Cortex_HostInfo.HostProgramVersion[2]
-                  << "." << Cortex_HostInfo.HostProgramVersion[3]
-                  << " at " << Cortex_HostInfo.HostMachineAddress[0]
-                  << "." << Cortex_HostInfo.HostMachineAddress[1]
-                  << "." << Cortex_HostInfo.HostMachineAddress[2]
-                  << "." << Cortex_HostInfo.HostMachineAddress[3]
-                  << " (" << Cortex_HostInfo.szHostMachineName << ")\n";
+        std::cout << "Found " << cortex_hostInfo.szHostProgramName
+                  << " Version " << static_cast<int>(cortex_hostInfo.HostProgramVersion[1])
+                  << "." << static_cast<int>(cortex_hostInfo.HostProgramVersion[2])
+                  << "." << static_cast<int>(cortex_hostInfo.HostProgramVersion[3])
+                  << " at " << static_cast<int>(cortex_hostInfo.HostMachineAddress[0])
+                  << "." <<static_cast<int>(cortex_hostInfo.HostMachineAddress[1])
+                  << "." << static_cast<int>(cortex_hostInfo.HostMachineAddress[2])
+                  << "." << static_cast<int>(cortex_hostInfo.HostMachineAddress[3])
+                  << " (" << cortex_hostInfo.szHostMachineName << ")" << std::endl;
     }
 
     while (1)
@@ -321,7 +366,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    retval = Cortex_Exit();
+    ret_val = Cortex_Exit();
     std::cout << "Press any key to continue...";
     key = getchar();
 

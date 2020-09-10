@@ -3,10 +3,36 @@
 
 #include "CortexClient.hpp"
 
+template <typename T>
+struct Callback;
+
+template <typename Ret, typename... Params>
+struct Callback<Ret(Params...)> {
+   template <typename... Args> 
+   static Ret callback(Args... args) {                    
+      return func(args...);  
+   }
+   static std::function<Ret(Params...)> func; 
+};
+
+template <typename Ret, typename... Params>
+std::function<Ret(Params...)> Callback<Ret(Params...)>::func;
+
+typedef void (*data_callback_t)(sFrameOfData*);
+typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
+
 class SimpleFodPrinter: public CortexClient{
 
 public:
-    SimpleFodPrinter(const std::string& file_name):CortexClient{file_name}{}
+    SimpleFodPrinter(const std::string& file_name):CortexClient{file_name}{
+        Callback<void(sFrameOfData*)>::func = std::bind(&SimpleFodPrinter::dataHandlerFunc_, this, std::placeholders::_1);
+        data_callback_t data_func = static_cast<data_callback_t>(Callback<void(sFrameOfData*)>::callback);      
+        setDataHandlerFunc(data_func);
+
+        Callback<void(int i_level, char *sz_msg)>::func = std::bind(&SimpleFodPrinter::errorMsgHandlerFunc_, this, std::placeholders::_1, std::placeholders::_2);
+        error_msg__callback_t error_msg_func = static_cast<error_msg__callback_t>(Callback<void(int i_level, char *sz_msg)>::callback);      
+        setErrorMsgHandlerFunc(error_msg_func);
+    }
 
     // TODO handle callbacks in a nicer way?
     void dataHandlerFunc_(sFrameOfData* fod){
@@ -22,21 +48,9 @@ public:
     }
 };
 
-const static std::string file_name("CaptureWithPlots1.json");
-static SimpleFodPrinter printer(file_name);
-
-void dataHandlerFunc(sFrameOfData* fod){
-    printer.dataHandlerFunc_(fod);
-}
-
-void errorMsgHandlerFunc(int i_level, char* error_msg){
-    printer.errorMsgHandlerFunc_(i_level, error_msg);
-}
-
 int main(int argc, char const *argv[])
 {
-    printer.setDataHandlerFunc(dataHandlerFunc);
-    printer.setErrorMsgHandlerFunc(errorMsgHandlerFunc);
+    SimpleFodPrinter printer("CaptureWithPlots1.json");
     printer.run();
     
     return 0;
