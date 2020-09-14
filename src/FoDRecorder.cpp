@@ -23,7 +23,8 @@ std::function<Ret(Params...)> Callback<Ret(Params...)>::func;
 typedef void (*data_callback_t)(sFrameOfData*);
 typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
 
-FoDRecorder::FoDRecorder(const std::string& capture_file_name, int capture_size, int file_write_buffer_size)
+FoDRecorder::FoDRecorder(std::string talk_to_host_addr, std::string host_addr, const std::string& capture_file_name,
+int capture_size, int file_write_buffer_size)
 :capture_file_name_(capture_file_name), capture_size_(capture_size), file_write_buffer_size_(file_write_buffer_size){
     json_doc_.SetObject();
     rapidjson::Value frames_array_json(rapidjson::kArrayType);
@@ -36,6 +37,35 @@ FoDRecorder::FoDRecorder(const std::string& capture_file_name, int capture_size,
     Callback<void(int i_level, char *sz_msg)>::func = std::bind(&FoDRecorder::errorMsgPrinter, this, std::placeholders::_1, std::placeholders::_2);
     error_msg__callback_t error_msg_func = static_cast<error_msg__callback_t>(Callback<void(int i_level, char *sz_msg)>::callback);      
     Cortex_SetErrorMsgHandlerFunc(error_msg_func);
+
+    int ret_val = Cortex_Initialize(&talk_to_host_addr[0], &host_addr[0]);
+    if (ret_val != RC_Okay)
+    {
+        std::cerr << "Error: Unable to initialize ethernet communication" << std::endl;
+        return;
+    }
+
+    sHostInfo cortex_hostInfo;
+    ret_val = Cortex_GetHostInfo(&cortex_hostInfo);
+
+	if (ret_val != RC_Okay
+     || !cortex_hostInfo.bFoundHost)
+    {
+        std::cerr << "Cortex not found." << std::endl;
+        return;
+    }
+    else
+    {
+        std::cout << "Found " << cortex_hostInfo.szHostProgramName
+                  << " Version " << static_cast<int>(cortex_hostInfo.HostProgramVersion[1])
+                  << "." << static_cast<int>(cortex_hostInfo.HostProgramVersion[2])
+                  << "." << static_cast<int>(cortex_hostInfo.HostProgramVersion[3])
+                  << " at " << static_cast<int>(cortex_hostInfo.HostMachineAddress[0])
+                  << "." <<static_cast<int>(cortex_hostInfo.HostMachineAddress[1])
+                  << "." << static_cast<int>(cortex_hostInfo.HostMachineAddress[2])
+                  << "." << static_cast<int>(cortex_hostInfo.HostMachineAddress[3])
+                  << " (" << cortex_hostInfo.szHostMachineName << ")" << std::endl;
+    }
 
     printBodyDefs(*Cortex_GetBodyDefs());
 }
@@ -297,7 +327,7 @@ void FoDRecorder::printAnalogData(const sAnalogData& analog_data, rapidjson::Val
 
 void FoDRecorder::printFrameOfData(const sFrameOfData& frame_of_data)
 {
-    rapidjson::Document::AllocatorType& allocator = json_doc_.GetAllocator(); // TODO maybe instead get as param??
+    rapidjson::Document::AllocatorType& allocator = json_doc_.GetAllocator();
     rapidjson::Value frame_json(rapidjson::kObjectType);
     frame_json.AddMember("frame", frame_of_data.iFrame, allocator);
     frame_json.AddMember("frameDelay", frame_of_data.fDelay, allocator);
@@ -374,14 +404,11 @@ void FoDRecorder::dataPrinter(sFrameOfData* frame_of_data){
 
 int main(int argc, char* argv[])
 {
-    FoDRecorder recorder("CaptureWithPlots1.json", 7230);
     std::cout << "Usage: ClientTest <Me> <Cortex>" << std::endl;
     std::cout << "       Me = My machine name or its IP address" << std::endl;
     std::cout << "       Cortex = Cortex's machine name or its IP Address" << std::endl;
     std::cout << "----------" << std::endl;
-
-
-    sHostInfo cortex_hostInfo;
+    
     int ret_val;
     unsigned char sdk_version[4];
     char key;
@@ -392,47 +419,9 @@ int main(int argc, char* argv[])
             "." << static_cast<int>(sdk_version[2]) <<
             "." << static_cast<int>(sdk_version[3]) << "." << std::endl;
 
-    if (argc == 1)
-    {
-        ret_val = Cortex_Initialize((char*)"", (char*)NULL);
-    }
-    else
-    if (argc == 2)
-    {
-        ret_val = Cortex_Initialize(argv[1], (char*)NULL);
-    }
-    else
-    if (argc == 3)
-    {
-        ret_val = Cortex_Initialize(argv[1], argv[2]);
-    }
-
-    if (ret_val != RC_Okay)
-    {
-        std::cerr << "Error: Unable to initialize ethernet communication" << std::endl;
-        return -1;
-    }
-
-    ret_val = Cortex_GetHostInfo(&cortex_hostInfo);
-
-	if (ret_val != RC_Okay
-     || !cortex_hostInfo.bFoundHost)
-    {
-        std::cerr << "Cortex not found." << std::endl;
-        return -1;
-    }
-    else
-    {
-        std::cout << "Found " << cortex_hostInfo.szHostProgramName
-                  << " Version " << static_cast<int>(cortex_hostInfo.HostProgramVersion[1])
-                  << "." << static_cast<int>(cortex_hostInfo.HostProgramVersion[2])
-                  << "." << static_cast<int>(cortex_hostInfo.HostProgramVersion[3])
-                  << " at " << static_cast<int>(cortex_hostInfo.HostMachineAddress[0])
-                  << "." <<static_cast<int>(cortex_hostInfo.HostMachineAddress[1])
-                  << "." << static_cast<int>(cortex_hostInfo.HostMachineAddress[2])
-                  << "." << static_cast<int>(cortex_hostInfo.HostMachineAddress[3])
-                  << " (" << cortex_hostInfo.szHostMachineName << ")" << std::endl;
-    }
+    char* talk_to_host_addr_arg = argc == 1 ? static_cast<char*>("") : argv[1];
+    char* host_addr_arg = argc == 3 ? argv[2] : nullptr;
+    FoDRecorder recorder(talk_to_host_addr_arg, host_addr_arg, "CaptureWithPlots1.json", 7230);
 
     while (1)
     {

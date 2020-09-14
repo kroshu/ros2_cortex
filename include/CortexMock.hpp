@@ -12,8 +12,6 @@
 #include "Cortex.h"
 #include "rapidjson/document.h"
 
-// TODO consistent style - rename params
-
 class CortexMock{
     public:
         CortexMock(const std::string& captureFileName);
@@ -37,9 +35,9 @@ class CortexMock{
 										int clients_multicast_port = -1);
         int initialize(char* sz_talk_to_host_nic_card_address,
 							char* sz_host_nic_card_address,
-							char* sz_host_multicast_address = (char*)"225.1.1.1",
-							char* sz_talk_to_clients_nic_card_address = (char*)"127.0.0.1",
-							char* sz_clients_multicast_address = (char*)"225.1.1.2");
+							char* sz_host_multicast_address = nullptr,
+							char* sz_talk_to_clients_nic_card_address = nullptr,
+							char* sz_clients_multicast_address = nullptr);
         int getPortNumbers(int *talk_to_host_port,
 								int *host_port, 
 								int *host_multicast_port, 

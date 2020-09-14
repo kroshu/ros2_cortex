@@ -1,5 +1,6 @@
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 #include "CortexClient.hpp"
 
@@ -12,35 +13,27 @@ CortexClient::~CortexClient(){
 }
 
 void CortexClient::run(){
-	char* server_addr = new char[server_addr_.length()+1];  // TODO is there a better workaround?
-	strcpy(server_addr,server_addr_.data());
-	cortex_mock_.initialize(server_addr, server_addr);
-	delete [] server_addr;
+	cortex_mock_.initialize(&server_addr_[0], &server_addr_[0]);
 
 	std::string forw_comm = "PostForward", backw_comm = "PostBackward",pause_comm = "PostPause";
-	char* forw_comm_char = new char[forw_comm.length()+1];
-	strcpy(forw_comm_char, forw_comm.data());
-	cortex_mock_.request(forw_comm_char, nullptr, nullptr);
-	delete [] forw_comm_char;
+	cortex_mock_.request(&forw_comm[0], nullptr, nullptr);
 	std::this_thread::sleep_for(std::chrono::seconds(30));
 
-	char* backw_comm_char = new char[backw_comm.length()+1];
-	strcpy(backw_comm_char, backw_comm.data());
-	cortex_mock_.request(backw_comm_char, nullptr, nullptr);
-	delete [] backw_comm_char;
+	cortex_mock_.request(&backw_comm[0], nullptr, nullptr);
 	std::this_thread::sleep_for(std::chrono::seconds(60));
 
-	char* pause_comm_char = new char[pause_comm.length()+1];
-	strcpy(pause_comm_char, pause_comm.data());
-	cortex_mock_.request(pause_comm_char, nullptr, nullptr);
-	delete [] pause_comm_char;
+	cortex_mock_.request(&pause_comm[0], nullptr, nullptr);
 	std::this_thread::sleep_for(std::chrono::seconds(5));
 
 	std::string rec_comm = "StartRecording";
-	char* rec_comm_char = new char[rec_comm.length()+1];
-	strcpy(rec_comm_char, rec_comm.data());
-	cortex_mock_.request(rec_comm_char, nullptr, nullptr);
-	delete [] rec_comm_char;
+	cortex_mock_.request(&rec_comm[0], nullptr, nullptr);
+	std::this_thread::sleep_for(std::chrono::seconds(5));
+
+	std::string fps_comm = "GetContextFrameRate";
+	void *p_response = nullptr;
+	cortex_mock_.request(&fps_comm[0], &p_response, nullptr);
+	float frame_rate = *static_cast<float*>(p_response);
+	std::cout << "Frame rate: " << frame_rate << std::endl;
 	std::this_thread::sleep_for(std::chrono::seconds(5));
 
 	cortex_mock_.exit();

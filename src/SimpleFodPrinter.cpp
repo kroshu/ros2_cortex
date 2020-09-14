@@ -24,7 +24,7 @@ typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
 class SimpleFodPrinter: public CortexClient{
 
 public:
-    SimpleFodPrinter(const std::string& file_name):CortexClient{file_name}{
+    explicit SimpleFodPrinter(const std::string& file_name):CortexClient{file_name}{
         Callback<void(sFrameOfData*)>::func = std::bind(&SimpleFodPrinter::dataHandlerFunc_, this, std::placeholders::_1);
         data_callback_t data_func = static_cast<data_callback_t>(Callback<void(sFrameOfData*)>::callback);      
         setDataHandlerFunc(data_func);
@@ -34,7 +34,6 @@ public:
         setErrorMsgHandlerFunc(error_msg_func);
     }
 
-    // TODO handle callbacks in a nicer way?
     void dataHandlerFunc_(sFrameOfData* fod){
         cortex_mock_.copyFrame(fod, &current_fod_);
         std::cout << "Frame " << current_fod_.iFrame << std::endl;

@@ -10,7 +10,7 @@
 
 class FoDRecorder{
 public:
-    FoDRecorder(const std::string& capture_file_name, int capture_size, int file_write_buffer_size = 65536);
+    FoDRecorder(std::string talk_to_host_addr, std::string host_addr, const std::string& capture_file_name, int capture_size, int file_write_buffer_size = 65536);
 private:
     const std::string capture_file_name_;
     rapidjson::Document json_doc_;

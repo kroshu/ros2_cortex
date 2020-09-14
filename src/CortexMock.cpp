@@ -18,7 +18,7 @@ void CortexMock::initReadFile(){
 	document_.ParseStream(is);
 	fclose(fp);
 	n_frames_ = document_["framesArray"].Size();
-	// TODO captur bodydefs too for the json files
+	// TODO capture bodydefs too for the json files
 	// extractBodyDefs(body_defs_, document_["bodyDefs"]);
 }
 
@@ -47,13 +47,9 @@ int CortexMock::getVerbosityLevel(){
     return verbosity_level_;
 }
 
-// TODO there must be a better workaround...
 void CortexMock::errorMsgInString(int i_level, std::string msg_str){
 	if(verbosity_level_ >= i_level){
-		char* error_msg = new char[msg_str.length()+1];
-		strcpy(error_msg, msg_str.data());
-		errorMsgHandlerFunc_(i_level, error_msg);
-		delete [] error_msg;
+		errorMsgHandlerFunc_(i_level, &msg_str[0]);
 	}
 }
 
@@ -82,7 +78,7 @@ int CortexMock::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* p_frame
 }
 
 int CortexMock::sendDataToClients(sFrameOfData* p_frame_of_data){
-	// TODO send through TCP? or what way?
+	// TODO send through TCP if client communication is going to be enabled
 	errorMsgInString(VL_Error, "No communication with client in mock version");
 	return RC_ApiError;
 }
@@ -109,18 +105,9 @@ int CortexMock::configurePortNumbers(int talk_to_host_port,
 										int talk_to_clients_request_port,
 										int talk_to_clients_multicast_port,
 										int clients_multicast_port){
-
+	// TODO needs to be implemented if client communication is going to be enabled
 	errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
-    
-    // talk_to_host_port_ = talk_to_host_port;
-    // host_port_ = host_port;
-    // host_multicast_port_ = host_multicast_port;
-    // talk_to_clients_request_port_ = talk_to_clients_request_port;
-    // talk_to_clients_multicast_port_ = talk_to_clients_multicast_port;
-    // clients_multicast_port_ = clients_multicast_port;
-
-    // return RC_Okay;
 }
 
 int CortexMock::initialize(	char* sz_talk_to_host_nic_card_address,
@@ -129,12 +116,9 @@ int CortexMock::initialize(	char* sz_talk_to_host_nic_card_address,
 							char* sz_talk_to_clients_nic_card_address,
 							char* sz_clients_multicast_address){
 	errorMsgInString(VL_Warning, "No communication with client neither with host in mock version");
-	
-	// inet_aton(sz_host_nic_card_address, &host_machine_address_);
-	// inet_aton(sz_host_multicast_address, &host_multicast_address_);
-	// inet_aton(sz_talk_to_host_nic_card_address, &talk_to_host_address_);
-	// inet_aton(sz_talk_to_clients_nic_card_address, &talk_to_client_address_);
-	// inet_aton(sz_clients_multicast_address, &client_multicast_address_);
+	// TODO address storing needs to be implemented if client communication is going to be enabled
+	// and complete default initialization, too: sz_host_multicast_address = 225.1.1.1,
+	// sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
 
 	pthread_create(&run_thread_, nullptr, &CortexMock::run_helper, this);
 	return RC_Okay;
@@ -146,16 +130,9 @@ int CortexMock::getPortNumbers(	int *talk_to_host_port,
 								int *talk_to_clients_request_port,
 								int *talk_to_clients_multicast_port,
 								int *clients_multicast_port){
+	// TODO needs to be implemented if client communication is going to be enabled
 	errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
-	
-    // *talk_to_host_port = talk_to_host_port_;
-    // *host_port = host_port_;
-    // *host_multicast_port = host_multicast_port_;
-    // *talk_to_clients_request_port = talk_to_clients_request_port_;
-    // *talk_to_clients_multicast_port = talk_to_clients_multicast_port_;
-    // *clients_multicast_port = clients_multicast_port_;
-    // return RC_Okay;
 }
 
 int CortexMock::getAddresses(char* sz_talk_to_host_nic_card_address,
@@ -163,31 +140,15 @@ int CortexMock::getAddresses(char* sz_talk_to_host_nic_card_address,
 							char* sz_host_multicast_address,
 							char* sz_talk_to_clients_nic_card_address,
 							char* sz_clients_multicast_address){
+	// TODO needs to be implemented if client communication is going to be enabled
     errorMsgInString(VL_Error, "No communication with client neither with host in mock version");
 	return RC_ApiError;
-	
-	// TODO this is wrong here, if client comm is used this should be corrected
-	// sz_talk_to_host_nic_card_address = inet_ntoa(talk_to_host_address_);
-    // sz_host_nic_card_address = inet_ntoa(host_machine_address_);
-    // sz_host_multicast_address = inet_ntoa(host_multicast_address_);
-    // sz_talk_to_clients_nic_card_address = inet_ntoa(talk_to_client_address_);
-    // sz_clients_multicast_address = inet_ntoa(client_multicast_address_);
-
-	// return RC_Okay;
 }
 
 int CortexMock::getHostInfo(sHostInfo *p_host_info){
+	// TODO needs to be implemented if client communication is going to be enabled
 	errorMsgInString(VL_Warning, "Found mock version, no communication with host in mock version");
 	return RC_ApiError;
-
-    // p_host_info->bFoundHost = true;
-    // p_host_info->LatestConfirmationTime = current_framenum_;
-    // strcpy(p_host_info->szHostMachineName, "CortexHost");
-    // inet_aton((char*)p_host_info->HostMachineAddress, &host_machine_address_);
-    // getSdkVersion(p_host_info->HostProgramVersion);
-    // strcpy(p_host_info->szHostProgramName, "CortexMock");
-
-    // return RC_Okay;
 }
 
 int CortexMock::exit(){
@@ -242,7 +203,6 @@ int CortexMock::request(char* sz_command, void** pp_response, int *pn_bytes){
 		play_mode_ = static_cast<int>(PlayMode::paused);
 		break;
 	case Request::PostGetPlayMode:
-		// TODO is returning a reference of a member var ok?
 		*pp_response = &play_mode_;
 		break;
 	case Request::GetContextFrameRate:
@@ -273,8 +233,10 @@ int CortexMock::request(char* sz_command, void** pp_response, int *pn_bytes){
 	return RC_Okay;
 }
 
-sSkyReturn CortexMock::*skyCommand(char *sz_command, int ms_timeout){
-	// TODO
+sSkyReturn* CortexMock::skyCommand(char *sz_command, int ms_timeout){
+	// TODO implement this function
+	errorMsgInString(VL_Error, "Function not implemented yet");
+	return nullptr;
 }
 
 sBodyDefs* CortexMock::getBodyDefs(){
@@ -319,7 +281,6 @@ int CortexMock::freeBodyDefs(sBodyDefs* p_body_defs){
 	if(n_analogch > 0) delete [] p_body_defs->szAnalogChannelNames;
 	delete[] p_body_defs->AnalogLoVoltage;
 	delete[] p_body_defs->AnalogHiVoltage;
-	// TODO should i delete p_body_defs->AllocatedSpace??
 	return RC_Okay;
 }
 
@@ -445,21 +406,25 @@ int CortexMock::freeFrame(sFrameOfData* p_frame){
 }
 
 int CortexMock::sendHtr(sHierarchy *p_hierarchy, tSegmentData *p_frame){
-	// TODO
-	return RC_GeneralError;
+	// TODO implement this function
+	errorMsgInString(VL_Error, "Function not implemented yet");
+	return RC_ApiError;
 }
 
 int CortexMock::setMetered(bool b_active, float f_fixed_latency){
-	// TODO
-	return RC_GeneralError;
+	// TODO if we enable communication with clients in the mock
+	errorMsgInString(VL_Error, "No communication with client in mock version");
+	return RC_ApiError;
 }
 
 void CortexMock::constructRotationMatrix(double angles[3], int i_rotation_order, double matrix[3][3]){
-	// TODO
+	// TODO implement this function
+	errorMsgInString(VL_Error, "Function not implemented yet");
 }
 
 void CortexMock::extractEulerAngles(double matrix[3][3],int i_rotation_order, double angles[3]){
-	// TODO
+	// TODO implement this function
+	errorMsgInString(VL_Error, "Function not implemented yet");
 }
 
 void CortexMock::extractBodyDefs(sBodyDefs& body_defs, const rapidjson::Value& body_defs_json){
