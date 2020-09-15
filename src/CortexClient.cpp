@@ -5,7 +5,7 @@
 #include "CortexClient.hpp"
 
 CortexClient::CortexClient(const std::string& capture_file_name):rclcpp_lifecycle::LifecycleNode("cortex_client"), cortex_mock_(capture_file_name){
-	publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
+	marker_array_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
 }
 
 CortexClient::~CortexClient(){
