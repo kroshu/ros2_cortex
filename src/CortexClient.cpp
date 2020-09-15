@@ -4,8 +4,8 @@
 
 #include "CortexClient.hpp"
 
-CortexClient::CortexClient(const std::string& capture_file_name):cortex_mock_(capture_file_name){
-	
+CortexClient::CortexClient(const std::string& capture_file_name):rclcpp_lifecycle::LifecycleNode("cortex_client"), cortex_mock_(capture_file_name){
+	publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
 }
 
 CortexClient::~CortexClient(){
@@ -49,4 +49,34 @@ int CortexClient::setErrorMsgHandlerFunc(void (*errorMsgHandlerFunc)(int i_log_l
 
 int CortexClient::copyFrame(const sFrameOfData* p_src, sFrameOfData* p_dst){
 	cortex_mock_.copyFrame(p_src, p_dst);
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+CortexClient::on_configure(const rclcpp_lifecycle::State & state){
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+CortexClient::on_cleanup(const rclcpp_lifecycle::State & state){
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+CortexClient::on_shutdown(const rclcpp_lifecycle::State & state){
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+CortexClient::on_activate(const rclcpp_lifecycle::State & state){
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+CortexClient::on_deactivate(const rclcpp_lifecycle::State & state){
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+CortexClient::on_error(const rclcpp_lifecycle::State & state){
+
 }
