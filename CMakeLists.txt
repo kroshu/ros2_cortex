@@ -20,27 +20,28 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
 
 include_directories(include)
 
 add_library(cortex_mock SHARED
   src/CortexMock.cpp
   src/CortexClient.cpp)
-ament_target_dependencies(cortex_mock rclcpp rclcpp_lifecycle visualization_msgs)
+ament_target_dependencies(cortex_mock rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
 
 add_executable(simple_fod_printer
 	src/SimpleFodPrinter.cpp)
-ament_target_dependencies(simple_fod_printer rclcpp rclcpp_lifecycle visualization_msgs)
+ament_target_dependencies(simple_fod_printer rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
 target_link_libraries(simple_fod_printer
   cortex_mock)
   
 add_executable(marker_publisher
 	src/MarkerPublisher.cpp)
-ament_target_dependencies(marker_publisher rclcpp rclcpp_lifecycle visualization_msgs)
+ament_target_dependencies(marker_publisher rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
 target_link_libraries(marker_publisher
   cortex_mock)
 
-install(TARGETS simple_fod_printer
+install(TARGETS simple_fod_printer marker_publisher
 	DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

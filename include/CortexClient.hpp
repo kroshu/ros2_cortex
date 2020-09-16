@@ -9,7 +9,7 @@
 
 class CortexClient: public rclcpp_lifecycle::LifecycleNode {
 public:
-    explicit CortexClient(const std::string& capture_file_name);
+    CortexClient(const std::string& capture_file_name, const std::string& node_name);
 
     ~CortexClient();
     virtual void dataHandlerFunc_(sFrameOfData* p_frame_of_data) = 0;

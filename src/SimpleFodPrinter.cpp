@@ -25,7 +25,7 @@ typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
 class SimpleFodPrinter: public CortexClient{
 
 public:
-    explicit SimpleFodPrinter(const std::string& file_name):CortexClient(file_name){
+    explicit SimpleFodPrinter(const std::string& file_name):CortexClient(file_name, "simple_fod_printer"){
         Callback<void(sFrameOfData*)>::func = std::bind(&SimpleFodPrinter::dataHandlerFunc_, this, std::placeholders::_1);
         data_callback_t data_func = static_cast<data_callback_t>(Callback<void(sFrameOfData*)>::callback);      
         setDataHandlerFunc(data_func);
@@ -67,7 +67,7 @@ int main(int argc, char const *argv[])
 {
 	rclcpp::init(argc, argv);
 	rclcpp::executors::MultiThreadedExecutor executor;
-	auto node = std::make_shared<SimpleFodPrinter>("CaptureWithPlots1.json");
+	auto node = std::make_shared<SimpleFodPrinter>("/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json");
 	executor.add_node(node->get_node_base_interface());
 	executor.spin();
 	rclcpp::shutdown();

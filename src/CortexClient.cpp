@@ -4,8 +4,9 @@
 
 #include "CortexClient.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "lifecycle_msgs/msg/state.hpp"
 
-CortexClient::CortexClient(const std::string& capture_file_name):rclcpp_lifecycle::LifecycleNode("cortex_client"), cortex_mock_(capture_file_name){
+CortexClient::CortexClient(const std::string& capture_file_name, const std::string& node_name):rclcpp_lifecycle::LifecycleNode(node_name), cortex_mock_(capture_file_name){
 
 }
 
@@ -75,13 +76,29 @@ CortexClient::on_cleanup(const rclcpp_lifecycle::State & state){
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_shutdown(const rclcpp_lifecycle::State & state){
-	// TODO implement what is needed
-	return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+	rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn result =
+			rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+	switch (state.id()) {
+		case lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE:
+			result = this->on_deactivate(get_current_state());
+			if (result != rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS) {
+				break;
+			}
+			result = this->on_cleanup(get_current_state());
+			break;
+		case lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE:
+			result = this->on_cleanup(get_current_state());
+			break;
+		case lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED:
+			break;
+		default:
+			break;
+	}
+	return result;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_activate(const rclcpp_lifecycle::State & state){
-	// TODO implement what is needed
 	client_thread_ = std::make_unique<pthread_t>();
 	if (pthread_create(client_thread_.get(), nullptr, &CortexClient::run_helper, this)) {
 	    RCLCPP_ERROR(get_logger(), "pthread_create error");
@@ -93,13 +110,12 @@ CortexClient::on_activate(const rclcpp_lifecycle::State & state){
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_deactivate(const rclcpp_lifecycle::State & state){
-	// TODO implement what is needed
 	exit();
 	return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_error(const rclcpp_lifecycle::State & state){
-	// TODO implement what is needed
+	RCLCPP_INFO(get_logger(), "An error occured");
 	return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
