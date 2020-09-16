@@ -69,7 +69,22 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData* fod){
 }
 
 void MarkerPublisher::errorMsgHandlerFunc_(int i_level, char* error_msg){
-	RCLCPP_ERROR(get_logger(), i_level+": "+static_cast<std::string>(error_msg));
+	switch(i_level){
+		case 1:
+			RCLCPP_ERROR(get_logger(), static_cast<std::string>(error_msg));
+			break;
+		case 2:
+			RCLCPP_WARN(get_logger(), static_cast<std::string>(error_msg));
+			break;
+		case 3:
+			RCLCPP_INFO(get_logger(), static_cast<std::string>(error_msg));
+			break;
+		case 4:
+			RCLCPP_DEBUG(get_logger(), static_cast<std::string>(error_msg));
+			break;
+		default:
+			break;
+	}
 }
 
 int main(int argc, char const *argv[])

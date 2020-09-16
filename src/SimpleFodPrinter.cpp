@@ -37,14 +37,29 @@ public:
 
     void dataHandlerFunc_(sFrameOfData* fod){
         cortex_mock_.copyFrame(fod, &current_fod_);
-        RCLCPP_INFO(get_logger(), "Frame " + current_fod_.iFrame);
-        RCLCPP_INFO(get_logger(), "Number of unidentified markers " + current_fod_.nUnidentifiedMarkers);
+        RCLCPP_INFO(get_logger(), "Frame " +std::to_string(current_fod_.iFrame));
+        RCLCPP_INFO(get_logger(), "Number of unidentified markers " + std::to_string(current_fod_.nUnidentifiedMarkers));
     }
 
     const std::vector<std::string> verb_levels = {"None", "Error", "Warning", "Info", "Debug"};
 
     void errorMsgHandlerFunc_(int i_level, char* error_msg){
-    	RCLCPP_ERROR(get_logger(), i_level+": "+static_cast<std::string>(error_msg));
+    	switch(i_level){
+			case 1:
+				RCLCPP_ERROR(get_logger(), static_cast<std::string>(error_msg));
+				break;
+			case 2:
+				RCLCPP_WARN(get_logger(), static_cast<std::string>(error_msg));
+				break;
+			case 3:
+				RCLCPP_INFO(get_logger(), static_cast<std::string>(error_msg));
+				break;
+			case 4:
+				RCLCPP_DEBUG(get_logger(), static_cast<std::string>(error_msg));
+				break;
+			default:
+				break;
+    	}
     }
 };
 
