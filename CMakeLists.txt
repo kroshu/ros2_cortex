@@ -33,13 +33,35 @@ add_executable(simple_fod_printer
 ament_target_dependencies(simple_fod_printer rclcpp rclcpp_lifecycle visualization_msgs)
 target_link_libraries(simple_fod_printer
   cortex_mock)
+  
+add_executable(marker_publisher
+	src/MarkerPublisher.cpp)
+ament_target_dependencies(marker_publisher rclcpp rclcpp_lifecycle visualization_msgs)
+target_link_libraries(marker_publisher
+  cortex_mock)
 
 install(TARGETS simple_fod_printer
 	DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
+  find_package(ament_cmake_copyright REQUIRED)
+  find_package(ament_cmake_cppcheck REQUIRED)
+  find_package(ament_cmake_pep257 REQUIRED)
+  find_package(ament_cmake_flake8 REQUIRED)
+  find_package(ament_cmake_cpplint REQUIRED)
+  find_package(ament_cmake_lint_cmake REQUIRED)
+  find_package(ament_cmake_uncrustify REQUIRED)
+  find_package(ament_cmake_xmllint REQUIRED)
+
+
+  ament_copyright()
+  ament_cppcheck(--language=c++)
+  ament_pep257()
+  ament_flake8()
+  ament_cpplint()
+  ament_lint_cmake()
+  ament_uncrustify()
+  ament_xmllint()
 endif()
 
 ament_package()
