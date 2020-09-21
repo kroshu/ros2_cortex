@@ -40,8 +40,12 @@ add_executable(marker_publisher
 ament_target_dependencies(marker_publisher rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
 target_link_libraries(marker_publisher
   cortex_mock)
+  
+add_executable(motion_tracker
+	src/MotionTracker.cpp)
+ament_target_dependencies(motion_tracker rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
 
-install(TARGETS simple_fod_printer marker_publisher
+install(TARGETS simple_fod_printer marker_publisher motion_tracker
 	DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
