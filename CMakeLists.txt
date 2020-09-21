@@ -21,6 +21,9 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 include_directories(include)
 
@@ -43,7 +46,8 @@ target_link_libraries(marker_publisher
   
 add_executable(motion_tracker
 	src/MotionTracker.cpp)
-ament_target_dependencies(motion_tracker rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
+ament_target_dependencies(motion_tracker rclcpp rclcpp_lifecycle visualization_msgs
+			lifecycle_msgs sensor_msgs std_msgs geometry_msgs)
 
 install(TARGETS simple_fod_printer marker_publisher motion_tracker
 	DESTINATION lib/${PROJECT_NAME})
