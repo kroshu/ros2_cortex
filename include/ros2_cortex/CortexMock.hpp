@@ -12,9 +12,11 @@
 #include "Cortex.h"
 #include "rapidjson/document.h"
 
+namespace ros2_cortex{
+
 class CortexMock{
     public:
-        CortexMock(const std::string& captureFileName);
+        CortexMock(std::string& capture_file_name);
         ~CortexMock();
         int getSdkVersion(unsigned char version[4]);
         int setVerbosityLevel(int i_level);
@@ -120,5 +122,7 @@ class CortexMock{
         void initReadFile();
         void errorMsgInString(int i_level, std::string msg);
 };
+
+}
 
 #endif

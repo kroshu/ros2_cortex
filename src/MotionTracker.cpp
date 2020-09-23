@@ -4,9 +4,11 @@
 #include <algorithm>
 #include <iterator>
 
-#include "MotionTracker.hpp"
+#include "ros2_cortex/MotionTracker.hpp"
 #include "rclcpp/message_memory_strategy.hpp"
 #include "rclcpp/rclcpp.hpp"
+
+namespace ros2_cortex{
 
 double d2r(double degrees)
 {
@@ -81,24 +83,24 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_configure(const rclcpp_lifecycle::State & state){
 	onLowerLimitsChangeRequest(this->get_parameter("lower_limits_deg"));
 	onUpperLimitsChangeRequest(this->get_parameter("upper_limits_deg"));
-	return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+	return SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_cleanup(const rclcpp_lifecycle::State & state){
 	reference_joint_state_->position.assign(7, 0);
 	active_joint_msg_->data = 1;
-	return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+	return SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_shutdown(const rclcpp_lifecycle::State & state){
 	rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn result =
-			rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+			SUCCESS;
 	switch (state.id()) {
 		case lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE:
 			result = this->on_deactivate(get_current_state());
-			if (result != rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS) {
+			if (result != SUCCESS) {
 				break;
 			}
 			result = this->on_cleanup(get_current_state());
@@ -125,7 +127,7 @@ MotionTracker::on_activate(const rclcpp_lifecycle::State & state){
 	reference_joint_state_->position.resize(7);
 	reference_joint_state_publisher_->on_activate();
 	active_axis_changed_publisher_->on_activate();
-	return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+	return SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -133,13 +135,13 @@ MotionTracker::on_deactivate(const rclcpp_lifecycle::State & state){
 	marker_array_subscriber_.reset();
 	reference_joint_state_publisher_->on_deactivate();
 	active_axis_changed_publisher_->on_deactivate();
-	return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+	return SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_error(const rclcpp_lifecycle::State & state){
 	RCLCPP_INFO(get_logger(), "An error occured");
-	return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+	return SUCCESS;
 }
 
 rcl_interfaces::msg::SetParametersResult MotionTracker::onParamChange(
@@ -233,4 +235,6 @@ int main(int argc, char const *argv[])
 	rclcpp::shutdown();
 
     return 0;
+}
+
 }

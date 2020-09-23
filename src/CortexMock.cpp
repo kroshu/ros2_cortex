@@ -1,12 +1,14 @@
 #include <chrono>
 #include <thread>
 
-#include "CortexMock.hpp"
+#include "ros2_cortex/CortexMock.hpp"
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
-CortexMock::CortexMock(const std::string& capture_file_name):capture_file_name_(capture_file_name) {
+namespace ros2_cortex{
+
+CortexMock::CortexMock(std::string& capture_file_name):capture_file_name_(capture_file_name) {
 	initReadFile();
 }
 
@@ -700,4 +702,6 @@ void CortexMock::run(){
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1000.0/frame_rate_)));
 	}
+}
+
 }

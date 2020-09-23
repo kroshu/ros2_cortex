@@ -1,5 +1,7 @@
-#include "MarkerPublisher.hpp"
+#include "ros2_cortex/MarkerPublisher.hpp"
 #include "rclcpp/rclcpp.hpp"
+
+namespace ros2_cortex{
 
 template <typename T>
 struct Callback;
@@ -19,9 +21,7 @@ std::function<Ret(Params...)> Callback<Ret(Params...)>::func;
 typedef void (*data_callback_t)(sFrameOfData*);
 typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
 
-const std::vector<std::string> MarkerPublisher:: verb_levels ({"None", "Error", "Warning", "Info", "Debug"});
-
-MarkerPublisher::MarkerPublisher(const std::string& capture_file_name):CortexClient(capture_file_name, "marker_publisher"){
+MarkerPublisher::MarkerPublisher():CortexClient("marker_publisher"){
 	Callback<void(sFrameOfData*)>::func = std::bind(&MarkerPublisher::dataHandlerFunc_, this, std::placeholders::_1);
 	data_callback_t data_func = static_cast<data_callback_t>(Callback<void(sFrameOfData*)>::callback);
 	setDataHandlerFunc(data_func);
@@ -111,11 +111,13 @@ MarkerPublisher::on_deactivate(const rclcpp_lifecycle::State & state){
 	return CortexClient::on_deactivate(state);
 }
 
+}
+
 int main(int argc, char const *argv[])
 {
 	rclcpp::init(argc, argv);
 	rclcpp::executors::MultiThreadedExecutor executor;
-	auto node = std::make_shared<MarkerPublisher>("/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json");
+	auto node = std::make_shared<ros2_cortex::MarkerPublisher>();
 	executor.add_node(node->get_node_base_interface());
 	executor.spin();
 	rclcpp::shutdown();

@@ -1,19 +1,21 @@
 #include <iostream>
 #include <vector>
 
-#include "CortexClient.hpp"
+#include "ros2_cortex/CortexClient.hpp"
 #include "rclcpp/rclcpp.hpp"
+
+namespace ros2_cortex{
 
 template <typename T>
 struct Callback;
 
 template <typename Ret, typename... Params>
 struct Callback<Ret(Params...)> {
-   template <typename... Args> 
-   static Ret callback(Args... args) {                    
-      return func(args...);  
+   template <typename... Args>
+   static Ret callback(Args... args) {
+      return func(args...);
    }
-   static std::function<Ret(Params...)> func; 
+   static std::function<Ret(Params...)> func;
 };
 
 template <typename Ret, typename... Params>
@@ -25,7 +27,7 @@ typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
 class SimpleFodPrinter: public CortexClient{
 
 public:
-    explicit SimpleFodPrinter(const std::string& file_name):CortexClient(file_name, "simple_fod_printer"){
+	SimpleFodPrinter():CortexClient("simple_fod_printer"){
         Callback<void(sFrameOfData*)>::func = std::bind(&SimpleFodPrinter::dataHandlerFunc_, this, std::placeholders::_1);
         data_callback_t data_func = static_cast<data_callback_t>(Callback<void(sFrameOfData*)>::callback);      
         setDataHandlerFunc(data_func);
@@ -40,8 +42,6 @@ public:
         RCLCPP_INFO(get_logger(), "Frame " +std::to_string(current_fod_.iFrame));
         RCLCPP_INFO(get_logger(), "Number of unidentified markers " + std::to_string(current_fod_.nUnidentifiedMarkers));
     }
-
-    const std::vector<std::string> verb_levels = {"None", "Error", "Warning", "Info", "Debug"};
 
     void errorMsgHandlerFunc_(int i_level, char* error_msg){
     	switch(i_level){
@@ -63,11 +63,13 @@ public:
     }
 };
 
+}
+
 int main(int argc, char const *argv[])
 {
 	rclcpp::init(argc, argv);
 	rclcpp::executors::MultiThreadedExecutor executor;
-	auto node = std::make_shared<SimpleFodPrinter>("/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json");
+	auto node = std::make_shared<ros2_cortex::SimpleFodPrinter>();
 	executor.add_node(node->get_node_base_interface());
 	executor.spin();
 	rclcpp::shutdown();

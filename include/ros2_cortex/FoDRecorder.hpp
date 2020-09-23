@@ -8,6 +8,8 @@
 #include "rapidjson/filewritestream.h"
 #include "rapidjson/writer.h"
 
+namespace ros2_cortex{
+
 class FoDRecorder{
 public:
     FoDRecorder(std::string talk_to_host_addr, std::string host_addr, const std::string& capture_file_name, int capture_size, int file_write_buffer_size = 65536);
@@ -28,5 +30,7 @@ private:
     void errorMsgPrinter(int i_level, char *sz_msg);
     void dataPrinter(sFrameOfData* frame_of_data);
 };
+
+}
 
 #endif

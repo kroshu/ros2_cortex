@@ -3,7 +3,9 @@
 #include <array>
 #include <algorithm>
 
-#include "FoDRecorder.hpp"
+#include "ros2_cortex/FoDRecorder.hpp"
+
+namespace ros2_cortex{
 
 template <typename T>
 struct Callback;
@@ -438,4 +440,6 @@ int main(int argc, char* argv[])
     key = getchar();
 
     return 0;
+}
+
 }

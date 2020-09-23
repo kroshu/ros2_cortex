@@ -8,6 +8,8 @@
 #include "geometry_msgs/msg/point.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 
+namespace ros2_cortex{
+
 struct ParameterSetAccessRights
 {
   bool unconfigured;
@@ -72,6 +74,10 @@ private:
 	bool onLowerLimitsChangeRequest(const rclcpp::Parameter& param);
 	bool onUpperLimitsChangeRequest(const rclcpp::Parameter& param);
 	std::map<std::string, struct ParameterSetAccessRights> parameter_set_access_rights_;
+	rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn SUCCESS =
+	    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 };
+
+}
 
 #endif
