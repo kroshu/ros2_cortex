@@ -14,8 +14,10 @@ std::string getFileExtension(const std::string& file_name)
     return "";
 }
 
-CortexClient::CortexClient(const std::string& node_name):rclcpp_lifecycle::LifecycleNode(node_name){
-	this->declare_parameter("capture_file_path", rclcpp::ParameterValue("/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json"));
+CortexClient::CortexClient(const std::string& node_name):rclcpp_lifecycle::LifecycleNode(node_name),
+		capture_file_path_("/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json"),
+		cortex_mock_(capture_file_path_){
+	this->declare_parameter("capture_file_path", rclcpp::ParameterValue(capture_file_path_));
 	this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> &parameters)
 	{ return this->onParamChange(parameters);});
 	parameter_set_access_rights_.emplace("capture_file_path", ParameterSetAccessRights {true, true, false, false});
@@ -109,7 +111,6 @@ CortexClient::on_shutdown(const rclcpp_lifecycle::State & state){
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_activate(const rclcpp_lifecycle::State & state){
-	cortex_mock_ = capture_file_path_;
 	client_thread_ = std::make_unique<pthread_t>();
 	if (pthread_create(client_thread_.get(), nullptr, &CortexClient::run_helper, this)) {
 	    RCLCPP_ERROR(get_logger(), "pthread_create error");
@@ -190,7 +191,7 @@ bool CortexClient::onCapFileNameChangeRequest(const rclcpp::Parameter& param)
 		 return false;
 	}
 	capture_file_path_ = temp_path;
-	cortex_mock_ = capture_file_path_);
+	cortex_mock_ = CortexMock(capture_file_path_);
 	return true;
 }
 

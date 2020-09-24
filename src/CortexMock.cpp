@@ -24,6 +24,25 @@ void CortexMock::initReadFile(){
 	// extractBodyDefs(body_defs_, document_["bodyDefs"]);
 }
 
+CortexMock::CortexMock(const CortexMock& other):verbosity_level_(other.verbosity_level_), analog_bit_depth_(other.analog_bit_depth_),
+		conv_rate_to_mm_(other.conv_rate_to_mm_), frame_rate_(other.frame_rate_), analog_sample_rate_(other.analog_sample_rate_),
+		axis_up_(other.axis_up_), dataHandlerFunc_(other.dataHandlerFunc_), errorMsgHandlerFunc_(other.errorMsgHandlerFunc_){
+	// the result of the copy-constructor isn't active yet, even if the other one was active
+	// TODO if we connect to client, addresses and ports need to be copied, too
+	capture_file_name_ = other.capture_file_name_;
+	current_framenum_ = other.current_framenum_;
+	initReadFile();
+}
+
+void CortexMock::swap(CortexMock& other) throw(){
+	// E.g. if pointers need to be swapped
+}
+
+CortexMock& CortexMock::operator=(CortexMock other){
+	other.swap(*this); //Copy-constructor and non-throwing swap
+	return *this;
+}
+
 CortexMock::~CortexMock(){
 	freeFrame(&current_frame_);
 }

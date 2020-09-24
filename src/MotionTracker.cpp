@@ -225,11 +225,13 @@ bool MotionTracker::onUpperLimitsChangeRequest(const rclcpp::Parameter& param)
    return true;
 }
 
+}
+
 int main(int argc, char const *argv[])
 {
 	rclcpp::init(argc, argv);
 	rclcpp::executors::MultiThreadedExecutor executor;
-	auto node = std::make_shared<MotionTracker>();
+	auto node = std::make_shared<ros2_cortex::MotionTracker>();
 	executor.add_node(node->get_node_base_interface());
 	executor.spin();
 	rclcpp::shutdown();
@@ -237,4 +239,3 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-}

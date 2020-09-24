@@ -17,6 +17,9 @@ namespace ros2_cortex{
 class CortexMock{
     public:
         CortexMock(std::string& capture_file_name);
+        CortexMock(const CortexMock& other);
+        void swap(CortexMock& other) throw();
+        CortexMock& operator=(CortexMock other);
         ~CortexMock();
         int getSdkVersion(unsigned char version[4]);
         int setVerbosityLevel(int i_level);
