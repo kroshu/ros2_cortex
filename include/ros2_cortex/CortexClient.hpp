@@ -70,6 +70,7 @@ private:
     rcl_interfaces::msg::SetParametersResult onParamChange(const std::vector<rclcpp::Parameter> &parameters);
 	bool canSetParameter(const rclcpp::Parameter &param);
 	bool onCapFileNameChangeRequest(const rclcpp::Parameter& param);
+	bool onRequestCommandChanged(const rclcpp::Parameter& param);
 	std::map<std::string, struct ParameterSetAccessRights> parameter_set_access_rights_;
 	// fs::path capture_file_path_;
 	std::string capture_file_path_;

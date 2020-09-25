@@ -18,9 +18,14 @@ CortexClient::CortexClient(const std::string& node_name):rclcpp_lifecycle::Lifec
 		capture_file_path_("/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json"),
 		cortex_mock_(capture_file_path_){
 	this->declare_parameter("capture_file_path", rclcpp::ParameterValue(capture_file_path_));
-	this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> &parameters)
-	{ return this->onParamChange(parameters);});
 	parameter_set_access_rights_.emplace("capture_file_path", ParameterSetAccessRights {true, true, false, false});
+
+	std::string forw_comm = "PostForward";
+	this->declare_parameter("request_command", rclcpp::ParameterValue(forw_comm));
+	parameter_set_access_rights_.emplace("request_command", ParameterSetAccessRights {false, false, true, false});
+
+	this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> &parameters)
+		{ return this->onParamChange(parameters);});
 }
 
 CortexClient::~CortexClient(){
@@ -41,26 +46,8 @@ void* CortexClient::run_helper(void* cortex_client){
 void CortexClient::run(){
 	cortex_mock_.initialize(&server_addr_[0], &server_addr_[0]);
 
-	std::string forw_comm = "PostForward", backw_comm = "PostBackward", pause_comm = "PostPause";
-	cortex_mock_.request(&forw_comm[0], nullptr, nullptr);
-	std::this_thread::sleep_for(std::chrono::seconds(30));
-
-	cortex_mock_.request(&backw_comm[0], nullptr, nullptr);
-	std::this_thread::sleep_for(std::chrono::seconds(60));
-
-	cortex_mock_.request(&pause_comm[0], nullptr, nullptr);
-	std::this_thread::sleep_for(std::chrono::seconds(5));
-
-	std::string rec_comm = "StartRecording";
-	cortex_mock_.request(&rec_comm[0], nullptr, nullptr);
-	std::this_thread::sleep_for(std::chrono::seconds(5));
-
-	std::string fps_comm = "GetContextFrameRate";
-	void *p_response = nullptr;
-	cortex_mock_.request(&fps_comm[0], &p_response, nullptr);
-	float frame_rate = *static_cast<float*>(p_response);
-	std::cout << "Frame rate: " << frame_rate << std::endl;
-	std::this_thread::sleep_for(std::chrono::seconds(5));
+	std::string req_comm = this->get_parameter("request_command").as_string();
+	cortex_mock_.request(&req_comm[0], nullptr, nullptr);
 }
 
 int CortexClient::setDataHandlerFunc(void (*dataHandlerFunc)(sFrameOfData* p_frame_of_data)){
@@ -141,6 +128,10 @@ rcl_interfaces::msg::SetParametersResult CortexClient::onParamChange(
     {
       result.successful = onCapFileNameChangeRequest(param);
     }
+    else if (param.get_name() == "request_command" && canSetParameter(param))
+    {
+      result.successful = onRequestCommandChanged(param);
+    }
     else
     {
       RCLCPP_ERROR(this->get_logger(), "Invalid parameter name %s", param.get_name().c_str());
@@ -188,6 +179,19 @@ bool CortexClient::onCapFileNameChangeRequest(const rclcpp::Parameter& param)
 	}
 	capture_file_path_ = temp_path;
 	cortex_mock_ = CortexMock(capture_file_path_);
+	return true;
+}
+
+bool CortexClient::onRequestCommandChanged(const rclcpp::Parameter& param){
+	if (param.get_type() != rcl_interfaces::msg::ParameterType::PARAMETER_STRING)
+	{
+		 RCLCPP_ERROR(this->get_logger(), "Invalid parameter type for parameter %s",
+					  param.get_name().c_str());
+		 return false;
+	}
+
+	std::string req_comm = this->get_parameter("request_command").as_string();
+	cortex_mock_.request(&req_comm[0], nullptr, nullptr);
 	return true;
 }
 
