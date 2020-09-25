@@ -77,13 +77,11 @@ int CortexClient::copyFrame(const sFrameOfData* p_src, sFrameOfData* p_dst){
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_configure(const rclcpp_lifecycle::State & state){
-	// TODO implement what is needed
 	return SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_cleanup(const rclcpp_lifecycle::State & state){
-	// TODO implement what is needed
 	return SUCCESS;
 }
 
@@ -180,10 +178,8 @@ bool CortexClient::onCapFileNameChangeRequest(const rclcpp::Parameter& param)
 		 return false;
 	}
 
-	// fs::path temp_path = param.as_string();
 	std::string temp_path = param.as_string();
 
-	//if (temp_path.extension() != "json")
 	if(getFileExtension(temp_path) != "json")
 	{
 		 RCLCPP_ERROR(this->get_logger(), "Invalid file format for parameter %s",

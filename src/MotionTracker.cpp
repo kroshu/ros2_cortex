@@ -16,8 +16,17 @@ double d2r(double degrees)
 }
 
 MotionTracker::MotionTracker(): rclcpp_lifecycle::LifecycleNode("motion_tracker"), qos(rclcpp::QoS(rclcpp::KeepLast(1))),
-	lower_limits_rad_(7), upper_limits_rad_(7), segment_lengths_({0.1575,0.2025,0.2045,0.2155,0.1895,0.2155,0.081})
+	lower_limits_rad_(joint_num_), upper_limits_rad_(joint_num_), segment_lengths_({0.1575,0.2025,0.2045,0.2155,0.1895,0.2155,0.081}),
+	original_joint_points_(joint_num_)
 {
+	original_joint_points_[0].x = 0.0;
+	original_joint_points_[0].y = 0.0;
+	original_joint_points_[0].z = segment_lengths_[0];
+	for(int i=1;i<joint_num_;++i){
+		original_joint_points_[i].x = original_joint_points_[i-1].x;
+		original_joint_points_[i].y = original_joint_points_[i-1].y;
+		original_joint_points_[i].z = original_joint_points_[i-1].z + segment_lengths_[i];
+	}
 	qos.best_effort();
 	msg_strategy = std::make_shared<rclcpp::message_memory_strategy::MessageMemoryStrategy<visualization_msgs::msg::MarkerArray>>();
 	callback = [this](visualization_msgs::msg::MarkerArray::ConstSharedPtr msg) -> void
@@ -33,31 +42,24 @@ MotionTracker::MotionTracker(): rclcpp_lifecycle::LifecycleNode("motion_tracker"
 	parameter_set_access_rights_.emplace("upper_limits_deg", ParameterSetAccessRights {true, true, true, false});
 }
 
-double MotionTracker::distBetweenPoses(geometry_msgs::msg::Point& first, geometry_msgs::msg::Point& second){
+double MotionTracker::distBetweenPoints(geometry_msgs::msg::Point& first, geometry_msgs::msg::Point& second){
 	return sqrt(pow(std::fabs(first.x-second.x),2)+pow(std::fabs(first.y-second.y),2)+pow(std::fabs(first.z-second.z),2));
 }
 
 void MotionTracker::markersReceivedCallback(visualization_msgs::msg::MarkerArray::ConstSharedPtr msg){
-//	for(auto it = msg->markers.begin(); it != msg->markers.end(); ++it){
-//		RCLCPP_INFO(get_logger(), "Namespace: " + it->ns);
-//		RCLCPP_INFO(get_logger(), "ID: " + std::to_string(it->id));
-//
-//		RCLCPP_INFO(get_logger(), "Point: x: " + std::to_string(it->pose.position.x) +
-//				" y: " + std::to_string(it->pose.position.y) +
-//				" z: " + std::to_string(it->pose.position.z));
-//	}
-
 	std::vector<visualization_msgs::msg::Marker> joint_markers;
 	std::copy_if(msg->markers.begin(), msg->markers.end(), std::back_inserter(joint_markers),
 			[](visualization_msgs::msg::Marker marker)->bool{return marker.ns == "joint_markers";});
 
 	for(int active_joint=0; active_joint < 1; ++active_joint){
-		active_joint_msg_->data = active_joint+1;
-		active_axis_changed_publisher_->publish(*active_joint_msg_);
-//		double distance = distBetweenPoses(joint_markers[active_joint+1].pose.position, joint_markers[active_joint].pose.position);
+		if(active_joint_msg_->data != active_joint+1){
+			active_joint_msg_->data = active_joint+1;
+			active_axis_changed_publisher_->publish(*active_joint_msg_);
+		}
+//		double distance = distBetweenPoints(joint_markers[active_joint+1].pose.position, joint_markers[active_joint].pose.position);
 		double distance = 0.1575;
 		int ulp = 5;
-		double eps = std::numeric_limits<double>::epsilon() * std::fabs(segment_lengths_[active_joint]+distance)*ulp;
+		double eps = std::numeric_limits<double>::epsilon() * std::fabs(segment_lengths_[active_joint+1]+distance)*ulp;
 		if(std::fabs(segment_lengths_[active_joint]-distance) > eps)
 			RCLCPP_ERROR(get_logger(), "Markers impossible to track with robot");
 		else{
@@ -65,8 +67,10 @@ void MotionTracker::markersReceivedCallback(visualization_msgs::msg::MarkerArray
 //			Calculate rad position of joint based on the two endpositions (or it could be more than two)
 //			e.g. we calculate the relative position of the moving endpoint to the constant base endpoint
 //			- compare it to the relative pos at default state (probably pos = 0)
+//			float distance_from_orig = distBetweenPoints(joint_markers[active_joint+1].pose.position, original_joint_points_[active_joint+1]);
+//			float calculated_pos = acos(1.0 - (pow(distance_from_orig,2) / (2.0 * segment_lengths_[active_joint+1])));
 			float calculated_pos = d2r(60);
-			if(lower_limits_rad_[active_joint]*0.9 < calculated_pos && calculated_pos < upper_limits_rad_[active_joint]*0.9)
+			if(lower_limits_rad_[active_joint]*limit_eps_ < calculated_pos && calculated_pos < upper_limits_rad_[active_joint]*limit_eps_)
 			{
 				reference_joint_state_->position[active_joint] = calculated_pos;
 				reference_joint_state_publisher_->publish(*reference_joint_state_);
@@ -88,7 +92,7 @@ MotionTracker::on_configure(const rclcpp_lifecycle::State & state){
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_cleanup(const rclcpp_lifecycle::State & state){
-	reference_joint_state_->position.assign(7, 0);
+	reference_joint_state_->position.assign(joint_num_, 0);
 	active_joint_msg_->data = 1;
 	return SUCCESS;
 }
@@ -124,7 +128,7 @@ MotionTracker::on_activate(const rclcpp_lifecycle::State & state){
 	active_joint_msg_ = std::make_shared<std_msgs::msg::Int8>();
 	reference_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("reference_joint_state", qos);
 	reference_joint_state_ = std::make_shared<sensor_msgs::msg::JointState>();
-	reference_joint_state_->position.resize(7);
+	reference_joint_state_->position.resize(joint_num_);
 	reference_joint_state_publisher_->on_activate();
 	active_axis_changed_publisher_->on_activate();
 	return SUCCESS;
@@ -197,7 +201,7 @@ bool MotionTracker::onLowerLimitsChangeRequest(const rclcpp::Parameter& param)
    }
 
 
-   if (param.as_double_array().size() != 7)
+   if (param.as_double_array().size() != joint_num_)
    {
      RCLCPP_ERROR(this->get_logger(), "Invalid parameter array length for parameter %s",
                   param.get_name().c_str());
@@ -215,7 +219,7 @@ bool MotionTracker::onUpperLimitsChangeRequest(const rclcpp::Parameter& param)
                   param.get_name().c_str());
      return false;
    }
-   if (param.as_double_array().size() != 7)
+   if (param.as_double_array().size() != joint_num_)
    {
      RCLCPP_ERROR(this->get_logger(), "Invalid parameter array length for parameter %s",
                   param.get_name().c_str());

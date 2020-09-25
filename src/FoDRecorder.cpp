@@ -194,7 +194,6 @@ void FoDRecorder::printForceData(const std::vector<tForceData>& force_data, rapi
 }
 
 void FoDRecorder::printBodyDatas(const std::vector<sBodyData>& body_data, rapidjson::Value& bodies_json, rapidjson::Document::AllocatorType& allocator){
-    int i=0;
     for(std::vector<sBodyData>::const_iterator it = body_data.begin(); it != body_data.end(); ++it) {
         rapidjson::Value body_json(rapidjson::kObjectType);
         body_json.AddMember("name", rapidjson::StringRef(it->szName), allocator);
@@ -232,7 +231,7 @@ void FoDRecorder::printBodyDatas(const std::vector<sBodyData>& body_data, rapidj
 
         body_json.AddMember("nDofs", it->nDofs, allocator);
         rapidjson::Value dofs_json(rapidjson::kArrayType);
-        for (i=0 ; i<it->nDofs ; i++)
+        for (int i=0 ; i<it->nDofs ; i++)
         {
             dofs_json.PushBack(it->Dofs[i], allocator);
         }
@@ -262,7 +261,7 @@ void FoDRecorder::printBodyDatas(const std::vector<sBodyData>& body_data, rapidj
 
         body_json.AddMember("nEvents", it->nEvents, allocator);
         rapidjson::Value events_json(rapidjson::kArrayType);
-        for (i=0 ; i<it->nEvents ; i++)
+        for (int i=0 ; i<it->nEvents ; i++)
         {
             events_json.PushBack(rapidjson::StringRef(it->Events[i]), allocator);
         }

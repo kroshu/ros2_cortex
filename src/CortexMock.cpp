@@ -14,7 +14,7 @@ CortexMock::CortexMock(std::string& capture_file_name):capture_file_name_(captur
 
 void CortexMock::initReadFile(){
 	FILE* fp = fopen(capture_file_name_.data(), "r");
-	char read_buffer[65536];
+	char read_buffer[read_buffer_size_];
 	rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
 
 	document_.ParseStream(is);

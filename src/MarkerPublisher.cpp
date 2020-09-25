@@ -21,7 +21,8 @@ std::function<Ret(Params...)> Callback<Ret(Params...)>::func;
 typedef void (*data_callback_t)(sFrameOfData*);
 typedef void (*error_msg__callback_t)(int i_level, char *sz_msg);
 
-MarkerPublisher::MarkerPublisher():CortexClient("marker_publisher"){
+MarkerPublisher::MarkerPublisher():CortexClient("marker_publisher"), qos(rclcpp::QoS(rclcpp::KeepLast(1))){
+	qos.best_effort();
 	Callback<void(sFrameOfData*)>::func = std::bind(&MarkerPublisher::dataHandlerFunc_, this, std::placeholders::_1);
 	data_callback_t data_func = static_cast<data_callback_t>(Callback<void(sFrameOfData*)>::callback);
 	setDataHandlerFunc(data_func);
@@ -30,17 +31,22 @@ MarkerPublisher::MarkerPublisher():CortexClient("marker_publisher"){
 	error_msg__callback_t error_msg_func = static_cast<error_msg__callback_t>(Callback<void(int i_level, char *sz_msg)>::callback);
 	setErrorMsgHandlerFunc(error_msg_func);
 
-	marker_array_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers", 10);
+	marker_array_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers", qos);
 }
 
 void MarkerPublisher::dataHandlerFunc_(sFrameOfData* fod){
 	marker_array_.markers.clear();
 
+
+	void *p_response = nullptr;
+	cortex_mock_.request(&fps_comm[0], &p_response, nullptr);
+	frame_delta_time_ns_ = nss_in_s / *static_cast<int*>(p_response);
+
 	int n_ui_markers = fod->nUnidentifiedMarkers;
 	for(int i=0; i < n_ui_markers; ++i){
 		visualization_msgs::msg::Marker ui_marker;
 		ui_marker.header.stamp.sec = fod->TimeCode.iSeconds;
-		ui_marker.header.stamp.nanosec = fod->TimeCode.iFrames * 5000000;
+		ui_marker.header.stamp.nanosec = fod->TimeCode.iFrames * frame_delta_time_ns_;
 		ui_marker.ns = "ui_markers";
 		ui_marker.id = i;
 		ui_marker.action = 0;
@@ -50,7 +56,6 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData* fod){
 		ui_marker.scale.x = 1;
 		ui_marker.scale.y = 1;
 		ui_marker.scale.z = 1;
-		// TODO initialize other values
 
 		marker_array_.markers.emplace_back(ui_marker);
 	}
@@ -61,7 +66,7 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData* fod){
 		for(int i_marker=0; i_marker < n_markers; ++i_marker){
 			visualization_msgs::msg::Marker marker;
 			marker.header.stamp.sec = fod->TimeCode.iSeconds;
-			marker.header.stamp.nanosec = fod->TimeCode.iFrames * 5000000;
+			marker.header.stamp.nanosec = fod->TimeCode.iFrames * frame_delta_time_ns_;
 			marker.ns = fod->BodyData[i_body].szName;
 			marker.id = i_marker;
 			marker.action = 0;
@@ -71,7 +76,6 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData* fod){
 			marker.scale.x = 1;
 			marker.scale.y = 1;
 			marker.scale.z = 1;
-			// TODO initialize other values
 
 			marker_array_.markers.emplace_back(marker);
 		}

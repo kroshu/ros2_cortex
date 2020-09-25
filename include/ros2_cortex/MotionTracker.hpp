@@ -64,11 +64,14 @@ private:
 	std::function<void(visualization_msgs::msg::MarkerArray::ConstSharedPtr msg)> callback;
 	sensor_msgs::msg::JointState::SharedPtr reference_joint_state_;
 	std_msgs::msg::Int8::SharedPtr active_joint_msg_;
+	int joint_num_ = 7;
 	std::vector<double> lower_limits_rad_;
 	std::vector<double> upper_limits_rad_;
 	std::vector<double> segment_lengths_;
+	std::vector<geometry_msgs::msg::Point> original_joint_points_;
+	float limit_eps_ = 0.9;
 	void markersReceivedCallback(visualization_msgs::msg::MarkerArray::ConstSharedPtr msg);
-	static double distBetweenPoses(geometry_msgs::msg::Point& first, geometry_msgs::msg::Point& second);
+	static double distBetweenPoints(geometry_msgs::msg::Point& first, geometry_msgs::msg::Point& second);
 	rcl_interfaces::msg::SetParametersResult onParamChange(const std::vector<rclcpp::Parameter> &parameters);
 	bool canSetParameter(const rclcpp::Parameter &param);
 	bool onLowerLimitsChangeRequest(const rclcpp::Parameter& param);
