@@ -76,7 +76,7 @@ class CortexMock{
         bool running_ = false;
         float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
         pthread_t run_thread_;
-        enum class PlayMode {paused=-1, forwards, backwards};
+        enum class PlayMode {backwards=-1, paused, forwards};
         int play_mode_ = static_cast<int>(PlayMode::paused);
         enum class Request {LiveMode, Pause, SetOutputName, StartRecording,
                             StopRecording, ResetIDs, PostForward, PostBackward, PostPause,

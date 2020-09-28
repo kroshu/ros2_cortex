@@ -190,8 +190,22 @@ bool CortexClient::onRequestCommandChanged(const rclcpp::Parameter& param){
 		 return false;
 	}
 
-	std::string req_comm = this->get_parameter("request_command").as_string();
-	cortex_mock_.request(&req_comm[0], nullptr, nullptr);
+	std::string req_comm = param.as_string();
+	void *p_response = nullptr;
+	cortex_mock_.request(&req_comm[0], &p_response, nullptr);
+	if(req_comm == "PostGetPlayMode" || req_comm == "GetContextAnalogBitDepth" ||
+			req_comm == "GetUpAxis")
+		RCLCPP_INFO(get_logger(), "Result of request " + req_comm + ": " + std::to_string(*static_cast<int*>(p_response)));
+	else if(req_comm == "GetContextFrameRate" || req_comm == "GetContextAnalogSampleRate" ||
+			req_comm == "GetConversionToMillimeters")
+		RCLCPP_INFO(get_logger(), "Result of request " + req_comm + ": " + std::to_string(*static_cast<float*>(p_response)));
+	else if(req_comm == "GetFrameOfData"){
+		sFrameOfData fod;
+		cortex_mock_.copyFrame(static_cast<sFrameOfData*>(p_response), &fod);
+		RCLCPP_INFO(get_logger(), "Frame " +std::to_string(fod.iFrame));
+		RCLCPP_INFO(get_logger(), "Number of unidentified markers " + std::to_string(fod.nUnidentifiedMarkers));
+	}
+
 	return true;
 }
 
