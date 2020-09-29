@@ -17,7 +17,8 @@ double d2r(double degrees)
 
 MotionTracker::MotionTracker(): rclcpp_lifecycle::LifecycleNode("motion_tracker"), qos(rclcpp::QoS(rclcpp::KeepLast(1))),
 	lower_limits_rad_(joint_num_), upper_limits_rad_(joint_num_), segment_lengths_({0.1575,0.2025,0.2045,0.2155,0.1895,0.2155,0.081}),
-	original_joint_points_(joint_num_)
+	original_joint_points_(joint_num_), parent_links_({"URDFLBRiiwa14RobotBase", "URDFLBRiiwa14Axis1", "URDFLBRiiwa14Axis2",
+	"URDFLBRiiwaAxis3", "URDFLBRiiwaAxis4", "URDFLBRiiwaAxis5", "URDFLBRiiwaAxis6"})
 {
 	original_joint_points_[0].x = 0.0;
 	original_joint_points_[0].y = 0.0;
@@ -51,13 +52,13 @@ void MotionTracker::markersReceivedCallback(visualization_msgs::msg::MarkerArray
 	std::copy_if(msg->markers.begin(), msg->markers.end(), std::back_inserter(joint_markers),
 			[](visualization_msgs::msg::Marker marker)->bool{return marker.ns == "joint_markers";});
 
-	for(int active_joint=0; active_joint < 1; ++active_joint){
+	for(int active_joint=3; active_joint < 4; ++active_joint){
 		if(active_joint_msg_->data != active_joint+1){
 			active_joint_msg_->data = active_joint+1;
 			active_axis_changed_publisher_->publish(*active_joint_msg_);
 		}
 //		double distance = distBetweenPoints(joint_markers[active_joint+1].pose.position, joint_markers[active_joint].pose.position);
-		double distance = 0.1575;
+		double distance = segment_lengths_[active_joint];
 		int ulp = 5;
 		double eps = std::numeric_limits<double>::epsilon() * std::fabs(segment_lengths_[active_joint+1]+distance)*ulp;
 		if(std::fabs(segment_lengths_[active_joint]-distance) > eps)
@@ -72,6 +73,10 @@ void MotionTracker::markersReceivedCallback(visualization_msgs::msg::MarkerArray
 			float calculated_pos = d2r(60);
 			if(lower_limits_rad_[active_joint]*limit_eps_ < calculated_pos && calculated_pos < upper_limits_rad_[active_joint]*limit_eps_)
 			{
+				auto current_time_ns = rclcpp_lifecycle::LifecycleNode::now().nanoseconds();
+				reference_joint_state_->header.stamp.sec = current_time_ns / nss_in_s;
+				reference_joint_state_->header.stamp.nanosec = current_time_ns - reference_joint_state_->header.stamp.sec*nss_in_s;
+				reference_joint_state_->header.frame_id = parent_links_[active_joint];
 				reference_joint_state_->position[active_joint] = calculated_pos;
 				reference_joint_state_publisher_->publish(*reference_joint_state_);
 			}
@@ -126,9 +131,12 @@ MotionTracker::on_activate(const rclcpp_lifecycle::State & state){
 				qos, callback, rclcpp::SubscriptionOptions(), msg_strategy);
 	active_axis_changed_publisher_ = this->create_publisher<std_msgs::msg::Int8>("active_axis_changed", qos);
 	active_joint_msg_ = std::make_shared<std_msgs::msg::Int8>();
-	reference_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("reference_joint_state", qos);
+//	reference_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("reference_joint_state", qos);
+	reference_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", qos);
 	reference_joint_state_ = std::make_shared<sensor_msgs::msg::JointState>();
 	reference_joint_state_->position.resize(joint_num_);
+	reference_joint_state_->name = {"URDFLBRiiwa14Joint1", "URDFLBRiiwa14Joint2", "URDFLBRiiwaJoint3", "URDFLBRiiwaJoint4",
+			"URDFLBRiiwaJoint5", "URDFLBRiiwaJoint6", "URDFLBRiiwaJoint7"};
 	reference_joint_state_publisher_->on_activate();
 	active_axis_changed_publisher_->on_activate();
 	return SUCCESS;
