@@ -70,6 +70,7 @@ private:
 	std::vector<double> segment_lengths_;
 	std::vector<geometry_msgs::msg::Point> original_joint_points_;
 	float limit_eps_ = 0.9;
+	int nss_in_s = 1000000000;
 	void markersReceivedCallback(visualization_msgs::msg::MarkerArray::ConstSharedPtr msg);
 	static double distBetweenPoints(geometry_msgs::msg::Point& first, geometry_msgs::msg::Point& second);
 	rcl_interfaces::msg::SetParametersResult onParamChange(const std::vector<rclcpp::Parameter> &parameters);

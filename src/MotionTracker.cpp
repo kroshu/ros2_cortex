@@ -51,13 +51,14 @@ void MotionTracker::markersReceivedCallback(visualization_msgs::msg::MarkerArray
 	std::copy_if(msg->markers.begin(), msg->markers.end(), std::back_inserter(joint_markers),
 			[](visualization_msgs::msg::Marker marker)->bool{return marker.ns == "joint_markers";});
 
-	for(int active_joint=0; active_joint < 1; ++active_joint){
+	// Trying out changing joint 3
+	for(int active_joint=3; active_joint < 4; ++active_joint){
 		if(active_joint_msg_->data != active_joint+1){
 			active_joint_msg_->data = active_joint+1;
 			active_axis_changed_publisher_->publish(*active_joint_msg_);
 		}
 //		double distance = distBetweenPoints(joint_markers[active_joint+1].pose.position, joint_markers[active_joint].pose.position);
-		double distance = 0.1575;
+		double distance = segment_lengths_[active_joint];
 		int ulp = 5;
 		double eps = std::numeric_limits<double>::epsilon() * std::fabs(segment_lengths_[active_joint+1]+distance)*ulp;
 		if(std::fabs(segment_lengths_[active_joint]-distance) > eps)
@@ -72,6 +73,9 @@ void MotionTracker::markersReceivedCallback(visualization_msgs::msg::MarkerArray
 			float calculated_pos = d2r(60);
 			if(lower_limits_rad_[active_joint]*limit_eps_ < calculated_pos && calculated_pos < upper_limits_rad_[active_joint]*limit_eps_)
 			{
+				auto current_time_ns = rclcpp_lifecycle::LifecycleNode::now().nanoseconds();
+				reference_joint_state_->header.stamp.sec = current_time_ns / nss_in_s;
+				reference_joint_state_->header.stamp.nanosec = current_time_ns - reference_joint_state_->header.stamp.sec*nss_in_s;
 				reference_joint_state_->position[active_joint] = calculated_pos;
 				reference_joint_state_publisher_->publish(*reference_joint_state_);
 			}
