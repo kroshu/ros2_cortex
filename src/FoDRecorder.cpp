@@ -16,6 +16,7 @@
 #include <stdio.h>   //  for the printf function
 #include <conio.h>
 #include <cstdio>
+#include <string>
 
 #include "Cortex.h"
 #include "rapidjson/document.h"
