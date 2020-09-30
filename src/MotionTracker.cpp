@@ -53,10 +53,6 @@ void MotionTracker::markersReceivedCallback(visualization_msgs::msg::MarkerArray
 			[](visualization_msgs::msg::Marker marker)->bool{return marker.ns == "joint_markers";});
 
 	for(int active_joint=3; active_joint < 4; ++active_joint){
-		if(active_joint_msg_->data != active_joint+1){
-			active_joint_msg_->data = active_joint+1;
-			active_axis_changed_publisher_->publish(*active_joint_msg_);
-		}
 //		double distance = distBetweenPoints(joint_markers[active_joint+1].pose.position, joint_markers[active_joint].pose.position);
 		double distance = segment_lengths_[active_joint];
 		int ulp = 5;
@@ -98,7 +94,6 @@ MotionTracker::on_configure(const rclcpp_lifecycle::State & state){
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_cleanup(const rclcpp_lifecycle::State & state){
 	reference_joint_state_->position.assign(joint_num_, 0);
-	active_joint_msg_->data = 1;
 	return SUCCESS;
 }
 
@@ -129,8 +124,6 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_activate(const rclcpp_lifecycle::State & state){
 	marker_array_subscriber_ = this->create_subscription<visualization_msgs::msg::MarkerArray>("markers",
 				qos, callback, rclcpp::SubscriptionOptions(), msg_strategy);
-	active_axis_changed_publisher_ = this->create_publisher<std_msgs::msg::Int8>("active_axis_changed", qos);
-	active_joint_msg_ = std::make_shared<std_msgs::msg::Int8>();
 //	reference_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("reference_joint_state", qos);
 	reference_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("joint_states", qos);
 	reference_joint_state_ = std::make_shared<sensor_msgs::msg::JointState>();
@@ -138,7 +131,6 @@ MotionTracker::on_activate(const rclcpp_lifecycle::State & state){
 	reference_joint_state_->name = {"URDFLBRiiwa14Joint1", "URDFLBRiiwa14Joint2", "URDFLBRiiwaJoint3", "URDFLBRiiwaJoint4",
 			"URDFLBRiiwaJoint5", "URDFLBRiiwaJoint6", "URDFLBRiiwaJoint7"};
 	reference_joint_state_publisher_->on_activate();
-	active_axis_changed_publisher_->on_activate();
 	return SUCCESS;
 }
 
@@ -146,7 +138,6 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_deactivate(const rclcpp_lifecycle::State & state){
 	marker_array_subscriber_.reset();
 	reference_joint_state_publisher_->on_deactivate();
-	active_axis_changed_publisher_->on_deactivate();
 	return SUCCESS;
 }
 

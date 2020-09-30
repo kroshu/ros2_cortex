@@ -58,12 +58,10 @@ public:
 private:
 	rclcpp::Subscription<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_subscriber_;
 	rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::JointState>::SharedPtr reference_joint_state_publisher_;
-	rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int8>::SharedPtr active_axis_changed_publisher_;
 	rclcpp::QoS qos;
 	rclcpp::message_memory_strategy::MessageMemoryStrategy<visualization_msgs::msg::MarkerArray>::SharedPtr msg_strategy;
 	std::function<void(visualization_msgs::msg::MarkerArray::ConstSharedPtr msg)> callback;
 	sensor_msgs::msg::JointState::SharedPtr reference_joint_state_;
-	std_msgs::msg::Int8::SharedPtr active_joint_msg_;
 	int joint_num_ = 7;
 	std::vector<double> lower_limits_rad_;
 	std::vector<double> upper_limits_rad_;
