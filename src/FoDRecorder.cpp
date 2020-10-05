@@ -328,9 +328,9 @@ void FoDRecorder::printAnalogData(
 
   rapidjson::Value analog_samples_json(rapidjson::kArrayType);
   if (n_analog > 0) {
-    const std::vector<short> analog_samples(analog_data.AnalogSamples,
+    const std::vector<short> analog_samples(analog_data.AnalogSamples,    // NOLINT
       analog_data.AnalogSamples + n_analog);
-    for (std::vector<short>::const_iterator it = analog_samples.begin(); it != analog_samples.end();
+    for (auto it = analog_samples.begin(); it != analog_samples.end();
       ++it)
     {
       rapidjson::Value sample_json(rapidjson::kObjectType);
@@ -442,8 +442,8 @@ void FoDRecorder::dataPrinter(sFrameOfData * frame_of_data)
   if (frame_count >= capture_size_) {
     FILE * fp = fopen(capture_file_name_.data(), "wb");
 
-    char write_buffer[file_write_buffer_size_];
-    rapidjson::FileWriteStream os(fp, write_buffer, sizeof(write_buffer));
+    std::vector<char> write_buffer(file_write_buffer_size_);
+    rapidjson::FileWriteStream os(fp, write_buffer.data(), file_write_buffer_size_);
 
     rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
     json_doc_.Accept(writer);

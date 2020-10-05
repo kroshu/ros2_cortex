@@ -37,7 +37,7 @@ public:
 private:
   const std::string capture_file_name_;
   rapidjson::Document json_doc_;
-  const int capture_size_, file_write_buffer_size_;
+  static const int capture_size_, file_write_buffer_size_;
   int frame_count = 0;
   static const std::vector<std::string> verb_levels;
   void printBodyDefs(sBodyDefs & body_defs);

@@ -16,7 +16,7 @@
 #include <vector>
 #include <string>
 
-#include "CortexClient.hpp"
+#include "ros2_cortex/CortexClient.hpp"
 
 namespace ros2_cortex
 {

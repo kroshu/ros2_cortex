@@ -92,6 +92,7 @@ public:
 private:
   int n_frames_, current_framenum_ = 0,
     verbosity_level_ = 2, analog_bit_depth_ = 16;        // a_b_d_ 12 or 16 usually
+  static const int read_buffer_size_ = 65536;
   bool running_ = false;
   float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
   pthread_t run_thread_;

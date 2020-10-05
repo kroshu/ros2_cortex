@@ -15,6 +15,7 @@
 #include <chrono>
 #include <thread>
 #include <string>
+#include <vector>
 
 #include "ros2_cortex/CortexMock.hpp"
 #include "rapidjson/filereadstream.h"
@@ -33,8 +34,9 @@ CortexMock::CortexMock(const std::string & capture_file_name)
 void CortexMock::initReadFile()
 {
   FILE * fp = fopen(capture_file_name_.data(), "r");
-  char read_buffer[65536];
-  rapidjson::FileReadStream is(fp, read_buffer, sizeof(read_buffer));
+
+  std::vector<char> read_buffer(read_buffer_size_);
+  rapidjson::FileReadStream is(fp, read_buffer.data(), read_buffer_size_);
 
   document_.ParseStream(is);
   fclose(fp);
@@ -357,7 +359,8 @@ int CortexMock::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
   p_dst->fDelay = p_src->fDelay;
   int n_bodies = p_dst->nBodies = p_src->nBodies;
   for (int i = 0; i < n_bodies; i++) {
-    strcpy(p_dst->BodyData[i].szName, p_src->BodyData[i].szName);
+    memcpy(p_dst->BodyData[i].szName, p_src->BodyData[i].szName,
+      strlen(p_src->BodyData[i].szName) + 1);
 
     int n_markers = p_dst->BodyData[i].nMarkers = p_src->BodyData[i].nMarkers;
     if (n_markers > 0) {
@@ -397,7 +400,7 @@ int CortexMock::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
     for (int i = 0; i < n_events; ++i, ++src_event_str_ptr, ++dst_event_str_ptr) {
       std::string event_str(*src_event_str_ptr);
       *dst_event_str_ptr = new char[event_str.length() + 1];
-      strcpy(*dst_event_str_ptr, event_str.data());
+      memcpy(*dst_event_str_ptr, event_str.data(), strlen(event_str.data()) + 1);
     }
   }
 
@@ -412,9 +415,9 @@ int CortexMock::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
   p_dst->AnalogData.nAnalogSamples = p_src->AnalogData.nAnalogSamples;
   int n_analogs = p_dst->AnalogData.nAnalogChannels * p_dst->AnalogData.nAnalogSamples;
   if (n_analogs > 0) {
-    p_dst->AnalogData.AnalogSamples = new short[n_analogs];
+    p_dst->AnalogData.AnalogSamples = new short[n_analogs];  // NOLINT
     memcpy(p_dst->AnalogData.AnalogSamples, p_src->AnalogData.AnalogSamples,
-      n_analogs * sizeof(short));
+      n_analogs * sizeof(short));  // NOLINT
   }
 
   p_dst->AnalogData.nForcePlates = p_src->AnalogData.nForcePlates;
@@ -438,7 +441,8 @@ int CortexMock::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
   p_dst->RecordingStatus.bRecording = p_src->RecordingStatus.bRecording;
   p_dst->RecordingStatus.iFirstFrame = p_src->RecordingStatus.iFirstFrame;
   p_dst->RecordingStatus.iLastFrame = p_src->RecordingStatus.iLastFrame;
-  strcpy(p_dst->RecordingStatus.szFilename, p_src->RecordingStatus.szFilename);
+  memcpy(p_dst->RecordingStatus.szFilename, p_src->RecordingStatus.szFilename,
+    strlen(p_src->RecordingStatus.szFilename) + 1);
 
   p_dst->TimeCode.iFrames = p_src->TimeCode.iFrames;
   p_dst->TimeCode.iHours = p_src->TimeCode.iHours;
@@ -522,7 +526,7 @@ void CortexMock::extractBodyDefs(sBodyDefs & body_defs, const rapidjson::Value &
   for (int i = 0; i < n_analog_channels; ++i, ++dst_analogch_names_ptr) {
     std::string analogch_name = body_defs_json["analogChannelNames"][i].GetString();
     *dst_analogch_names_ptr = new char[analogch_name.length() + 1];
-    strcpy(*dst_analogch_names_ptr, analogch_name.data());
+    memcpy(*dst_analogch_names_ptr, analogch_name.data(), strlen(analogch_name.data()) + 1);
   }
 
   body_defs.nForcePlates = body_defs_json["nForcePlates"].GetInt();
@@ -540,7 +544,7 @@ void CortexMock::extractBodyDef(sBodyDef & body_def, const rapidjson::Value & bo
 {
   std::string name(body_def_json["name"].GetString());
   body_def.szName = new char[name.length() + 1];
-  strcpy(body_def.szName, name.data());
+  memcpy(body_def.szName, name.data(), strlen(name.data()) + 1);
 
   int n_markers = body_def.nMarkers = body_def_json["nMarkers"].GetInt();
   body_def.szMarkerNames = new char *[n_markers];
@@ -548,7 +552,7 @@ void CortexMock::extractBodyDef(sBodyDef & body_def, const rapidjson::Value & bo
   for (int i = 0; i < n_markers; ++i, ++dst_marker_names_ptr) {
     std::string marker_name = body_def_json["markerNames"][i].GetString();
     *dst_marker_names_ptr = new char[marker_name.length() + 1];
-    strcpy(*dst_marker_names_ptr, marker_name.data());
+    memcpy(*dst_marker_names_ptr, marker_name.data(), strlen(marker_name.data()) + 1);
   }
 
   int n_segments = body_def.Hierarchy.nSegments = body_def_json["hierarchy"]["nSegments"].GetInt();
@@ -558,7 +562,7 @@ void CortexMock::extractBodyDef(sBodyDef & body_def, const rapidjson::Value & bo
   for (int i = 0; i < n_segments; ++i, ++dst_segment_names_ptr) {
     std::string segment_name = body_def_json["hierarchy"]["segmentNames"][i].GetString();
     *dst_segment_names_ptr = new char[segment_name.length() + 1];
-    strcpy(*dst_segment_names_ptr, segment_name.data());
+    memcpy(*dst_segment_names_ptr, segment_name.data(), strlen(segment_name.data()) + 1);
 
     body_def.Hierarchy.iParents[i] = body_def_json["hierarchy"]["parents"][i].GetInt();
   }
@@ -569,7 +573,7 @@ void CortexMock::extractBodyDef(sBodyDef & body_def, const rapidjson::Value & bo
   for (int i = 0; i < n_dofs; ++i, ++dst_dof_names_ptr) {
     std::string dof_name = body_def_json["dofNames"][i].GetString();
     *dst_dof_names_ptr = new char[dof_name.length() + 1];
-    strcpy(*dst_dof_names_ptr, dof_name.data());
+    memcpy(*dst_dof_names_ptr, dof_name.data(), strlen(dof_name.data()) + 1);
   }
 }
 
@@ -579,7 +583,8 @@ void CortexMock::extractBodies(sFrameOfData & fod, const rapidjson::Value & pare
   for (int i = 0; i < n_bodies; ++i) {
     const rapidjson::Value & i_body_json = parent_frame_json["bodies"][i];
     sBodyData & i_body_data = fod.BodyData[i];
-    strcpy(i_body_data.szName, i_body_json["name"].GetString());
+    memcpy(i_body_data.szName, i_body_json["name"].GetString(),
+      strlen(i_body_json["name"].GetString()) + 1);
     i_body_data.nMarkers = i_body_json["nMarkers"].GetInt();
     if (i_body_data.nMarkers > 0) {
       i_body_data.Markers = new tMarkerData[i_body_data.nMarkers];
@@ -631,7 +636,8 @@ void CortexMock::extractBodies(sFrameOfData & fod, const rapidjson::Value & pare
       i_body_data.Events = new char *[n_events];
       for (int i_event = 0; i_event < n_events; ++i_event) {
         i_body_data.Events[i_event] = new char[i_body_json["events"][i].GetStringLength()];
-        strcpy(i_body_data.Events[i_event], i_body_json["events"][i].GetString());
+        memcpy(i_body_data.Events[i_event], i_body_json["events"][i].GetString(),
+          strlen(i_body_json["events"][i].GetString()) + 1);
       }
     }
   }
@@ -654,7 +660,7 @@ void CortexMock::extractAnalogData(sAnalogData & adata, const rapidjson::Value &
   int n_samples = adata.nAnalogSamples = analog_data_json["nAnalogSamples"].GetInt();
   int index = 0;
   if (n_channels > 0 || n_samples > 0) {
-    adata.AnalogSamples = new short[n_samples * n_channels];
+    adata.AnalogSamples = new short[n_samples * n_channels];  // NOLINT
     for (int i_sample = 0; i_sample < n_samples; i_sample++) {
       for (int i_channel = 0; i_channel < n_channels; i_channel++) {
         index = i_sample * n_samples + i_channel;
@@ -735,7 +741,8 @@ void CortexMock::extractFrame(sFrameOfData & fod, int i_frame)
   fod.RecordingStatus.bRecording = rc_status["recording"].GetInt();
   fod.RecordingStatus.iFirstFrame = rc_status["firstFrame"].GetInt();
   fod.RecordingStatus.iLastFrame = rc_status["lastFrame"].GetInt();
-  strcpy(fod.RecordingStatus.szFilename, rc_status["captureFileName"].GetString());
+  memcpy(fod.RecordingStatus.szFilename, rc_status["captureFileName"].GetString(),
+    strlen(rc_status["captureFileName"].GetString()) + 1);
 
   const rapidjson::Value & tc_value = frame["timeCode"];
   fod.TimeCode.iHours = tc_value["hours"].GetInt();
