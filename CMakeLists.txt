@@ -61,14 +61,35 @@ if(BUILD_TESTING)
   find_package(ament_cmake_uncrustify REQUIRED)
   find_package(ament_cmake_xmllint REQUIRED)
 
+  file(GLOB_RECURSE rapidjson_main_headers
+    LIST_DIRECTORIES FALSE
+    RELATIVE "${PROJECT_SOURCE_DIR}/include/rapidjson"
+    include/rapidjson/*.h)
 
-  ament_copyright()
+  file(GLOB_RECURSE rapidjson_error_headers
+    LIST_DIRECTORIES FALSE
+    RELATIVE "${PROJECT_SOURCE_DIR}/include/rapidjson/error"
+    include/rapidjson/error/*.h)
+
+  file(GLOB_RECURSE rapidjson_internal_headers
+    LIST_DIRECTORIES FALSE
+    RELATIVE "${PROJECT_SOURCE_DIR}/include/rapidjson/internal"
+    include/rapidjson/internal/*.h)
+
+  file(GLOB_RECURSE rapidjson_msinttypes_headers
+    LIST_DIRECTORIES FALSE
+    RELATIVE "${PROJECT_SOURCE_DIR}/include/rapidjson/msinttypes"
+    include/rapidjson/msinttypes/*.h)
+
+  ament_copyright(--exclude ${rapidjson_main_headers} ${rapidjson_error_headers}
+                  ${rapidjson_internal_headers} ${rapidjson_msinttypes_headers} Cortex.h)
   ament_cppcheck(--language=c++)
   ament_pep257()
   ament_flake8()
   ament_cpplint()
   ament_lint_cmake()
-  ament_uncrustify()
+  ament_uncrustify(--exclude ${rapidjson_main_headers} ${rapidjson_error_headers}
+                  ${rapidjson_internal_headers} ${rapidjson_msinttypes_headers} Cortex.h)
   ament_xmllint()
 endif()
 
