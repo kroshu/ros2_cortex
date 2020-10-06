@@ -60,7 +60,7 @@ CortexMock::CortexMock(const CortexMock & other)
   initReadFile();
 }
 
-void CortexMock::swap(CortexMock & other) throw()
+void CortexMock::swap(CortexMock & other) noexcept
 {
   // E.g. if pointers need to be swapped
 }
@@ -195,7 +195,7 @@ int CortexMock::initialize(
   // and complete default initialization, too: sz_host_multicast_address = 225.1.1.1,
   // sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
 
-  pthread_create(&run_thread_, nullptr, &CortexMock::run_helper, this);
+  std::thread run_thread(&CortexMock::run, this);
   return RC_Okay;
 }
 
@@ -788,12 +788,6 @@ void CortexMock::extractFrame(sFrameOfData & fod, int i_frame)
   } else if (standard == "SYSTEMCLOCK") {
     fod.TimeCode.iStandard = 4;
   }
-}
-
-void * CortexMock::run_helper(void * cortex_mock)
-{
-  static_cast<CortexMock *>(cortex_mock)->run();
-  return nullptr;
 }
 
 void CortexMock::run()

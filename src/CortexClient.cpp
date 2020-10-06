@@ -13,17 +13,31 @@
 // limitations under the License.
 
 #include <chrono>
-#include <thread>
 #include <iostream>
 #include <vector>
 #include <string>
 #include <memory>
+#include <thread>
 
 #include "ros2_cortex/CortexClient.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace ros2_cortex
 {
+
+template<typename Ret, typename ... Params>
+struct CortexClient::Callback<Ret(Params...)>
+{
+  template<typename ... Args>
+  static Ret callback(Args... args)
+  {
+    return func(args ...);
+  }
+  static std::function<Ret(Params...)> func;
+};
+
+template<typename Ret, typename ... Params>
+std::function<Ret(Params...)> CortexClient::Callback<Ret(Params...)>::func;
 
 std::string getFileExtension(const std::string & file_name)
 {
@@ -34,10 +48,23 @@ std::string getFileExtension(const std::string & file_name)
 }
 
 CortexClient::CortexClient(const std::string & node_name)
-: rclcpp_lifecycle::LifecycleNode(node_name),
+: ROS2BaseNode(node_name),
   capture_file_path_("/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json"),
   cortex_mock_(capture_file_path_)
 {
+  Callback<void(sFrameOfData *)>::func = std::bind(&CortexClient::dataHandlerFunc_, this,
+      std::placeholders::_1);
+  auto data_func =
+    static_cast<data_callback_t>(Callback<void(sFrameOfData *)>::callback);
+  setDataHandlerFunc(data_func);
+
+  Callback<void(int i_level, char * sz_msg)>::func = std::bind(
+    &CortexClient::errorMsgHandlerFunc_, this, std::placeholders::_1,
+    std::placeholders::_2);
+  auto error_msg_func = static_cast<error_msg__callback_t>(
+    Callback<void(int i_level, char * sz_msg)>::callback);
+  setErrorMsgHandlerFunc(error_msg_func);
+
   this->declare_parameter("capture_file_path", rclcpp::ParameterValue(capture_file_path_));
   parameter_set_access_rights_.emplace("capture_file_path", ParameterSetAccessRights {true, true,
       false, false});
@@ -48,7 +75,7 @@ CortexClient::CortexClient(const std::string & node_name)
       true, false});
 
   this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
-    {return this->onParamChange(parameters);});
+    {return CortexClient::onParamChange(parameters);});
 }
 
 CortexClient::~CortexClient()
@@ -61,12 +88,6 @@ void CortexClient::exit()
 {
   cortex_mock_.freeFrame(&current_fod_);
   cortex_mock_.exit();
-}
-
-void * CortexClient::run_helper(void * cortex_client)
-{
-  static_cast<CortexClient *>(cortex_client)->run();
-  return nullptr;
 }
 
 void CortexClient::run()
@@ -95,64 +116,17 @@ int CortexClient::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-CortexClient::on_configure(const rclcpp_lifecycle::State & state)
-{
-  return SUCCESS;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-CortexClient::on_cleanup(const rclcpp_lifecycle::State & state)
-{
-  return SUCCESS;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-CortexClient::on_shutdown(const rclcpp_lifecycle::State & state)
-{
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn result = SUCCESS;
-  switch (state.id()) {
-    case lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE:
-      result = this->on_deactivate(get_current_state());
-      if (result != SUCCESS) {
-        break;
-      }
-      result = this->on_cleanup(get_current_state());
-      break;
-    case lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE:
-      result = this->on_cleanup(get_current_state());
-      break;
-    case lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED:
-      break;
-    default:
-      break;
-  }
-  return result;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_activate(const rclcpp_lifecycle::State & state)
 {
-  client_thread_ = std::make_unique<pthread_t>();
-  if (pthread_create(client_thread_.get(), nullptr, &CortexClient::run_helper, this)) {
-    RCLCPP_ERROR(get_logger(), "pthread_create error");
-    RCLCPP_ERROR(get_logger(), std::strerror(errno));
-    return ERROR;
-  }
-  return SUCCESS;
+  std::thread run_thread(&CortexClient::run, this);
+  return ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_deactivate(const rclcpp_lifecycle::State & state)
 {
   exit();
-  return SUCCESS;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-CortexClient::on_error(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(get_logger(), "An error occured");
-  return SUCCESS;
+  return ROS2BaseNode::SUCCESS;
 }
 
 rcl_interfaces::msg::SetParametersResult CortexClient::onParamChange(
@@ -170,25 +144,6 @@ rcl_interfaces::msg::SetParametersResult CortexClient::onParamChange(
     }
   }
   return result;
-}
-
-bool CortexClient::canSetParameter(const rclcpp::Parameter & param)
-{
-  try {
-    if (!parameter_set_access_rights_.at(
-        param.get_name()).isSetAllowed(this->get_current_state().id()))
-    {
-      RCLCPP_ERROR(this->get_logger(), "Parameter %s cannot be changed while in state %s",
-        param.get_name().c_str(), this->get_current_state().label().c_str());
-      return false;
-    }
-  } catch (const std::out_of_range & e) {
-    RCLCPP_ERROR(this->get_logger(),
-      "Parameter set access rights for parameter %s couldn't be determined",
-      param.get_name().c_str());
-    return false;
-  }
-  return true;
 }
 
 bool CortexClient::onCapFileNameChangeRequest(const rclcpp::Parameter & param)
@@ -246,4 +201,44 @@ bool CortexClient::onRequestCommandChanged(const rclcpp::Parameter & param)
   return true;
 }
 
+void CortexClient::dataHandlerFunc_(sFrameOfData * fod)
+{
+  cortex_mock_.copyFrame(fod, &current_fod_);
+  RCLCPP_INFO(get_logger(), "Frame " + std::to_string(current_fod_.iFrame));
+  RCLCPP_INFO(get_logger(),
+    "Number of unidentified markers " + std::to_string(current_fod_.nUnidentifiedMarkers));
+}
+
+void CortexClient::errorMsgHandlerFunc_(int i_level, char * error_msg)
+{
+  switch (i_level) {
+    case 1:
+      RCLCPP_ERROR(get_logger(), static_cast<std::string>(error_msg));
+      break;
+    case 2:
+      RCLCPP_WARN(get_logger(), static_cast<std::string>(error_msg));
+      break;
+    case 3:
+      RCLCPP_INFO(get_logger(), static_cast<std::string>(error_msg));
+      break;
+    case 4:
+      RCLCPP_DEBUG(get_logger(), static_cast<std::string>(error_msg));
+      break;
+    default:
+      break;
+  }
+}
+
 }  // namespace ros2_cortex
+
+int main(int argc, char const * argv[])
+{
+  rclcpp::init(argc, argv);
+  rclcpp::executors::MultiThreadedExecutor executor;
+  auto node = std::make_shared<ros2_cortex::CortexClient>("cortex_client");
+  executor.add_node(node->get_node_base_interface());
+  executor.spin();
+  rclcpp::shutdown();
+
+  return 0;
+}

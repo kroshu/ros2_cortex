@@ -21,39 +21,28 @@
 namespace ros2_cortex
 {
 
-template<typename T>
-struct Callback;
-
 template<typename Ret, typename ... Params>
-struct Callback<Ret(Params...)>
+struct CortexClient::Callback<Ret(Params...)>
 {
   template<typename ... Args>
-  static Ret callback(Args... args)
-  {
-    return func(args ...);
-  }
+  static Ret callback(Args... args);
   static std::function<Ret(Params...)> func;
 };
 
-template<typename Ret, typename ... Params>
-std::function<Ret(Params...)> Callback<Ret(Params...)>::func;
-
-typedef void (* data_callback_t)(sFrameOfData *);
-typedef void (* error_msg__callback_t)(int i_level, char * sz_msg);
 
 MarkerPublisher::MarkerPublisher()
-: CortexClient("marker_publisher"), qos(rclcpp::QoS(rclcpp::KeepLast(1)))
+: CortexClient("marker_publisher")
 {
   qos.best_effort();
   Callback<void(sFrameOfData *)>::func = std::bind(&MarkerPublisher::dataHandlerFunc_, this,
       std::placeholders::_1);
-  data_callback_t data_func =
+  auto data_func =
     static_cast<data_callback_t>(Callback<void(sFrameOfData *)>::callback);
   setDataHandlerFunc(data_func);
 
   Callback<void(int i_level, char * sz_msg)>::func = std::bind(
     &MarkerPublisher::errorMsgHandlerFunc_, this, std::placeholders::_1, std::placeholders::_2);
-  error_msg__callback_t error_msg_func = static_cast<error_msg__callback_t>(
+  auto error_msg_func = static_cast<error_msg__callback_t>(
     Callback<void(int i_level, char * sz_msg)>::callback);
   setErrorMsgHandlerFunc(error_msg_func);
 

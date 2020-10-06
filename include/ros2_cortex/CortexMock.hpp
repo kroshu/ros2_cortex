@@ -23,6 +23,7 @@
 #include <functional>
 #include <map>
 #include <utility>
+#include <thread>
 
 #include "Cortex.h"
 #include "rapidjson/document.h"
@@ -35,7 +36,7 @@ class CortexMock
 public:
   explicit CortexMock(std::string & capture_file_name);
   CortexMock(const CortexMock & other);
-  void swap(CortexMock & other) throw();
+  void swap(CortexMock & other) noexcept;
   CortexMock & operator=(CortexMock other);
   ~CortexMock();
   int getSdkVersion(unsigned char version[4]);
@@ -100,7 +101,6 @@ private:
   static constexpr float ms_in_s = 1000.0;
   bool running_ = false;
   float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
-  pthread_t run_thread_;
   enum class PlayMode {backwards = -1, paused, forwards};
   int play_mode_ = static_cast<int>(PlayMode::paused);
   enum class Request {LiveMode, Pause, SetOutputName, StartRecording,
@@ -139,7 +139,6 @@ private:
   sBodyDefs body_defs_;
   std::function<void(sFrameOfData *)> dataHandlerFunc_;
   std::function<void(int iLogLevel, char * szLogMessage)> errorMsgHandlerFunc_;
-  static void * run_helper(void * cortex_mock);
   void run();
   void extractFrame(sFrameOfData & fod, int iFrame);
   void extractBodies(sFrameOfData & fod, const rapidjson::Value & parent_frame_json);

@@ -32,7 +32,7 @@ double d2r(double degrees)
 }
 
 MotionTracker::MotionTracker()
-: rclcpp_lifecycle::LifecycleNode("motion_tracker"), qos(rclcpp::QoS(rclcpp::KeepLast(1))),
+: ROS2BaseNode("motion_tracker"), qos(rclcpp::QoS(rclcpp::KeepLast(1))),
   lower_limits_rad_(joint_num_), upper_limits_rad_(joint_num_), segment_lengths_({0.1575, 0.2025,
       0.2045, 0.2155,
       0.1895, 0.2155,
@@ -61,7 +61,7 @@ MotionTracker::MotionTracker()
       175})));
 
   this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
-    {return this->onParamChange(parameters);});
+    {return MotionTracker::onParamChange(parameters);});
   parameter_set_access_rights_.emplace("lower_limits_deg", ParameterSetAccessRights {true, true,
       true, false});
   parameter_set_access_rights_.emplace("upper_limits_deg", ParameterSetAccessRights {true, true,
@@ -130,7 +130,7 @@ MotionTracker::on_configure(const rclcpp_lifecycle::State & state)
 {
   onLowerLimitsChangeRequest(this->get_parameter("lower_limits_deg"));
   onUpperLimitsChangeRequest(this->get_parameter("upper_limits_deg"));
-  return SUCCESS;
+  return ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -138,31 +138,7 @@ MotionTracker::on_cleanup(const rclcpp_lifecycle::State & state)
 {
   reference_joint_state_->position.assign(joint_num_, 0);
   active_joint_msg_->data = 1;
-  return SUCCESS;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-MotionTracker::on_shutdown(const rclcpp_lifecycle::State & state)
-{
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn result =
-    SUCCESS;
-  switch (state.id()) {
-    case lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE:
-      result = this->on_deactivate(get_current_state());
-      if (result != SUCCESS) {
-        break;
-      }
-      result = this->on_cleanup(get_current_state());
-      break;
-    case lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE:
-      result = this->on_cleanup(get_current_state());
-      break;
-    case lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED:
-      break;
-    default:
-      break;
-  }
-  return result;
+  return ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -180,7 +156,7 @@ MotionTracker::on_activate(const rclcpp_lifecycle::State & state)
   reference_joint_state_->position.resize(joint_num_);
   reference_joint_state_publisher_->on_activate();
   active_axis_changed_publisher_->on_activate();
-  return SUCCESS;
+  return ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -189,14 +165,7 @@ MotionTracker::on_deactivate(const rclcpp_lifecycle::State & state)
   marker_array_subscriber_.reset();
   reference_joint_state_publisher_->on_deactivate();
   active_axis_changed_publisher_->on_deactivate();
-  return SUCCESS;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-MotionTracker::on_error(const rclcpp_lifecycle::State & state)
-{
-  RCLCPP_INFO(get_logger(), "An error occured");
-  return SUCCESS;
+  return ROS2BaseNode::SUCCESS;
 }
 
 rcl_interfaces::msg::SetParametersResult MotionTracker::onParamChange(
@@ -214,25 +183,6 @@ rcl_interfaces::msg::SetParametersResult MotionTracker::onParamChange(
     }
   }
   return result;
-}
-
-bool MotionTracker::canSetParameter(const rclcpp::Parameter & param)
-{
-  try {
-    if (!parameter_set_access_rights_.at(
-        param.get_name()).isSetAllowed(this->get_current_state().id()))
-    {
-      RCLCPP_ERROR(this->get_logger(), "Parameter %s cannot be changed while in state %s",
-        param.get_name().c_str(), this->get_current_state().label().c_str());
-      return false;
-    }
-  } catch (const std::out_of_range & e) {
-    RCLCPP_ERROR(this->get_logger(),
-      "Parameter set access rights for parameter %s couldn't be determined",
-      param.get_name().c_str());
-    return false;
-  }
-  return true;
 }
 
 bool MotionTracker::onLowerLimitsChangeRequest(const rclcpp::Parameter & param)

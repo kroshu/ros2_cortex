@@ -28,13 +28,14 @@ include_directories(include)
 
 add_library(cortex_mock SHARED
   src/CortexMock.cpp
-  src/CortexClient.cpp)
+  src/CortexClient.cpp
+  src/ROS2BaseNode.cpp)
 ament_target_dependencies(cortex_mock rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
 
-add_executable(simple_fod_printer
-    src/SimpleFodPrinter.cpp)
-ament_target_dependencies(simple_fod_printer rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
-target_link_libraries(simple_fod_printer
+add_executable(cortex_client
+    src/CortexClient.cpp)
+ament_target_dependencies(cortex_client rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
+target_link_libraries(cortex_client
   cortex_mock)
 
 add_executable(marker_publisher
@@ -44,11 +45,12 @@ target_link_libraries(marker_publisher
   cortex_mock)
 
 add_executable(motion_tracker
-    src/MotionTracker.cpp)
+    src/MotionTracker.cpp
+    src/ROS2BaseNode.cpp)
 ament_target_dependencies(motion_tracker rclcpp rclcpp_lifecycle visualization_msgs
             lifecycle_msgs sensor_msgs std_msgs geometry_msgs)
 
-install(TARGETS simple_fod_printer marker_publisher motion_tracker
+install(TARGETS cortex_client marker_publisher motion_tracker
     DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
