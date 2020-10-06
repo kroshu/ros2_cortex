@@ -98,26 +98,6 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData * fod)
   marker_array_publisher_->publish(marker_array_);
 }
 
-void MarkerPublisher::errorMsgHandlerFunc_(int i_level, char * error_msg)
-{
-  switch (i_level) {
-    case 1:
-      RCLCPP_ERROR(get_logger(), static_cast<std::string>(error_msg));
-      break;
-    case 2:
-      RCLCPP_WARN(get_logger(), static_cast<std::string>(error_msg));
-      break;
-    case 3:
-      RCLCPP_INFO(get_logger(), static_cast<std::string>(error_msg));
-      break;
-    case 4:
-      RCLCPP_DEBUG(get_logger(), static_cast<std::string>(error_msg));
-      break;
-    default:
-      break;
-  }
-}
-
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MarkerPublisher::on_activate(const rclcpp_lifecycle::State & state)
 {

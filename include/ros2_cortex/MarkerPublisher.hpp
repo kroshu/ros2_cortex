@@ -27,7 +27,6 @@ class MarkerPublisher : public CortexClient
 public:
   MarkerPublisher();
   void dataHandlerFunc_(sFrameOfData * fod);
-  void errorMsgHandlerFunc_(int i_level, char * error_msg);
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_activate(const rclcpp_lifecycle::State & state);
 
