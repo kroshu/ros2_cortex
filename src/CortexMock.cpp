@@ -340,39 +340,44 @@ sBodyDefs * CortexMock::getBodyDefs()
   return &body_defs_;
 }
 
+void CortexMock::freeBodyDef(sBodyDef & p_body_def, int n_an_channels)
+{
+  delete[] p_body_def.szName;
+
+  int n_markers = n_an_channels;
+  for (int i_marker_name = 0; i_marker_name < n_markers; ++i_marker_name) {
+    if (p_body_def.szMarkerNames[i_marker_name] != nullptr) {
+      delete[] p_body_def.szMarkerNames[i_marker_name];
+    }
+  }
+  if (n_markers > 0) {delete[] p_body_def.szMarkerNames;}
+
+  int n_segments = p_body_def.Hierarchy.nSegments;
+  for (int i_segment_name = 0; i_segment_name < n_segments; ++i_segment_name) {
+    if (p_body_def.Hierarchy.szSegmentNames[i_segment_name] != nullptr) {
+      delete[] p_body_def.Hierarchy.szSegmentNames[i_segment_name];
+    }
+  }
+  if (n_segments > 0) {
+    delete[] p_body_def.Hierarchy.szSegmentNames;
+    delete[] p_body_def.Hierarchy.iParents;
+  }
+
+  int n_dofs = n_an_channels;
+  for (int i_dof_name = 0; i_dof_name < n_dofs; ++i_dof_name) {
+    if (p_body_def.szDofNames[i_dof_name] != nullptr) {
+      delete[] p_body_def.szDofNames[i_dof_name];
+    }
+  }
+  if (n_markers > 0) {delete[] p_body_def.szDofNames;}
+}
+
 int CortexMock::freeBodyDefs(sBodyDefs * p_body_defs)
 {
   if (p_body_defs == nullptr) {return RC_MemoryError;}
   int n_body_defs = p_body_defs->nBodyDefs;
   for (int i = 0; i < n_body_defs; ++i) {
-    delete[] p_body_defs->BodyDefs[i].szName;
-
-    int n_markers = p_body_defs->nAnalogChannels;
-    for (int i_marker_name = 0; i_marker_name < n_markers; ++i_marker_name) {
-      if (p_body_defs->BodyDefs[i].szMarkerNames[i_marker_name] != nullptr) {
-        delete[] p_body_defs->BodyDefs[i].szMarkerNames[i_marker_name];
-      }
-    }
-    if (n_markers > 0) {delete[] p_body_defs->BodyDefs[i].szMarkerNames;}
-
-    int n_segments = p_body_defs->BodyDefs[i].Hierarchy.nSegments;
-    for (int i_segment_name = 0; i_segment_name < n_segments; ++i_segment_name) {
-      if (p_body_defs->BodyDefs[i].Hierarchy.szSegmentNames[i_segment_name] != nullptr) {
-        delete[] p_body_defs->BodyDefs[i].Hierarchy.szSegmentNames[i_segment_name];
-      }
-    }
-    if (n_segments > 0) {
-      delete[] p_body_defs->BodyDefs[i].Hierarchy.szSegmentNames;
-      delete[] p_body_defs->BodyDefs[i].Hierarchy.iParents;
-    }
-
-    int n_dofs = p_body_defs->nAnalogChannels;
-    for (int i_dof_name = 0; i_dof_name < n_dofs; ++i_dof_name) {
-      if (p_body_defs->BodyDefs[i].szDofNames[i_dof_name] != nullptr) {
-        delete[] p_body_defs->BodyDefs[i].szDofNames[i_dof_name];
-      }
-    }
-    if (n_markers > 0) {delete[] p_body_defs->BodyDefs[i].szDofNames;}
+    freeBodyDef(p_body_defs->BodyDefs[i], p_body_defs->nAnalogChannels);
   }
 
 
@@ -500,21 +505,25 @@ int CortexMock::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) cons
   return RC_GeneralError;
 }
 
+void CortexMock::freeBodyData(sBodyData & body_data)
+{
+  if (body_data.nMarkers > 0) {delete[] body_data.Markers;}
+  if (body_data.nSegments > 0) {delete[] body_data.Segments;}
+  if (body_data.nDofs > 0) {delete[] body_data.Dofs;}
+  int n_events = body_data.nEvents;
+  for (int i_event = 0; i_event < n_events; ++i_event) {
+    if (body_data.Events[i_event] != nullptr) {delete[] body_data.Events[i_event];}
+  }
+  if (body_data.nEvents > 0) {delete[] body_data.Events;}
+}
+
 int CortexMock::freeFrame(sFrameOfData * p_frame)
 {
   if (p_frame == nullptr) {return RC_MemoryError;}
   int n_bodies = p_frame->nBodies;
   if (n_bodies > 0) {
     for (int i_body = 0; i_body < n_bodies; ++i_body) {
-      sBodyData & i_body_data = p_frame->BodyData[i_body];
-      if (i_body_data.nMarkers > 0) {delete[] i_body_data.Markers;}
-      if (i_body_data.nSegments > 0) {delete[] i_body_data.Segments;}
-      if (i_body_data.nDofs > 0) {delete[] i_body_data.Dofs;}
-      int n_events = i_body_data.nEvents;
-      for (int i_event = 0; i_event < n_events; ++i_event) {
-        if (i_body_data.Events[i_event] != nullptr) {delete[] i_body_data.Events[i_event];}
-      }
-      if (i_body_data.nEvents > 0) {delete[] i_body_data.Events;}
+      freeBodyData(p_frame->BodyData[i_body]);
     }
   }
 
