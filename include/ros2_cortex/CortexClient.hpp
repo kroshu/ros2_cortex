@@ -49,6 +49,7 @@ public:
 
 private:
   std::string server_addr_ = "127.0.0.1";
+  std::thread run_thread;
   void run();
   void exit();
   rcl_interfaces::msg::SetParametersResult onParamChange(

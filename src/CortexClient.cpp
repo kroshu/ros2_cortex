@@ -79,6 +79,7 @@ CortexClient::CortexClient(const std::string & node_name)
 
 CortexClient::~CortexClient()
 {
+  run_thread.join();
   cortex_mock_.freeFrame(&current_fod_);
   cortex_mock_.exit();
 }
@@ -117,7 +118,7 @@ int CortexClient::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) co
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_activate(const rclcpp_lifecycle::State & state)
 {
-  std::thread run_thread(&CortexClient::run, this);
+  run_thread = std::thread(&CortexClient::run, this);
   return ROS2BaseNode::SUCCESS;
 }
 
@@ -125,6 +126,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_deactivate(const rclcpp_lifecycle::State & state)
 {
   exit();
+  run_thread.join();
   return ROS2BaseNode::SUCCESS;
 }
 

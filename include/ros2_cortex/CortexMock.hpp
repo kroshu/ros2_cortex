@@ -100,6 +100,7 @@ private:
   static const int read_buffer_size_ = 65536;
   static constexpr float ms_in_s = 1000.0;
   bool running_ = false;
+  std::thread run_thread;
   float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
   enum class PlayMode {backwards = -1, paused, forwards};
   int play_mode_ = static_cast<int>(PlayMode::paused);

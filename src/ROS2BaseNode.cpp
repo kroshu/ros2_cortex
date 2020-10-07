@@ -23,7 +23,6 @@ namespace ros2_cortex
 ROS2BaseNode::ROS2BaseNode(const std::string & node_name)
 : rclcpp_lifecycle::LifecycleNode(node_name)
 {
-  RCLCPP_INFO(get_logger(), "In BaseNode constr");
 }
 
 ROS2BaseNode::~ROS2BaseNode()

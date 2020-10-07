@@ -72,6 +72,7 @@ CortexMock & CortexMock::operator=(CortexMock other)
 
 CortexMock::~CortexMock()
 {
+  run_thread.join();
   freeFrame(&current_frame_);
 }
 
@@ -202,7 +203,7 @@ int CortexMock::initialize(
   // and complete default initialization, too: sz_host_multicast_address = 225.1.1.1,
   // sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
 
-  std::thread run_thread(&CortexMock::run, this);
+  run_thread = std::thread(&CortexMock::run, this);
   return RC_Okay;
 }
 
@@ -245,6 +246,7 @@ int CortexMock::exit()
 {
   running_ = false;
   play_mode_ = static_cast<int>(PlayMode::paused);
+  run_thread.join();
   return RC_Okay;
 }
 
