@@ -43,12 +43,12 @@ public:
   int setVerbosityLevel(int i_level);
   int getVerbosityLevel() const;
   int setMinTimeout(int ms_timeout);
-  int getMinTimeout();
+  int getMinTimeout() const;
   int setErrorMsgHandlerFunc(void (* errorMsgHandlerFunc)(int i_log_level, char * sz_log_message));
   int setDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data));
-  int sendDataToClients(sFrameOfData * p_frame_of_data);
+  int sendDataToClients(sFrameOfData * p_frame_of_data) const;
   void setClientCommunicationEnabled(int b_enabled);
-  int isClientCommunicationEnabled();
+  int isClientCommunicationEnabled() const;
   void setThreadPriorities(
     maThreadPriority listen_for_host, maThreadPriority listen_for_data,
     maThreadPriority listen_for_clients);
@@ -71,14 +71,14 @@ public:
     int * host_multicast_port,
     int * talk_to_clients_request_port,
     int * talk_to_clients_multicast_port,
-    int * clients_multicast_port);
+    int * clients_multicast_port) const;
   int getAddresses(
     char * sz_talk_to_host_nic_card_address,
     char * sz_host_nic_card_address,
     char * sz_host_multicast_address,
     char * sz_talk_to_clients_nic_card_address,
-    char * sz_clients_multicast_address);
-  int getHostInfo(sHostInfo * p_host_info);
+    char * sz_clients_multicast_address) const;
+  int getHostInfo(sHostInfo * p_host_info) const;
   int exit();
   int request(char * sz_command, void ** pp_response, int * pn_bytes);
   sSkyReturn * skyCommand(char * sz_command, int ms_timeout);
@@ -89,8 +89,8 @@ public:
   int freeFrame(sFrameOfData * p_frame);
   int sendHtr(sHierarchy * p_hierarchy, tSegmentData * p_frame);
   int setMetered(bool b_active, float f_fixed_latency);
-  void constructRotationMatrix(double angles[3], int i_rotation_order, double matrix[3][3]);
-  void extractEulerAngles(double matrix[3][3], int i_rotation_order, double angles[3]);
+  void constructRotationMatrix(double angles[3], int i_rotation_order, double matrix[3][3]) const;
+  void extractEulerAngles(double matrix[3][3], int i_rotation_order, double angles[3]) const;
 
   void getCaptureFilename(std::string & dest) const;
 

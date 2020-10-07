@@ -109,7 +109,7 @@ int CortexClient::setErrorMsgHandlerFunc(
   return cortex_mock_.setErrorMsgHandlerFunc(errorMsgHandlerFunc);
 }
 
-int CortexClient::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
+int CortexClient::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const
 {
   return cortex_mock_.copyFrame(p_src, p_dst);
 }

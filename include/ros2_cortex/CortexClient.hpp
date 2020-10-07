@@ -39,7 +39,7 @@ public:
   virtual void errorMsgHandlerFunc_(int i_log_level, char * sz_log_message);
   int setDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data));
   int setErrorMsgHandlerFunc(void (* errorMsgHandlerFunc)(int i_log_level, char * sz_log_message));
-  int copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst);
+  int copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const;
 
   virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_activate(const rclcpp_lifecycle::State & state);

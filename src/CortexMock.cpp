@@ -116,7 +116,7 @@ int CortexMock::setMinTimeout(int ms_timeout)
   return RC_ApiError;
 }
 
-int CortexMock::getMinTimeout()
+int CortexMock::getMinTimeout() const
 {
   // Timeout has no use here actually,
   // because we don't communicate with the host
@@ -139,7 +139,7 @@ int CortexMock::setDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_fra
   return RC_Okay;
 }
 
-int CortexMock::sendDataToClients(sFrameOfData * p_frame_of_data)
+int CortexMock::sendDataToClients(sFrameOfData * p_frame_of_data) const
 {
   // TODO(Gergely Kovacs) send through TCP if client communication is going to be enabled
   std::string error_msg = "No communication with client in mock version";
@@ -154,7 +154,7 @@ void CortexMock::setClientCommunicationEnabled(int b_enabled)
   errorMsgInString(VL_Error, error_msg);
 }
 
-int CortexMock::isClientCommunicationEnabled()
+int CortexMock::isClientCommunicationEnabled() const
 {
   // TODO(Gergely Kovacs) do we enable communication with clients in the mock
   std::string error_msg = "No communication with client in mock version";
@@ -212,7 +212,7 @@ int CortexMock::getPortNumbers(
   int * host_multicast_port,
   int * talk_to_clients_request_port,
   int * talk_to_clients_multicast_port,
-  int * clients_multicast_port)
+  int * clients_multicast_port) const
 {
   // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
   std::string error_msg = "No communication with client neither with host in mock version";
@@ -225,7 +225,7 @@ int CortexMock::getAddresses(
   char * sz_host_nic_card_address,
   char * sz_host_multicast_address,
   char * sz_talk_to_clients_nic_card_address,
-  char * sz_clients_multicast_address)
+  char * sz_clients_multicast_address) const
 {
   // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
   std::string error_msg = "No communication with client neither with host in mock version";
@@ -233,7 +233,7 @@ int CortexMock::getAddresses(
   return RC_ApiError;
 }
 
-int CortexMock::getHostInfo(sHostInfo * p_host_info)
+int CortexMock::getHostInfo(sHostInfo * p_host_info) const
 {
   // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
   std::string error_msg = "Found mock version, no communication with host in mock version";
@@ -268,20 +268,10 @@ int CortexMock::request(char * sz_command, void ** pp_response, int * pn_bytes)
     // Mock doesn't and can't deal with live mode requests
     // TODO(Gergely Kovacs) should it?
     case Request::LiveMode:
-      errorMsgInString(VL_Error, error_msg);
-      return RC_ApiError;
     case Request::Pause:
-      errorMsgInString(VL_Error, error_msg);
-      return RC_ApiError;
     case Request::SetOutputName:
-      errorMsgInString(VL_Error, error_msg);
-      return RC_ApiError;
     case Request::StartRecording:
-      errorMsgInString(VL_Error, error_msg);
-      return RC_ApiError;
     case Request::StopRecording:
-      errorMsgInString(VL_Error, error_msg);
-      return RC_ApiError;
     case Request::ResetIDs:
       errorMsgInString(VL_Error, error_msg);
       return RC_ApiError;
@@ -558,14 +548,16 @@ int CortexMock::setMetered(bool b_active, float f_fixed_latency)
 
 void CortexMock::constructRotationMatrix(
   double angles[3], int i_rotation_order,
-  double matrix[3][3])
+  double matrix[3][3]) const
 {
   // TODO(Gergely Kovacs) implement this function
   std::string error_msg = "Function not implemented yet";
   errorMsgInString(VL_Error, error_msg);
 }
 
-void CortexMock::extractEulerAngles(double matrix[3][3], int i_rotation_order, double angles[3])
+void CortexMock::extractEulerAngles(
+  double matrix[3][3], int i_rotation_order,
+  double angles[3]) const
 {
   // TODO(Gergely Kovacs) implement this function
   std::string error_msg = "Function not implemented yet";
