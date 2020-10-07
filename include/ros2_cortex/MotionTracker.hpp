@@ -53,7 +53,7 @@ private:
     reference_joint_state_publisher_;
   rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int8>::SharedPtr
     active_axis_changed_publisher_;
-  rclcpp::QoS qos;
+  rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1));
   rclcpp::message_memory_strategy::MessageMemoryStrategy<visualization_msgs::msg::MarkerArray>::
   SharedPtr msg_strategy;
   std::function<void(visualization_msgs::msg::MarkerArray::ConstSharedPtr msg)> callback;
@@ -62,7 +62,10 @@ private:
   int joint_num_ = 7;
   std::vector<double> lower_limits_rad_;
   std::vector<double> upper_limits_rad_;
-  std::vector<double> segment_lengths_;
+  std::vector<double> segment_lengths_ = {0.1575, 0.2025,
+    0.2045, 0.2155,
+    0.1895, 0.2155,
+    0.081};
   std::vector<geometry_msgs::msg::Point> original_joint_points_;
   float limit_eps_ = 0.9;
   int nss_in_s = 1000000000;

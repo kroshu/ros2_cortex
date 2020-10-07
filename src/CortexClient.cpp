@@ -49,7 +49,6 @@ std::string getFileExtension(const std::string & file_name)
 
 CortexClient::CortexClient(const std::string & node_name)
 : ROS2BaseNode(node_name),
-  capture_file_path_("/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json"),
   cortex_mock_(capture_file_path_)
 {
   Callback<void(sFrameOfData *)>::func = std::bind(&CortexClient::dataHandlerFunc_, this,

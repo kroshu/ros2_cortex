@@ -55,7 +55,8 @@ private:
     const std::vector<rclcpp::Parameter> & parameters);
   bool onCapFileNameChangeRequest(const rclcpp::Parameter & param);
   bool onRequestCommandChanged(const rclcpp::Parameter & param);
-  std::string capture_file_path_;
+  std::string capture_file_path_ =
+    "/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json";
 
 protected:
   CortexMock cortex_mock_;

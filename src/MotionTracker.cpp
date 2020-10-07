@@ -32,11 +32,8 @@ double d2r(double degrees)
 }
 
 MotionTracker::MotionTracker()
-: ROS2BaseNode("motion_tracker"), qos(rclcpp::QoS(rclcpp::KeepLast(1))),
-  lower_limits_rad_(joint_num_), upper_limits_rad_(joint_num_), segment_lengths_({0.1575, 0.2025,
-      0.2045, 0.2155,
-      0.1895, 0.2155,
-      0.081}),
+: ROS2BaseNode("motion_tracker"),
+  lower_limits_rad_(joint_num_), upper_limits_rad_(joint_num_),
   original_joint_points_(joint_num_)
 {
   original_joint_points_[0].x = 0.0;
@@ -81,12 +78,14 @@ void MotionTracker::markersReceivedCallback(
 {
   std::vector<visualization_msgs::msg::Marker> joint_markers;
   std::copy_if(msg->markers.begin(), msg->markers.end(), std::back_inserter(joint_markers),
-    [](visualization_msgs::msg::Marker marker) -> bool {return marker.ns == "joint_markers";});
+    [](const visualization_msgs::msg::Marker & marker) -> bool {
+      return marker.ns == "joint_markers";
+    });
 
   // Trying out changing joint 3
   for (int active_joint = 3; active_joint < 4; ++active_joint) {
     if (active_joint_msg_->data != active_joint + 1) {
-      active_joint_msg_->data = active_joint + 1;
+      active_joint_msg_->data = static_cast<signed char>(active_joint + 1);
       active_axis_changed_publisher_->publish(*active_joint_msg_);
     }
     // double distance = distBetweenPoints(joint_markers[active_joint+1].pose.position,
@@ -108,14 +107,14 @@ void MotionTracker::markersReceivedCallback(
       // joint_markers[active_joint+1].pose.position, original_joint_points_[active_joint+1]);
       // float calculated_pos = acos(1.0 - (pow(distance_from_orig,2)/
       // (2.0 * segment_lengths_[active_joint+1])));
-      float calculated_pos = d2r(60);
+      double calculated_pos = d2r(60);
       if (lower_limits_rad_[active_joint] * limit_eps_ < calculated_pos &&
         calculated_pos < upper_limits_rad_[active_joint] * limit_eps_)
       {
         auto current_time_ns = rclcpp_lifecycle::LifecycleNode::now().nanoseconds();
-        reference_joint_state_->header.stamp.sec = current_time_ns / nss_in_s;
-        reference_joint_state_->header.stamp.nanosec = current_time_ns -
-          reference_joint_state_->header.stamp.sec * nss_in_s;
+        reference_joint_state_->header.stamp.sec = static_cast<int>(current_time_ns / nss_in_s);
+        reference_joint_state_->header.stamp.nanosec = static_cast<unsigned int>(current_time_ns -
+          reference_joint_state_->header.stamp.sec * nss_in_s);
         reference_joint_state_->position[active_joint] = calculated_pos;
         reference_joint_state_publisher_->publish(*reference_joint_state_);
       } else {

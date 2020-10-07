@@ -36,12 +36,12 @@ class CortexMock
 public:
   explicit CortexMock(std::string & capture_file_name);
   CortexMock(const CortexMock & other);
-  void swap(CortexMock & other) noexcept;
+  void swap(CortexMock & other) const noexcept;
   CortexMock & operator=(CortexMock other);
   ~CortexMock();
-  int getSdkVersion(unsigned char version[4]);
+  int getSdkVersion(unsigned char version[4]) const;
   int setVerbosityLevel(int i_level);
-  int getVerbosityLevel();
+  int getVerbosityLevel() const;
   int setMinTimeout(int ms_timeout);
   int getMinTimeout();
   int setErrorMsgHandlerFunc(void (* errorMsgHandlerFunc)(int i_log_level, char * sz_log_message));
@@ -85,7 +85,7 @@ public:
   sBodyDefs * getBodyDefs();
   int freeBodyDefs(sBodyDefs * p_body_defs);
   sFrameOfData * getCurrentFrame();
-  int copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst);
+  int copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const;
   int freeFrame(sFrameOfData * p_frame);
   int sendHtr(sHierarchy * p_hierarchy, tSegmentData * p_frame);
   int setMetered(bool b_active, float f_fixed_latency);
@@ -152,7 +152,7 @@ private:
   void extractBodyDefs(sBodyDefs & body_defs, const rapidjson::Value & body_defs_json);
   void extractBodyDef(sBodyDef & body_def, const rapidjson::Value & body_def_json);
   void initReadFile();
-  void errorMsgInString(int i_level, std::string msg);
+  void errorMsgInString(int i_level, std::string & msg) const;
 };
 
 }  // namespace ros2_cortex

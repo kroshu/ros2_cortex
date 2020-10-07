@@ -58,8 +58,9 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData * fod)
   for (int i = 0; i < n_ui_markers; ++i) {
     visualization_msgs::msg::Marker ui_marker;
     auto current_time_ns = rclcpp_lifecycle::LifecycleNode::now().nanoseconds();
-    ui_marker.header.stamp.sec = current_time_ns / nss_in_s;
-    ui_marker.header.stamp.nanosec = current_time_ns - ui_marker.header.stamp.sec * nss_in_s;
+    ui_marker.header.stamp.sec = static_cast<int>(current_time_ns / nss_in_s);
+    ui_marker.header.stamp.nanosec =
+      static_cast<unsigned int>(current_time_ns - ui_marker.header.stamp.sec * nss_in_s);
     ui_marker.ns = "ui_markers";
     ui_marker.id = i;
     ui_marker.action = 0;
@@ -79,8 +80,9 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData * fod)
     for (int i_marker = 0; i_marker < n_markers; ++i_marker) {
       visualization_msgs::msg::Marker marker;
       auto current_time_ns = rclcpp_lifecycle::LifecycleNode::now().nanoseconds();
-      marker.header.stamp.sec = current_time_ns / nss_in_s;
-      marker.header.stamp.nanosec = current_time_ns - marker.header.stamp.sec * nss_in_s;
+      marker.header.stamp.sec = static_cast<int>(current_time_ns / nss_in_s);
+      marker.header.stamp.nanosec =
+        static_cast<unsigned int>(current_time_ns - marker.header.stamp.sec * nss_in_s);
       marker.ns = fod->BodyData[i_body].szName;
       marker.id = i_marker;
       marker.action = 0;
