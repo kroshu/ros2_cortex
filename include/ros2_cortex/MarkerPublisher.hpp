@@ -37,7 +37,7 @@ private:
   rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::MarkerArray>::SharedPtr
     marker_array_publisher_;
   visualization_msgs::msg::MarkerArray marker_array_;
-  int nss_in_s = 1000000000;
+  static const int nss_in_s = 1000000000;
   std::string fps_comm = "GetContextFrameRate";
   rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1));
 };

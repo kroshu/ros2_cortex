@@ -92,8 +92,6 @@ public:
   void constructRotationMatrix(double angles[3], int i_rotation_order, double matrix[3][3]) const;
   void extractEulerAngles(double matrix[3][3], int i_rotation_order, double angles[3]) const;
 
-  void getCaptureFilename(std::string & dest) const;
-
 private:
   int n_frames_, current_framenum_ = 0,
     verbosity_level_ = 2, analog_bit_depth_ = 16;    // a_b_d_ 12 or 16 usually
@@ -156,6 +154,8 @@ private:
   void errorMsgInString(int i_level, std::string & msg) const;
   void freeBodyDef(sBodyDef & p_body_def, int n_an_channels);
   void freeBodyData(sBodyData & body_data);
+  void copyBodyData(const sBodyData & src_bd, sBodyData & dst_bd) const;
+  void copyAnalogData(const sAnalogData & src_ad, sAnalogData & dst_ad) const;
 };
 
 }  // namespace ros2_cortex
