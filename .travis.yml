@@ -24,7 +24,7 @@ git:
 # https://github.com/ros-industrial/industrial_ci/blob/master/doc/index.rst#variables-you-can-configure
 env:
   global: # global settings for all jobs
-    - ROS_REPO=ros
+    - ROS_REPO=main
     - CCACHE_DIR=$HOME/.ccache # enables C/C++ caching in industrial_ci
     - BUILDER='colcon'
     - SONARQUBE='true'
