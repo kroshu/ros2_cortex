@@ -150,7 +150,7 @@ private:
     const rapidjson::Value & segments_json);
   void extractBodyDefs(sBodyDefs & body_defs, const rapidjson::Value & body_defs_json);
   void extractBodyDef(sBodyDef & body_def, const rapidjson::Value & body_def_json);
-  void initReadFile();
+  void readFile();
   void errorMsgInString(int i_level, std::string & msg) const;
   void freeBodyDef(sBodyDef & p_body_def, int n_an_channels);
   void freeBodyData(sBodyData & body_data);

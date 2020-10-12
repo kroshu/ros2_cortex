@@ -64,14 +64,13 @@ CortexClient::CortexClient(const std::string & node_name)
     Callback<void(int i_level, char * sz_msg)>::callback);
   setErrorMsgHandlerFunc(error_msg_func);
 
-  this->declare_parameter("capture_file_path", rclcpp::ParameterValue(capture_file_path_));
-  parameter_set_access_rights_.emplace("capture_file_path", ParameterSetAccessRights {true, true,
-      false, false});
-
+  ROS2BaseNode::declareParameter("capture_file_path", rclcpp::ParameterValue(capture_file_path_),
+    ParameterSetAccessRights {true, false, false, false},
+    std::bind(&CortexClient::onCapFileNameChangeRequest, this, std::placeholders::_1));
   std::string forw_comm = "PostForward";
-  this->declare_parameter("request_command", rclcpp::ParameterValue(forw_comm));
-  parameter_set_access_rights_.emplace("request_command", ParameterSetAccessRights {false, false,
-      true, false});
+  ROS2BaseNode::declareParameter("request_command", rclcpp::ParameterValue(forw_comm),
+    ParameterSetAccessRights {false, false, true, false},
+    std::bind(&CortexClient::onRequestCommandChanged, this, std::placeholders::_1));
 
   this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
     {return CortexClient::onParamChange(parameters);});
@@ -79,7 +78,7 @@ CortexClient::CortexClient(const std::string & node_name)
 
 CortexClient::~CortexClient()
 {
-  run_thread.join();
+  if (run_thread.joinable()) {run_thread.join();}
   cortex_mock_.freeFrame(&current_fod_);
   cortex_mock_.exit();
 }
@@ -104,8 +103,7 @@ int CortexClient::setDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_f
 }
 
 int CortexClient::setErrorMsgHandlerFunc(
-  void (* errorMsgHandlerFunc)(int i_log_level,
-  char * sz_log_message))
+  void (* errorMsgHandlerFunc)(int i_log_level, char * sz_log_message))
 {
   return cortex_mock_.setErrorMsgHandlerFunc(errorMsgHandlerFunc);
 }
@@ -113,6 +111,16 @@ int CortexClient::setErrorMsgHandlerFunc(
 int CortexClient::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const
 {
   return cortex_mock_.copyFrame(p_src, p_dst);
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+CortexClient::on_configure(const rclcpp_lifecycle::State & state)
+{
+  if (cap_file_path_changed) {
+    cortex_mock_ = CortexMock(capture_file_path_);
+    cap_file_path_changed = false;
+  }
+  return ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -128,23 +136,6 @@ CortexClient::on_deactivate(const rclcpp_lifecycle::State & state)
   exit();
   run_thread.join();
   return ROS2BaseNode::SUCCESS;
-}
-
-rcl_interfaces::msg::SetParametersResult CortexClient::onParamChange(
-  const std::vector<rclcpp::Parameter> & parameters)
-{
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = false;
-  for (const rclcpp::Parameter & param : parameters) {
-    if (param.get_name() == "capture_file_path" && canSetParameter(param)) {
-      result.successful = onCapFileNameChangeRequest(param);
-    } else if (param.get_name() == "request_command" && canSetParameter(param)) {
-      result.successful = onRequestCommandChanged(param);
-    } else {
-      RCLCPP_ERROR(this->get_logger(), "Invalid parameter name %s", param.get_name().c_str());
-    }
-  }
-  return result;
 }
 
 bool CortexClient::onCapFileNameChangeRequest(const rclcpp::Parameter & param)
@@ -163,7 +154,7 @@ bool CortexClient::onCapFileNameChangeRequest(const rclcpp::Parameter & param)
     return false;
   }
   capture_file_path_ = temp_path;
-  cortex_mock_ = CortexMock(capture_file_path_);
+  cap_file_path_changed = false;
   return true;
 }
 
@@ -235,7 +226,7 @@ void CortexClient::errorMsgHandlerFunc_(int i_level, char * error_msg)
 int main(int argc, char const * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::executors::MultiThreadedExecutor executor;
+  rclcpp::executors::SingleThreadedExecutor executor;
   auto node = std::make_shared<ros2_cortex::CortexClient>("cortex_client");
   executor.add_node(node->get_node_base_interface());
   executor.spin();

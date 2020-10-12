@@ -119,7 +119,7 @@ MarkerPublisher::on_deactivate(const rclcpp_lifecycle::State & state)
 int main(int argc, char const * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::executors::MultiThreadedExecutor executor;
+  rclcpp::executors::SingleThreadedExecutor executor;
   auto node = std::make_shared<ros2_cortex::MarkerPublisher>();
   executor.add_node(node->get_node_base_interface());
   executor.spin();

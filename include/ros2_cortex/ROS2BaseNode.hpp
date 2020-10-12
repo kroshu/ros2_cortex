@@ -74,13 +74,18 @@ public:
 
 protected:
   virtual rcl_interfaces::msg::SetParametersResult onParamChange(
-    const std::vector<rclcpp::Parameter> & parameters) = 0;
+    const std::vector<rclcpp::Parameter> & parameters);
   virtual bool canSetParameter(const rclcpp::Parameter & param);
-  std::map<std::string, struct ParameterSetAccessRights> parameter_set_access_rights_;
+  std::map<std::string,
+    std::function<bool(const rclcpp::Parameter &)>> on_param_change_functions_;
+  std::map<std::string, ParameterSetAccessRights> parameter_set_access_rights_;
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn SUCCESS =
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn ERROR =
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+  void declareParameter(const std::string& name, const rclcpp::ParameterValue& value,
+                        const ParameterSetAccessRights& rights,
+                        std::function<bool(const rclcpp::Parameter &)> on_change_callback);
 };
 
 }  // namespace ros2_cortex

@@ -50,19 +50,33 @@ MotionTracker::MotionTracker()
       MessageMemoryStrategy<visualization_msgs::msg::MarkerArray>>();
   callback = [this](visualization_msgs::msg::MarkerArray::ConstSharedPtr msg) -> void
     {markersReceivedCallback(msg);};
-  this->declare_parameter("lower_limits_deg",
-    rclcpp::ParameterValue(std::vector<double>({-170, -120, -170, -120, -170,
-      -120, -175})));
-  this->declare_parameter("upper_limits_deg",
-    rclcpp::ParameterValue(std::vector<double>({170, 120, 170, 120, 170, 120,
-      175})));
+  marker_array_subscriber_ = this->create_subscription<visualization_msgs::msg::MarkerArray>(
+    "markers",
+    qos, callback, rclcpp::SubscriptionOptions(), msg_strategy);
+  active_axis_changed_publisher_ = this->create_publisher<std_msgs::msg::Int8>(
+    "active_axis_changed", qos);
+  active_joint_msg_ = std::make_shared<std_msgs::msg::Int8>();
+  active_joint_msg_->data = 1;
+  reference_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>(
+    "reference_joint_state", qos);
+  reference_joint_state_ = std::make_shared<sensor_msgs::msg::JointState>();
+  reference_joint_state_->position.resize(joint_num_);
+
+  ROS2BaseNode::declareParameter("lower_limits_deg", rclcpp::ParameterValue(
+      std::vector<double>({-170, -120, -170, -120, -170, -120, -175})),
+    ParameterSetAccessRights {true, true, true, false},
+    std::bind(&MotionTracker::onLowerLimitsChangeRequest, this, std::placeholders::_1));
+  ROS2BaseNode::declareParameter("upper_limits_deg", rclcpp::ParameterValue(
+      std::vector<double>({170, 120, 170, 120, 170, 120, 175})),
+    ParameterSetAccessRights {true, true, true, false},
+    std::bind(&MotionTracker::onUpperLimitsChangeRequest, this, std::placeholders::_1));
 
   this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
     {return MotionTracker::onParamChange(parameters);});
-  parameter_set_access_rights_.emplace("lower_limits_deg", ParameterSetAccessRights {true, true,
-      true, false});
-  parameter_set_access_rights_.emplace("upper_limits_deg", ParameterSetAccessRights {true, true,
-      true, false});
+
+  // Initialize parameters
+  onLowerLimitsChangeRequest(this->get_parameter("lower_limits_deg"));
+  onUpperLimitsChangeRequest(this->get_parameter("upper_limits_deg"));
 }
 
 double MotionTracker::distBetweenPoints(
@@ -125,14 +139,6 @@ void MotionTracker::markersReceivedCallback(
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-MotionTracker::on_configure(const rclcpp_lifecycle::State & state)
-{
-  onLowerLimitsChangeRequest(this->get_parameter("lower_limits_deg"));
-  onUpperLimitsChangeRequest(this->get_parameter("upper_limits_deg"));
-  return ROS2BaseNode::SUCCESS;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_cleanup(const rclcpp_lifecycle::State & state)
 {
   reference_joint_state_->position.assign(joint_num_, 0);
@@ -143,16 +149,6 @@ MotionTracker::on_cleanup(const rclcpp_lifecycle::State & state)
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MotionTracker::on_activate(const rclcpp_lifecycle::State & state)
 {
-  marker_array_subscriber_ = this->create_subscription<visualization_msgs::msg::MarkerArray>(
-    "markers",
-    qos, callback, rclcpp::SubscriptionOptions(), msg_strategy);
-  active_axis_changed_publisher_ = this->create_publisher<std_msgs::msg::Int8>(
-    "active_axis_changed", qos);
-  active_joint_msg_ = std::make_shared<std_msgs::msg::Int8>();
-  reference_joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>(
-    "reference_joint_state", qos);
-  reference_joint_state_ = std::make_shared<sensor_msgs::msg::JointState>();
-  reference_joint_state_->position.resize(joint_num_);
   reference_joint_state_publisher_->on_activate();
   active_axis_changed_publisher_->on_activate();
   return ROS2BaseNode::SUCCESS;
@@ -165,23 +161,6 @@ MotionTracker::on_deactivate(const rclcpp_lifecycle::State & state)
   reference_joint_state_publisher_->on_deactivate();
   active_axis_changed_publisher_->on_deactivate();
   return ROS2BaseNode::SUCCESS;
-}
-
-rcl_interfaces::msg::SetParametersResult MotionTracker::onParamChange(
-  const std::vector<rclcpp::Parameter> & parameters)
-{
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = false;
-  for (const rclcpp::Parameter & param : parameters) {
-    if (param.get_name() == "lower_limits_deg" && canSetParameter(param)) {
-      result.successful = onLowerLimitsChangeRequest(param);
-    } else if (param.get_name() == "upper_limits_deg" && canSetParameter(param)) {
-      result.successful = onUpperLimitsChangeRequest(param);
-    } else {
-      RCLCPP_ERROR(this->get_logger(), "Invalid parameter name %s", param.get_name().c_str());
-    }
-  }
-  return result;
 }
 
 bool MotionTracker::onLowerLimitsChangeRequest(const rclcpp::Parameter & param)
@@ -225,7 +204,7 @@ bool MotionTracker::onUpperLimitsChangeRequest(const rclcpp::Parameter & param)
 int main(int argc, char const * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::executors::MultiThreadedExecutor executor;
+  rclcpp::executors::SingleThreadedExecutor executor;
   auto node = std::make_shared<ros2_cortex::MotionTracker>();
   executor.add_node(node->get_node_base_interface());
   executor.spin();

@@ -36,9 +36,6 @@ public:
   MotionTracker();
 
   virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_configure(const rclcpp_lifecycle::State & state);
-
-  virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_cleanup(const rclcpp_lifecycle::State & state);
 
   virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -59,7 +56,7 @@ private:
   std::function<void(visualization_msgs::msg::MarkerArray::ConstSharedPtr msg)> callback;
   sensor_msgs::msg::JointState::SharedPtr reference_joint_state_;
   std_msgs::msg::Int8::SharedPtr active_joint_msg_;
-  int joint_num_ = 7;
+  const int joint_num_ = 7;
   std::vector<double> lower_limits_rad_;
   std::vector<double> upper_limits_rad_;
   std::vector<double> segment_lengths_ = {0.1575, 0.2025,
@@ -73,8 +70,6 @@ private:
   static double distBetweenPoints(
     geometry_msgs::msg::Point & first,
     geometry_msgs::msg::Point & second);
-  rcl_interfaces::msg::SetParametersResult onParamChange(
-    const std::vector<rclcpp::Parameter> & parameters);
   bool onLowerLimitsChangeRequest(const rclcpp::Parameter & param);
   bool onUpperLimitsChangeRequest(const rclcpp::Parameter & param);
 };

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <string>
+#include <vector>
 
 #include "ros2_cortex/ROS2BaseNode.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
@@ -84,6 +85,28 @@ ROS2BaseNode::on_error(const rclcpp_lifecycle::State & state)
   return SUCCESS;
 }
 
+rcl_interfaces::msg::SetParametersResult ROS2BaseNode::onParamChange(
+  const std::vector<rclcpp::Parameter> & parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = false;
+  for (const rclcpp::Parameter & param : parameters) {
+    if (!canSetParameter(param)) {
+      RCLCPP_ERROR(this->get_logger(), "Can't set parameter %s in current state",
+        param.get_name().c_str());
+    } else {
+      auto func_it = on_param_change_functions_.find(param.get_name());
+      if (func_it == on_param_change_functions_.end()) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid parameter name %s",
+          param.get_name().c_str());
+      } else {
+        result.successful = func_it->second(param);
+      }
+    }
+  }
+  return result;
+}
+
 bool ROS2BaseNode::canSetParameter(const rclcpp::Parameter & param)
 {
   try {
@@ -101,6 +124,16 @@ bool ROS2BaseNode::canSetParameter(const rclcpp::Parameter & param)
     return false;
   }
   return true;
+}
+
+void ROS2BaseNode::declareParameter(
+  const std::string & name, const rclcpp::ParameterValue & value,
+  const ParameterSetAccessRights & rights,
+  std::function<bool(const rclcpp::Parameter &)> on_change_callback)
+{
+  this->declare_parameter(name, value);
+  parameter_set_access_rights_.emplace(name, rights);
+  on_param_change_functions_.emplace(name, on_change_callback);
 }
 
 }  // namespace ros2_cortex

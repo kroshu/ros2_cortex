@@ -29,10 +29,10 @@ namespace ros2_cortex
 CortexMock::CortexMock(std::string & capture_file_name)
 : capture_file_name_(capture_file_name)
 {
-  initReadFile();
+  readFile();
 }
 
-void CortexMock::initReadFile()
+void CortexMock::readFile()
 {
   FILE * fp = fopen(capture_file_name_.data(), "r");
 
@@ -56,7 +56,7 @@ CortexMock::CortexMock(const CortexMock & other)
 {
   // the result of the copy-constructor isn't active yet, even if the other one was active
   // TODO(Gergely Kovacs) if we connect to client, addresses and ports need to be copied, too
-  initReadFile();
+  readFile();
 }
 
 void CortexMock::swap(CortexMock & other) const noexcept

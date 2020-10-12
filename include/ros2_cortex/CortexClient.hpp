@@ -42,6 +42,9 @@ public:
   int copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const;
 
   virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+    on_configure(const rclcpp_lifecycle::State & state);
+
+  virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_activate(const rclcpp_lifecycle::State & state);
 
   virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -52,12 +55,11 @@ private:
   std::thread run_thread;
   void run();
   void exit();
-  rcl_interfaces::msg::SetParametersResult onParamChange(
-    const std::vector<rclcpp::Parameter> & parameters);
   bool onCapFileNameChangeRequest(const rclcpp::Parameter & param);
   bool onRequestCommandChanged(const rclcpp::Parameter & param);
   std::string capture_file_path_ =
     "/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json";
+  bool cap_file_path_changed = false;
 
 protected:
   CortexMock cortex_mock_;
