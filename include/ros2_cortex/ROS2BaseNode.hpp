@@ -83,9 +83,10 @@ protected:
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn ERROR =
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
-  void declareParameter(const std::string& name, const rclcpp::ParameterValue& value,
-                        const ParameterSetAccessRights& rights,
-                        std::function<bool(const rclcpp::Parameter &)> on_change_callback);
+  void declareParameter(
+    const std::string & name, const rclcpp::ParameterValue & value,
+    const ParameterSetAccessRights & rights,
+    std::function<bool(const rclcpp::Parameter &)> on_change_callback);
 };
 
 }  // namespace ros2_cortex
