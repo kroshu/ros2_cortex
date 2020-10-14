@@ -4,7 +4,7 @@
   <name>ros2_cortex</name>
   <version>0.0.0</version>
   <description>ROS2 package for motion tracking with Cortex</description>
-  <maintainer email="Gergely.Kovacs4@kuka.com">rosdeveloper</maintainer>
+  <maintainer email="kovacsge.work@gmail.com">Gergely Kovacs</maintainer>
   <license>Apache 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
