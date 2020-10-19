@@ -36,7 +36,7 @@ class CortexMock
 public:
   explicit CortexMock(std::string & capture_file_name);
   CortexMock(const CortexMock & other);
-  void swap(CortexMock & other) const noexcept;
+  void swap(CortexMock & other) noexcept;
   CortexMock & operator=(CortexMock other);
   ~CortexMock();
   int getSdkVersion(unsigned char version[4]) const;
@@ -93,7 +93,7 @@ public:
   void extractEulerAngles(double matrix[3][3], int i_rotation_order, double angles[3]) const;
 
 private:
-  int n_frames_, current_framenum_ = 0,
+  int n_frames_, current_frame_ind_ = 0,
     verbosity_level_ = 2, analog_bit_depth_ = 16;    // a_b_d_ 12 or 16 usually
   static const int read_buffer_size_ = 65536;
   static constexpr float ms_in_s = 1000.0;
@@ -134,8 +134,8 @@ private:
   int talk_to_clients_request_port_ = 30003, talk_to_clients_multicast_port_ = 30004,
     clients_multicast_port_ = 30005;
   rapidjson::Document document_;
-  sFrameOfData current_frame_;
-  sBodyDefs body_defs_;
+  sFrameOfData current_frame_ = sFrameOfData();
+  sBodyDefs body_defs_ = sBodyDefs();
   std::function<void(sFrameOfData *)> dataHandlerFunc_;
   std::function<void(int iLogLevel, char * szLogMessage)> errorMsgHandlerFunc_;
   void run();

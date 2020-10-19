@@ -25,12 +25,12 @@
 #include "std_msgs/msg/int8.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
-#include "ros2_cortex/ROS2BaseNode.hpp"
+#include "kroshu_ros2_core/ROS2BaseNode.hpp"
 
 namespace ros2_cortex
 {
 
-class MotionTracker : public ROS2BaseNode
+class MotionTracker : public kroshu_ros2_core::ROS2BaseNode
 {
 public:
   MotionTracker();
@@ -70,8 +70,8 @@ private:
   static double distBetweenPoints(
     geometry_msgs::msg::Point & first,
     geometry_msgs::msg::Point & second);
-  bool onLowerLimitsChangeRequest(const rclcpp::Parameter & param);
-  bool onUpperLimitsChangeRequest(const rclcpp::Parameter & param);
+  bool onLowerLimitsChangeRequest(const kroshu_ros2_core::Parameter & param);
+  bool onUpperLimitsChangeRequest(const kroshu_ros2_core::Parameter & param);
 };
 
 }  // namespace ros2_cortex

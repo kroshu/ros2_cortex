@@ -23,14 +23,15 @@
 #include <map>
 #include "lifecycle_msgs/msg/state.hpp"
 
-#include "ros2_cortex/CortexMock.hpp"
-#include "ros2_cortex/ROS2BaseNode.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "ros2_cortex/CortexMock.hpp"
+#include "kroshu_ros2_core/Parameter.hpp"
+#include "kroshu_ros2_core/ROS2BaseNode.hpp"
 
 namespace ros2_cortex
 {
 
-class CortexClient : public ROS2BaseNode
+class CortexClient : public kroshu_ros2_core::ROS2BaseNode
 {
 public:
   explicit CortexClient(const std::string & node_name);
@@ -40,6 +41,7 @@ public:
   int setDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data));
   int setErrorMsgHandlerFunc(void (* errorMsgHandlerFunc)(int i_log_level, char * sz_log_message));
   int copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const;
+
 
   virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_configure(const rclcpp_lifecycle::State & state);
@@ -51,12 +53,12 @@ public:
   on_deactivate(const rclcpp_lifecycle::State & state);
 
 private:
-  std::string server_addr_ = "127.0.0.1";
   std::thread run_thread;
   void run();
   void exit();
-  bool onCapFileNameChangeRequest(const rclcpp::Parameter & param);
-  bool onRequestCommandChanged(const rclcpp::Parameter & param);
+  bool onCapFileNameChangeRequest(const kroshu_ros2_core::Parameter & param);
+  bool onRequestCommandChanged(const kroshu_ros2_core::Parameter & param);
+  void setHandlerFuncs();
   std::string capture_file_path_ =
     "/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json";
   bool cap_file_path_changed = false;

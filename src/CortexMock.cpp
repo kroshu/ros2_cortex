@@ -29,7 +29,6 @@ namespace ros2_cortex
 CortexMock::CortexMock(std::string & capture_file_name)
 : capture_file_name_(capture_file_name)
 {
-  readFile();
 }
 
 void CortexMock::readFile()
@@ -49,24 +48,30 @@ void CortexMock::readFile()
 CortexMock::CortexMock(const CortexMock & other)
 : verbosity_level_(other.verbosity_level_), analog_bit_depth_(other.analog_bit_depth_),
   conv_rate_to_mm_(other.conv_rate_to_mm_), frame_rate_(other.frame_rate_), analog_sample_rate_(
-    other.analog_sample_rate_),
-  axis_up_(other.axis_up_), dataHandlerFunc_(other.dataHandlerFunc_), errorMsgHandlerFunc_(
-    other.errorMsgHandlerFunc_), capture_file_name_(other.capture_file_name_),
-  current_framenum_(other.current_framenum_)
+    other.analog_sample_rate_), play_mode_(other.play_mode_),
+  axis_up_(other.axis_up_), capture_file_name_(other.capture_file_name_),
+  current_frame_ind_(other.current_frame_ind_)
 {
   // the result of the copy-constructor isn't active yet, even if the other one was active
   // TODO(Gergely Kovacs) if we connect to client, addresses and ports need to be copied, too
-  readFile();
 }
 
-void CortexMock::swap(CortexMock & other) const noexcept
+void CortexMock::swap(CortexMock & other) noexcept
 {
-  // E.g. if pointers need to be swapped
+  std::swap(verbosity_level_, other.verbosity_level_);
+  std::swap(analog_bit_depth_, other.analog_bit_depth_);
+  std::swap(conv_rate_to_mm_, other.conv_rate_to_mm_);
+  std::swap(frame_rate_, other.frame_rate_);
+  std::swap(analog_sample_rate_, other.analog_sample_rate_);
+  std::swap(play_mode_, other.play_mode_);
+  std::swap(axis_up_, other.axis_up_);
+  std::swap(capture_file_name_, other.capture_file_name_);
+  std::swap(current_frame_ind_, other.current_frame_ind_);
 }
 
 CortexMock & CortexMock::operator=(CortexMock other)
 {
-  other.swap(*this);  // Copy-constructor and non-throwing swap
+  other.swap(*this);  // Non-throwing swap
   return *this;
 }
 
@@ -198,6 +203,7 @@ int CortexMock::initialize(
   // and complete default initialization, too: sz_host_multicast_address = 225.1.1.1,
   // sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
 
+  readFile();
   run_thread = std::thread(&CortexMock::run, this);
   return RC_Okay;
 }
@@ -365,7 +371,7 @@ void CortexMock::freeBodyDef(sBodyDef & p_body_def, int n_an_channels)
 int CortexMock::freeBodyDefs(sBodyDefs * p_body_defs)
 {
   // Free bodydefs
-  if (p_body_defs == nullptr) {return RC_MemoryError;}
+  if (p_body_defs == nullptr) {return RC_Okay;}
   int n_body_defs = p_body_defs->nBodyDefs;
   for (int i = 0; i < n_body_defs; ++i) {
     freeBodyDef(p_body_defs->BodyDefs[i], p_body_defs->nAnalogChannels);
@@ -386,7 +392,7 @@ int CortexMock::freeBodyDefs(sBodyDefs * p_body_defs)
 
 sFrameOfData * CortexMock::getCurrentFrame()
 {
-  extractFrame(current_frame_, current_framenum_);
+  extractFrame(current_frame_, current_frame_ind_);
   return &current_frame_;
 }
 
@@ -533,7 +539,7 @@ void CortexMock::freeBodyData(sBodyData & body_data)
 int CortexMock::freeFrame(sFrameOfData * p_frame)
 {
   // Free body datas
-  if (p_frame == nullptr) {return RC_MemoryError;}
+  if (p_frame == nullptr) {return RC_Okay;}
   int n_bodies = p_frame->nBodies;
   if (n_bodies > 0) {
     for (int i_body = 0; i_body < n_bodies; ++i_body) {
@@ -874,14 +880,14 @@ void CortexMock::run()
   while (running_) {
     switch (static_cast<PlayMode>(play_mode_)) {
       case PlayMode::forwards:
-        extractFrame(current_frame_, current_framenum_);
+        extractFrame(current_frame_, current_frame_ind_);
         dataHandlerFunc_(&current_frame_);
-        current_framenum_ = current_framenum_ < n_frames_ - 1 ? current_framenum_ + 1 : 0;
+        current_frame_ind_ = current_frame_ind_ < n_frames_ - 1 ? current_frame_ind_ + 1 : 0;
         break;
       case PlayMode::backwards:
-        extractFrame(current_frame_, current_framenum_);
+        extractFrame(current_frame_, current_frame_ind_);
         dataHandlerFunc_(&current_frame_);
-        current_framenum_ = current_framenum_ > 0 ? current_framenum_ - 1 : n_frames_ - 1;
+        current_frame_ind_ = current_frame_ind_ > 0 ? current_frame_ind_ - 1 : n_frames_ - 1;
         break;
 
       default:

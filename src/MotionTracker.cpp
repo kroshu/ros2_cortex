@@ -19,9 +19,11 @@
 #include <iterator>
 #include <vector>
 
-#include "ros2_cortex/MotionTracker.hpp"
 #include "rclcpp/message_memory_strategy.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "kroshu_ros2_core/ROS2BaseNode.hpp"
+#include "kroshu_ros2_core/Parameter.hpp"
+#include "ros2_cortex/MotionTracker.hpp"
 
 namespace ros2_cortex
 {
@@ -32,7 +34,7 @@ double d2r(double degrees)
 }
 
 MotionTracker::MotionTracker()
-: ROS2BaseNode("motion_tracker"),
+: kroshu_ros2_core::ROS2BaseNode("motion_tracker"),
   lower_limits_rad_(joint_num_), upper_limits_rad_(joint_num_),
   original_joint_points_(joint_num_)
 {
@@ -62,21 +64,21 @@ MotionTracker::MotionTracker()
   reference_joint_state_ = std::make_shared<sensor_msgs::msg::JointState>();
   reference_joint_state_->position.resize(joint_num_);
 
-  ROS2BaseNode::declareParameter("lower_limits_deg", rclcpp::ParameterValue(
-      std::vector<double>({-170, -120, -170, -120, -170, -120, -175})),
-    ParameterSetAccessRights {true, true, true, false},
+  lower_limits_rad_ = {-170, -120, -170, -120, -170, -120, -175};
+  upper_limits_rad_ = {170, 120, 170, 120, 170, 120, 175};
+  kroshu_ros2_core::ROS2BaseNode::declareParameter("lower_limits_deg", rclcpp::ParameterValue(
+      lower_limits_rad_),
+    rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY, kroshu_ros2_core::ParameterSetAccessRights {
+      true, true, true, false},
     std::bind(&MotionTracker::onLowerLimitsChangeRequest, this, std::placeholders::_1));
-  ROS2BaseNode::declareParameter("upper_limits_deg", rclcpp::ParameterValue(
-      std::vector<double>({170, 120, 170, 120, 170, 120, 175})),
-    ParameterSetAccessRights {true, true, true, false},
+  kroshu_ros2_core::ROS2BaseNode::declareParameter("upper_limits_deg", rclcpp::ParameterValue(
+      upper_limits_rad_),
+    rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY, kroshu_ros2_core::ParameterSetAccessRights {
+      true, true, true, false},
     std::bind(&MotionTracker::onUpperLimitsChangeRequest, this, std::placeholders::_1));
 
   this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
     {return MotionTracker::onParamChange(parameters);});
-
-  // Initialize parameters
-  onLowerLimitsChangeRequest(this->get_parameter("lower_limits_deg"));
-  onUpperLimitsChangeRequest(this->get_parameter("upper_limits_deg"));
 }
 
 double MotionTracker::distBetweenPoints(
@@ -143,7 +145,7 @@ MotionTracker::on_cleanup(const rclcpp_lifecycle::State & state)
 {
   reference_joint_state_->position.assign(joint_num_, 0);
   active_joint_msg_->data = 1;
-  return ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -151,7 +153,7 @@ MotionTracker::on_activate(const rclcpp_lifecycle::State & state)
 {
   reference_joint_state_publisher_->on_activate();
   active_axis_changed_publisher_->on_activate();
-  return ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -160,42 +162,32 @@ MotionTracker::on_deactivate(const rclcpp_lifecycle::State & state)
   marker_array_subscriber_.reset();
   reference_joint_state_publisher_->on_deactivate();
   active_axis_changed_publisher_->on_deactivate();
-  return ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
-bool MotionTracker::onLowerLimitsChangeRequest(const rclcpp::Parameter & param)
+bool MotionTracker::onLowerLimitsChangeRequest(const kroshu_ros2_core::Parameter & param)
 {
-  if (param.get_type() != rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE_ARRAY) {
-    RCLCPP_ERROR(this->get_logger(), "Invalid parameter type for parameter %s",
-      param.get_name().c_str());
-    return false;
-  }
-
-
-  if (param.as_double_array().size() != joint_num_) {
+  auto value = param.getValue().get<std::vector<double>>();
+  if (value.size() != joint_num_) {
     RCLCPP_ERROR(this->get_logger(), "Invalid parameter array length for parameter %s",
-      param.get_name().c_str());
+      param.getName().c_str());
     return false;
   }
-  std::transform(param.as_double_array().begin(),
-    param.as_double_array().end(), lower_limits_rad_.begin(), d2r);
+  std::transform(value.begin(),
+    value.end(), lower_limits_rad_.begin(), d2r);
   return true;
 }
 
-bool MotionTracker::onUpperLimitsChangeRequest(const rclcpp::Parameter & param)
+bool MotionTracker::onUpperLimitsChangeRequest(const kroshu_ros2_core::Parameter & param)
 {
-  if (param.get_type() != rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE_ARRAY) {
-    RCLCPP_ERROR(this->get_logger(), "Invalid parameter type for parameter %s",
-      param.get_name().c_str());
-    return false;
-  }
-  if (param.as_double_array().size() != joint_num_) {
+  auto value = param.getValue().get<std::vector<double>>();
+  if (value.size() != joint_num_) {
     RCLCPP_ERROR(this->get_logger(), "Invalid parameter array length for parameter %s",
-      param.get_name().c_str());
+      param.getName().c_str());
     return false;
   }
-  std::transform(param.as_double_array().begin(),
-    param.as_double_array().end(), upper_limits_rad_.begin(), d2r);
+  std::transform(value.begin(),
+    value.end(), upper_limits_rad_.begin(), d2r);
   return true;
 }
 

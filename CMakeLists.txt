@@ -23,20 +23,24 @@ find_package(lifecycle_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(kroshu_ros2_core REQUIRED)
 
-include_directories(include)
+find_library(kroshu_ros2_core_LIBRARIES kroshu_ros2_core /home/rosdeveloper/ros2_ws/build/kroshu_ros2_core)
+
+include_directories(include /home/rosdeveloper/ros2_ws/src/kroshu_ros2_core/include)
 
 add_library(cortex_mock SHARED
   src/CortexMock.cpp
-  src/CortexClient.cpp
-  src/ROS2BaseNode.cpp)
-ament_target_dependencies(cortex_mock rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
+  src/CortexClient.cpp)
+ament_target_dependencies(cortex_mock rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs kroshu_ros2_core)
+target_link_libraries(cortex_mock ${kroshu_ros2_core_LIBRARIES})
 
 add_executable(cortex_client
-    src/CortexClient.cpp)
-ament_target_dependencies(cortex_client rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
+    src/CortexClient.cpp
+    src/CortexMock.cpp)
+ament_target_dependencies(cortex_client rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs kroshu_ros2_core)
 target_link_libraries(cortex_client
-  cortex_mock)
+  cortex_mock ${kroshu_ros2_core_LIBRARIES})
 
 add_executable(marker_publisher
     src/MarkerPublisher.cpp)
@@ -45,10 +49,10 @@ target_link_libraries(marker_publisher
   cortex_mock)
 
 add_executable(motion_tracker
-    src/MotionTracker.cpp
-    src/ROS2BaseNode.cpp)
+    src/MotionTracker.cpp)
 ament_target_dependencies(motion_tracker rclcpp rclcpp_lifecycle visualization_msgs
-            lifecycle_msgs sensor_msgs std_msgs geometry_msgs)
+            lifecycle_msgs sensor_msgs std_msgs geometry_msgs kroshu_ros2_core)
+target_link_libraries(motion_tracker ${kroshu_ros2_core_LIBRARIES})
 
 install(TARGETS cortex_client marker_publisher motion_tracker
     DESTINATION lib/${PROJECT_NAME})

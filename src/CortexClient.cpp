@@ -18,9 +18,12 @@
 #include <string>
 #include <memory>
 #include <thread>
+#include <fstream>
 
-#include "ros2_cortex/CortexClient.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "ros2_cortex/CortexClient.hpp"
+#include "kroshu_ros2_core/Parameter.hpp"
+#include "kroshu_ros2_core/ROS2BaseNode.hpp"
 
 namespace ros2_cortex
 {
@@ -47,9 +50,7 @@ std::string getFileExtension(const std::string & file_name)
   return "";
 }
 
-CortexClient::CortexClient(const std::string & node_name)
-: ROS2BaseNode(node_name),
-  cortex_mock_(capture_file_path_)
+void CortexClient::setHandlerFuncs()
 {
   Callback<void(sFrameOfData *)>::func = std::bind(&CortexClient::dataHandlerFunc_, this,
       std::placeholders::_1);
@@ -63,13 +64,26 @@ CortexClient::CortexClient(const std::string & node_name)
   auto error_msg_func = static_cast<error_msg__callback_t>(
     Callback<void(int i_level, char * sz_msg)>::callback);
   setErrorMsgHandlerFunc(error_msg_func);
+}
 
-  ROS2BaseNode::declareParameter("capture_file_path", rclcpp::ParameterValue(capture_file_path_),
-    ParameterSetAccessRights {true, false, false, false},
+CortexClient::CortexClient(const std::string & node_name)
+: kroshu_ros2_core::ROS2BaseNode(node_name),
+  cortex_mock_(capture_file_path_)
+{
+  setHandlerFuncs();
+
+  kroshu_ros2_core::ROS2BaseNode::declareParameter("capture_file_path",
+    rclcpp::ParameterValue(
+      capture_file_path_),
+    rclcpp::ParameterType::PARAMETER_STRING, kroshu_ros2_core::ParameterSetAccessRights {
+      true, false, false, false},
     std::bind(&CortexClient::onCapFileNameChangeRequest, this, std::placeholders::_1));
   std::string forw_comm = "PostForward";
-  ROS2BaseNode::declareParameter("request_command", rclcpp::ParameterValue(forw_comm),
-    ParameterSetAccessRights {false, false, true, false},
+  kroshu_ros2_core::ROS2BaseNode::declareParameter("request_command",
+    rclcpp::ParameterValue(
+      forw_comm),
+    rclcpp::ParameterType::PARAMETER_STRING, kroshu_ros2_core::ParameterSetAccessRights {
+      false, false, true, false},
     std::bind(&CortexClient::onRequestCommandChanged, this, std::placeholders::_1));
 
   this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
@@ -91,8 +105,7 @@ void CortexClient::exit()
 
 void CortexClient::run()
 {
-  cortex_mock_.initialize(&server_addr_[0], &server_addr_[0]);
-
+  cortex_mock_.initialize(nullptr, nullptr);
   std::string req_comm = this->get_parameter("request_command").as_string();
   cortex_mock_.request(&req_comm[0], nullptr, nullptr);
 }
@@ -120,14 +133,14 @@ CortexClient::on_configure(const rclcpp_lifecycle::State & state)
     cortex_mock_ = CortexMock(capture_file_path_);
     cap_file_path_changed = false;
   }
-  return ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClient::on_activate(const rclcpp_lifecycle::State & state)
 {
   run_thread = std::thread(&CortexClient::run, this);
-  return ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -135,38 +148,31 @@ CortexClient::on_deactivate(const rclcpp_lifecycle::State & state)
 {
   exit();
   run_thread.join();
-  return ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
-bool CortexClient::onCapFileNameChangeRequest(const rclcpp::Parameter & param)
+bool CortexClient::onCapFileNameChangeRequest(const kroshu_ros2_core::Parameter & param)
 {
-  if (param.get_type() != rcl_interfaces::msg::ParameterType::PARAMETER_STRING) {
-    RCLCPP_ERROR(this->get_logger(), "Invalid parameter type for parameter %s",
-      param.get_name().c_str());
-    return false;
-  }
-
-  std::string temp_path = param.as_string();
-
-  if (getFileExtension(temp_path) != "json") {
+  if (getFileExtension(param.getValue().get<std::string>()) != "json") {
     RCLCPP_ERROR(this->get_logger(), "Invalid file format for parameter %s",
-      param.get_name().c_str());
+      param.getName().c_str());
     return false;
   }
-  capture_file_path_ = temp_path;
-  cap_file_path_changed = false;
+  std::string file_path = param.getValue().get<std::string>();
+  std::ifstream f(file_path.c_str());
+  if (!f.good()) {
+    RCLCPP_ERROR(this->get_logger(), "File %s doesn't exist or not accessible",
+      param.getName().c_str());
+    return false;
+  }
+  capture_file_path_ = file_path;
+  cap_file_path_changed = true;
   return true;
 }
 
-bool CortexClient::onRequestCommandChanged(const rclcpp::Parameter & param)
+bool CortexClient::onRequestCommandChanged(const kroshu_ros2_core::Parameter & param)
 {
-  if (param.get_type() != rcl_interfaces::msg::ParameterType::PARAMETER_STRING) {
-    RCLCPP_ERROR(this->get_logger(), "Invalid parameter type for parameter %s",
-      param.get_name().c_str());
-    return false;
-  }
-
-  std::string req_comm = param.as_string();
+  std::string req_comm = param.getValue().get<std::string>();
   void * p_response = nullptr;
   cortex_mock_.request(&req_comm[0], &p_response, nullptr);
   if (req_comm == "PostGetPlayMode" || req_comm == "GetContextAnalogBitDepth" ||
