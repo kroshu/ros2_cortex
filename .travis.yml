@@ -40,10 +40,6 @@ notifications:
 install:
   - git clone --quiet --depth 1 https://github.com/kroshu/industrial_ci.git .industrial_ci
   - curl "https://raw.githubusercontent.com/davetcoleman/roscpp_code_format/master/.clang-format" -o .clang-format
-  - rosdep install ros2_cortex
-  - source /opt/ros/dashing/setup.bash
-  - cd ~/upstream_ws
-  - colcon build --symlink-install
 
 script:
 - .industrial_ci/travis.sh
