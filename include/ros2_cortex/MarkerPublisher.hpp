@@ -15,14 +15,14 @@
 #ifndef ROS2_CORTEX__MARKERPUBLISHER_HPP_
 #define ROS2_CORTEX__MARKERPUBLISHER_HPP_
 
+#include <ros2_cortex/CortexClientNode.hpp>
 #include <string>
-#include "ros2_cortex/CortexClient.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
 
 namespace ros2_cortex
 {
 
-class MarkerPublisher : public CortexClient
+class MarkerPublisher : public CortexClientNode
 {
 public:
   MarkerPublisher();

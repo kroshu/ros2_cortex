@@ -30,16 +30,13 @@ find_library(kroshu_ros2_core_LIBRARIES kroshu_ros2_core /root/upstream_ws/build
 include_directories(include /root/upstream_ws/src/kroshu_ros2_core/include)
 
 add_library(cortex_mock SHARED
-  src/CortexMock.cpp
-  src/CortexClient.cpp)
-ament_target_dependencies(cortex_mock rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs kroshu_ros2_core)
-target_link_libraries(cortex_mock ${kroshu_ros2_core_LIBRARIES})
+  src/CortexMock.cpp)
 
-add_executable(cortex_client
-    src/CortexClient.cpp
-    src/CortexMock.cpp)
-ament_target_dependencies(cortex_client rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs kroshu_ros2_core)
-target_link_libraries(cortex_client
+add_executable(cortex_client_node
+    src/CortexClientNode.cpp
+    src/CortexClient.cpp)
+ament_target_dependencies(cortex_client_node rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs kroshu_ros2_core)
+target_link_libraries(cortex_client_node
   cortex_mock ${kroshu_ros2_core_LIBRARIES})
 
 add_executable(marker_publisher

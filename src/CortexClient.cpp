@@ -12,231 +12,194 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <chrono>
-#include <iostream>
-#include <vector>
-#include <string>
-#include <memory>
-#include <thread>
-#include <fstream>
-
-#include "rclcpp/rclcpp.hpp"
 #include "ros2_cortex/CortexClient.hpp"
-#include "kroshu_ros2_core/Parameter.hpp"
-#include "kroshu_ros2_core/ROS2BaseNode.hpp"
 
 namespace ros2_cortex
 {
-
-template<typename Ret, typename ... Params>
-struct CortexClient::Callback<Ret(Params...)>
-{
-  template<typename ... Args>
-  static Ret callback(Args... args)
-  {
-    return func(args ...);
-  }
-  static std::function<Ret(Params...)> func;
-};
-
-template<typename Ret, typename ... Params>
-std::function<Ret(Params...)> CortexClient::Callback<Ret(Params...)>::func;
-
-std::string getFileExtension(const std::string & file_name)
-{
-  if (file_name.find_last_of(".") != std::string::npos) {
-    return file_name.substr(file_name.find_last_of(".") + 1);
-  }
-  return "";
-}
-
-void CortexClient::setHandlerFuncs()
-{
-  Callback<void(sFrameOfData *)>::func = std::bind(&CortexClient::dataHandlerFunc_, this,
-      std::placeholders::_1);
-  auto data_func =
-    static_cast<data_callback_t>(Callback<void(sFrameOfData *)>::callback);
-  setDataHandlerFunc(data_func);
-
-  Callback<void(int i_level, char * sz_msg)>::func = std::bind(
-    &CortexClient::errorMsgHandlerFunc_, this, std::placeholders::_1,
-    std::placeholders::_2);
-  auto error_msg_func = static_cast<error_msg__callback_t>(
-    Callback<void(int i_level, char * sz_msg)>::callback);
-  setErrorMsgHandlerFunc(error_msg_func);
-}
-
-CortexClient::CortexClient(const std::string & node_name)
-: kroshu_ros2_core::ROS2BaseNode(node_name),
-  cortex_mock_(capture_file_path_)
-{
-  setHandlerFuncs();
-
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("capture_file_path",
-    rclcpp::ParameterValue(
-      capture_file_path_),
-    rclcpp::ParameterType::PARAMETER_STRING, kroshu_ros2_core::ParameterSetAccessRights {
-      true, false, false, false},
-    std::bind(&CortexClient::onCapFileNameChangeRequest, this, std::placeholders::_1));
-  std::string forw_comm = "PostForward";
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("request_command",
-    rclcpp::ParameterValue(
-      forw_comm),
-    rclcpp::ParameterType::PARAMETER_STRING, kroshu_ros2_core::ParameterSetAccessRights {
-      false, false, true, false},
-    std::bind(&CortexClient::onRequestCommandChanged, this, std::placeholders::_1));
-
-  this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
-    {return CortexClient::onParamChange(parameters);});
-}
-
-CortexClient::~CortexClient()
-{
-  if (run_thread.joinable()) {run_thread.join();}
-  cortex_mock_.freeFrame(&current_fod_);
-  cortex_mock_.exit();
-}
-
-void CortexClient::exit()
-{
-  cortex_mock_.freeFrame(&current_fod_);
-  cortex_mock_.exit();
-}
-
-void CortexClient::run()
-{
-  cortex_mock_.initialize(nullptr, nullptr);
-  std::string req_comm = this->get_parameter("request_command").as_string();
-  cortex_mock_.request(&req_comm[0], nullptr, nullptr);
-}
-
-int CortexClient::setDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data))
-{
-  return cortex_mock_.setDataHandlerFunc(dataHandlerFunc);
-}
-
-int CortexClient::setErrorMsgHandlerFunc(
-  void (* errorMsgHandlerFunc)(int i_log_level, char * sz_log_message))
-{
-  return cortex_mock_.setErrorMsgHandlerFunc(errorMsgHandlerFunc);
-}
-
-int CortexClient::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const
-{
-  return cortex_mock_.copyFrame(p_src, p_dst);
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-CortexClient::on_configure(const rclcpp_lifecycle::State & state)
-{
-  if (cap_file_path_changed) {
-    cortex_mock_ = CortexMock(capture_file_path_);
-    cap_file_path_changed = false;
-  }
-  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-CortexClient::on_activate(const rclcpp_lifecycle::State & state)
-{
-  run_thread = std::thread(&CortexClient::run, this);
-  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-CortexClient::on_deactivate(const rclcpp_lifecycle::State & state)
-{
-  exit();
-  run_thread.join();
-  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
-}
-
-bool CortexClient::onCapFileNameChangeRequest(const kroshu_ros2_core::Parameter & param)
-{
-  if (getFileExtension(param.getValue().get<std::string>()) != "json") {
-    RCLCPP_ERROR(this->get_logger(), "Invalid file format for parameter %s",
-      param.getName().c_str());
-    return false;
-  }
-  std::string file_path = param.getValue().get<std::string>();
-  std::ifstream f(file_path.c_str());
-  if (!f.good()) {
-    RCLCPP_ERROR(this->get_logger(), "File %s doesn't exist or not accessible",
-      param.getName().c_str());
-    return false;
-  }
-  capture_file_path_ = file_path;
-  cap_file_path_changed = true;
-  return true;
-}
-
-bool CortexClient::onRequestCommandChanged(const kroshu_ros2_core::Parameter & param)
-{
-  std::string req_comm = param.getValue().get<std::string>();
-  void * p_response = nullptr;
-  cortex_mock_.request(&req_comm[0], &p_response, nullptr);
-  if (req_comm == "PostGetPlayMode" || req_comm == "GetContextAnalogBitDepth" ||
-    req_comm == "GetUpAxis")
-  {
-    RCLCPP_INFO(get_logger(),
-      "Result of request " + req_comm + ": " + std::to_string(*static_cast<int *>(p_response)));
-  } else {  // Formatted this way, so that both cpplint and uncrustify can pass
-    if (req_comm == "GetContextFrameRate" ||
-      req_comm == "GetContextAnalogSampleRate" ||
-      req_comm == "GetConversionToMillimeters")
-    {
-      RCLCPP_INFO(get_logger(),
-        "Result of request " + req_comm + ": " + std::to_string(*static_cast<float *>(p_response)));
-    } else if (req_comm == "GetFrameOfData") {
-      sFrameOfData fod;
-      cortex_mock_.copyFrame(static_cast<sFrameOfData *>(p_response), &fod);
-      RCLCPP_INFO(get_logger(), "Frame " + std::to_string(fod.iFrame));
-      RCLCPP_INFO(get_logger(),
-        "Number of unidentified markers " + std::to_string(fod.nUnidentifiedMarkers));
+  CortexReturn CortexClient::getSdkVersion(std::vector<int>& version_nums_placeholder) const{
+    unsigned char bridge_array[num_of_version_parts];
+    CortexReturn return_val = Cortex_GetSdkVersion(bridge_array);
+    version_nums_placeholder.resize(num_of_version_parts, 0);
+    for(int i = 0; i < num_of_version_parts; ++i){
+      version_nums_placeholder[i] = static_cast<int>(bridge_array[i]);
     }
+    return return_val;
   }
 
-  return true;
-}
-
-void CortexClient::dataHandlerFunc_(sFrameOfData * fod)
-{
-  cortex_mock_.copyFrame(fod, &current_fod_);
-  RCLCPP_INFO(get_logger(), "Frame " + std::to_string(current_fod_.iFrame));
-  RCLCPP_INFO(get_logger(),
-    "Number of unidentified markers " + std::to_string(current_fod_.nUnidentifiedMarkers));
-}
-
-void CortexClient::errorMsgHandlerFunc_(int i_level, char * error_msg)
-{
-  switch (i_level) {
-    case 1:
-      RCLCPP_ERROR(get_logger(), static_cast<std::string>(error_msg));
-      break;
-    case 2:
-      RCLCPP_WARN(get_logger(), static_cast<std::string>(error_msg));
-      break;
-    case 3:
-      RCLCPP_INFO(get_logger(), static_cast<std::string>(error_msg));
-      break;
-    case 4:
-      RCLCPP_DEBUG(get_logger(), static_cast<std::string>(error_msg));
-      break;
-    default:
-      break;
+  CortexReturn CortexClient::setVerbosityLevel(CortexVerbosityLevel i_level) const{
+    return Cortex_SetVerbosityLevel(static_cast<int>(i_level));
   }
-}
 
+  CortexVerbosityLevel CortexClient::getVerbosityLevel() const{
+    return Cortex_GetVerbosityLevel();
+  }
+
+  CortexReturn CortexClient::setMinTimeout(int ms_timeout) const{
+    return Cortex_SetMinTimeout(ms_timeout);
+  }
+
+  int CortexClient::getMinTimeout() const{
+    return Cortex_GetMinTimeout();
+  }
+
+  CortexReturn CortexClient::setErrorMsgHandlerFunc(
+      std::function<void(CortexVerbosityLevel,
+                         const std::string&)> errorMsgHandlerFunc) const{
+    return Cortex_SetErrorMsgHandlerFunc(errorMsgHandlerFunc);
+  }
+
+  CortexReturn CortexClient::setDataHandlerFunc(
+      std::function<void(sFrameOfData&)> dataHandlerFunc) const{
+    return Cortex_SetDataHandlerFunc(dataHandlerFunc);
+  }
+
+  CortexReturn CortexClient::sendDataToClients(sFrameOfData& frame_of_data) const{
+    return Cortex_SendDataToClients(&frame_of_data);
+  }
+
+  void CortexClient::setClientCommunicationEnabled(bool is_enabled) const{
+    Cortex_SetClientCommunicationEnabled(is_enabled);
+  }
+
+  bool CortexClient::isClientCommunicationEnabled() const{
+    return Cortex_IsClientCommunicationEnabled();
+  }
+
+  void CortexClient::setThreadPriorities(
+    CortexThreadPriority listen_for_host, CortexThreadPriority listen_for_data,
+    CortexThreadPriority listen_for_clients) const{
+    Cortex_SetThreadPriorities(static_cast<maThreadPriority>(listen_for_host),
+                               static_cast<maThreadPriority>(listen_for_data),
+                               static_cast<maThreadPriority>(listen_for_clients));
+  }
+
+  CortexReturn CortexClient::configurePortNumbers(
+      int talk_to_host_port,  // 0 == find available
+      int host_port,
+      int host_multicast_port,
+      int talk_to_clients_request_port = 0,  // 0 == find available
+      int talk_to_clients_multicast_port = 0,  // 0 == find available
+      int clients_multicast_port = -1) const{
+    return Cortex_ConfigurePortNumbers(talk_to_host_port, host_port,
+                                       host_multicast_port, talk_to_clients_request_port,
+                                       talk_to_clients_multicast_port,
+                                       clients_multicast_port);
+  }
+
+  CortexReturn CortexClient::initialize(
+      const std::string& talk_to_host_nic_card_address,
+      const std::string& host_nic_card_address,
+      const std::string& host_multicast_address = nullptr,
+      const std::string& talk_to_clients_nic_card_address = nullptr,
+      const std::string& clients_multicast_address = nullptr) const{
+    // Ask const in param, but copy, because expected to be const,
+    // but can only be initialized in form of char *
+    std::string param_talk_to_host_nic_card_address = talk_to_host_nic_card_address;
+    std::string param_host_nic_card_address = host_nic_card_address;
+    std::string param_host_multicast_address = host_multicast_address;
+    std::string param_talk_to_clients_nic_card_address = talk_to_clients_nic_card_address;
+    std::string param_clients_multicast_address = clients_multicast_address;
+
+    return Cortex_Initialize(&param_talk_to_host_nic_card_address[0],
+                             &param_host_nic_card_address[0],
+                             &param_host_multicast_address[0],
+                             &param_talk_to_clients_nic_card_address[0],
+                             &param_clients_multicast_address[0]);
+  }
+
+  CortexReturn CortexClient::getPortNumbers(
+      int& talk_to_host_port,
+      int& host_port,
+      int& host_multicast_port,
+      int& talk_to_clients_request_port,
+      int& talk_to_clients_multicast_port,
+      int& clients_multicast_port) const{
+    return Cortex_GetPortNumbers(&talk_to_host_port, &host_port, &host_multicast_port,
+                                 &talk_to_clients_request_port, &talk_to_clients_multicast_port,
+                                 &clients_multicast_port);
+  }
+
+  CortexReturn CortexClient::getAddresses(
+      std::string& talk_to_host_nic_card_address_ph,
+      std::string& host_nic_card_address_ph,
+      std::string& host_multicast_address_ph,
+      std::string& talk_to_clients_nic_card_address_ph,
+      std::string& clients_multicast_address_ph) const{
+    return Cortex_GetAddresses(&talk_to_host_nic_card_address_ph[0], &host_nic_card_address_ph[0],
+                      &host_multicast_address_ph[0], &talk_to_clients_nic_card_address_ph[0],
+                      &clients_multicast_address_ph[0]);
+  }
+
+  CortexReturn CortexClient::getHostInfo(sHostInfo& host_info_ph) const{
+    return Cortex_GetHostInfo(&host_info_ph);
+  }
+
+  CortexReturn CortexClient::exit() const{
+    return Cortex_Exit();
+  }
+
+  CortexReturn CortexClient::request(const std::string& command, void& pp_response,
+                                     int& pn_bytes) const{
+    // Ask const in param, but copy, because expected to be const,
+    // but can only be initialized in form of char *
+    std::string temp_command = command;
+    return Cortex_Request(&temp_command[0], &pp_response, &pn_bytes);
+  }
+
+  sSkyReturn& CortexClient::skyCommand(const std::string& command, int ms_timeout) const{
+    std::string temp_command = command;
+    return Cortex_SkyCommand(&temp_command[0], ms_timeout);
+  }
+
+  sBodyDefs& CortexClient::getBodyDefs() const{
+    return Cortex_GetBodyDefs();
+  }
+
+  CortexReturn CortexClient::freeBodyDefs(sBodyDefs& body_defs) const{
+    return Cortex_FreeBodyDefs(&body_defs);
+  }
+
+  sFrameOfData& CortexClient::getCurrentFrame() const{
+    return Cortex_GetCurrentFrame();
+  }
+
+  CortexReturn CortexClient::copyFrame(const sFrameOfData& src, sFrameOfData& dst) const{
+    return Cortex_CopyFrame(&src, &dst);
+  }
+
+  CortexReturn CortexClient::freeFrame(sFrameOfData& frame) const{
+    return Cortex_FreeFrame(&frame);
+  }
+
+  CortexReturn CortexClient::sendHtr(const sHierarchy& hierarchy,
+                                     const tSegmentData& segment_data) const{
+    // Ask const in param, but copy, because expected to be const,
+    // but can only be initialized in form of pointers
+    sHierarchy param_hierarchy = hierarchy;
+    tSegmentData param_segment_data = segment_data;
+    return Cortex_SendHtr(&param_hierarchy, &param_segment_data);
+  }
+
+  CortexReturn CortexClient::setMetered(bool active, float fixed_latency) const{
+    return Cortex_SetMetered(active, fixed_latency);
+  }
+
+  // TODO(Gergely Kovacs) maybe use Eigen?
+  void CortexClient::constructRotationMatrix(std::array<double, 3> angles, int rotation_order,
+                               std::array<std::array<double, 3>, 3> matrix) const{
+    double param_angles[3] = {angles[0], angles[1], angles[2]};
+    double param_matrix[3][3];
+    std::copy(std::begin(param_matrix), std::end(param_matrix),
+              std::begin(matrix));
+    Cortex_ConstructRotationMatrix(param_angles, rotation_order, param_matrix);
+  }
+
+  void CortexClient::extractEulerAngles(std::array<std::array<double, 3>, 3> matrix,
+                          int rotation_order, std::array<double, 3> angles) const{
+    double param_angles[3] = {angles[0], angles[1], angles[2]};
+        double param_matrix[3][3];
+        std::copy(std::begin(param_matrix), std::end(param_matrix),
+                  std::begin(matrix));
+    Cortex_ExtractEulerAngles(param_matrix, rotation_order, param_angles);
+  }
 }  // namespace ros2_cortex
-
-int main(int argc, char const * argv[])
-{
-  rclcpp::init(argc, argv);
-  rclcpp::executors::SingleThreadedExecutor executor;
-  auto node = std::make_shared<ros2_cortex::CortexClient>("cortex_client");
-  executor.add_node(node->get_node_base_interface());
-  executor.spin();
-  rclcpp::shutdown();
-
-  return 0;
-}

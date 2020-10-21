@@ -22,7 +22,7 @@ namespace ros2_cortex
 {
 
 template<typename Ret, typename ... Params>
-struct CortexClient::Callback<Ret(Params...)>
+struct CortexClientNode::Callback<Ret(Params...)>
 {
   template<typename ... Args>
   static Ret callback(Args... args);
@@ -31,7 +31,7 @@ struct CortexClient::Callback<Ret(Params...)>
 
 
 MarkerPublisher::MarkerPublisher()
-: CortexClient("marker_publisher")
+: CortexClientNode("marker_publisher")
 {
   qos.best_effort();
   Callback<void(sFrameOfData *)>::func = std::bind(&MarkerPublisher::dataHandlerFunc_, this,
@@ -104,14 +104,14 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MarkerPublisher::on_activate(const rclcpp_lifecycle::State & state)
 {
   marker_array_publisher_->on_activate();
-  return CortexClient::on_activate(state);
+  return CortexClientNode::on_activate(state);
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 MarkerPublisher::on_deactivate(const rclcpp_lifecycle::State & state)
 {
   marker_array_publisher_->on_deactivate();
-  return CortexClient::on_deactivate(state);
+  return CortexClientNode::on_deactivate(state);
 }
 
 }  // namespace ros2_cortex

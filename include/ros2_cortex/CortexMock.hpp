@@ -28,71 +28,14 @@
 #include "Cortex.h"
 #include "rapidjson/document.h"
 
-namespace ros2_cortex
-{
-
 class CortexMock
 {
 public:
-  explicit CortexMock(std::string & capture_file_name);
+  explicit CortexMock(const std::string & capture_file_name);
   CortexMock(const CortexMock & other);
   void swap(CortexMock & other) noexcept;
   CortexMock & operator=(CortexMock other);
   ~CortexMock();
-  int getSdkVersion(unsigned char version[4]) const;
-  int setVerbosityLevel(int i_level);
-  int getVerbosityLevel() const;
-  int setMinTimeout(int ms_timeout);
-  int getMinTimeout() const;
-  int setErrorMsgHandlerFunc(void (* errorMsgHandlerFunc)(int i_log_level, char * sz_log_message));
-  int setDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data));
-  int sendDataToClients(sFrameOfData * p_frame_of_data) const;
-  void setClientCommunicationEnabled(int b_enabled);
-  int isClientCommunicationEnabled() const;
-  void setThreadPriorities(
-    maThreadPriority listen_for_host, maThreadPriority listen_for_data,
-    maThreadPriority listen_for_clients);
-  int configurePortNumbers(
-    int talk_to_host_port,  // 0 == find available
-    int host_port,
-    int host_multicast_port,
-    int talk_to_clients_request_port = 0,  // 0 == find available
-    int talk_to_clients_multicast_port = 0,  // 0 == find available
-    int clients_multicast_port = -1);
-  int initialize(
-    char * sz_talk_to_host_nic_card_address,
-    char * sz_host_nic_card_address,
-    char * sz_host_multicast_address = nullptr,
-    char * sz_talk_to_clients_nic_card_address = nullptr,
-    char * sz_clients_multicast_address = nullptr);
-  int getPortNumbers(
-    int * talk_to_host_port,
-    int * host_port,
-    int * host_multicast_port,
-    int * talk_to_clients_request_port,
-    int * talk_to_clients_multicast_port,
-    int * clients_multicast_port) const;
-  int getAddresses(
-    char * sz_talk_to_host_nic_card_address,
-    char * sz_host_nic_card_address,
-    char * sz_host_multicast_address,
-    char * sz_talk_to_clients_nic_card_address,
-    char * sz_clients_multicast_address) const;
-  int getHostInfo(sHostInfo * p_host_info) const;
-  int exit();
-  int request(char * sz_command, void ** pp_response, int * pn_bytes);
-  sSkyReturn * skyCommand(char * sz_command, int ms_timeout);
-  sBodyDefs * getBodyDefs();
-  int freeBodyDefs(sBodyDefs * p_body_defs);
-  sFrameOfData * getCurrentFrame();
-  int copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const;
-  int freeFrame(sFrameOfData * p_frame);
-  int sendHtr(sHierarchy * p_hierarchy, tSegmentData * p_frame);
-  int setMetered(bool b_active, float f_fixed_latency);
-  void constructRotationMatrix(double angles[3], int i_rotation_order, double matrix[3][3]) const;
-  void extractEulerAngles(double matrix[3][3], int i_rotation_order, double angles[3]) const;
-
-private:
   int n_frames_, current_frame_ind_ = 0,
     verbosity_level_ = 2, analog_bit_depth_ = 16;    // a_b_d_ 12 or 16 usually
   static const int read_buffer_size_ = 65536;
@@ -157,7 +100,4 @@ private:
   void copyBodyData(const sBodyData & src_bd, sBodyData & dst_bd) const;
   void copyAnalogData(const sAnalogData & src_ad, sAnalogData & dst_ad) const;
 };
-
-}  // namespace ros2_cortex
-
 #endif  // ROS2_CORTEX__CORTEXMOCK_HPP_

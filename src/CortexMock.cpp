@@ -18,15 +18,14 @@
 #include <utility>
 #include <vector>
 
-#include "ros2_cortex/CortexMock.hpp"
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
-namespace ros2_cortex
-{
+#include "ros2_cortex/CortexMock.hpp"
+#include "Cortex.h"
 
-CortexMock::CortexMock(std::string & capture_file_name)
+CortexMock::CortexMock(const std::string & capture_file_name)
 : capture_file_name_(capture_file_name)
 {
 }
@@ -81,256 +80,11 @@ CortexMock::~CortexMock()
   freeFrame(&current_frame_);
 }
 
-int CortexMock::getSdkVersion(unsigned char version[4]) const
-{
-  version[0] = 0;
-  version[1] = 8;
-  version[2] = 0;
-  version[3] = 0;
-  return RC_Okay;
-}
-
-int CortexMock::setVerbosityLevel(int i_level)
-{
-  verbosity_level_ = i_level;
-  return RC_Okay;
-}
-
-int CortexMock::getVerbosityLevel() const
-{
-  return verbosity_level_;
-}
-
 void CortexMock::errorMsgInString(int i_level, std::string & msg_str) const
 {
   if (verbosity_level_ >= i_level) {
     errorMsgHandlerFunc_(i_level, &msg_str[0]);
   }
-}
-
-int CortexMock::setMinTimeout(int ms_timeout)
-{
-  // Timeout has no use here actually,
-  // because we don't communicate with the host
-  std::string error_msg = "No use of timeout in mock version";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-int CortexMock::getMinTimeout() const
-{
-  // Timeout has no use here actually,
-  // because we don't communicate with the host
-  std::string error_msg = "No use of timeout in mock version";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-int CortexMock::setErrorMsgHandlerFunc(
-  void (* errorMsgHandlerFunc)(int i_log_level,
-  char * sz_log_message))
-{
-  errorMsgHandlerFunc_ = errorMsgHandlerFunc;
-  return RC_Okay;
-}
-
-int CortexMock::setDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data))
-{
-  dataHandlerFunc_ = dataHandlerFunc;
-  return RC_Okay;
-}
-
-int CortexMock::sendDataToClients(sFrameOfData * p_frame_of_data) const
-{
-  // TODO(Gergely Kovacs) send through TCP if client communication is going to be enabled
-  std::string error_msg = "No communication with client in mock version";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-void CortexMock::setClientCommunicationEnabled(int b_enabled)
-{
-  // TODO(Gergely Kovacs) do we enable communication with clients in the mock
-  std::string error_msg = "No communication with client in mock version";
-  errorMsgInString(VL_Error, error_msg);
-}
-
-int CortexMock::isClientCommunicationEnabled() const
-{
-  // TODO(Gergely Kovacs) do we enable communication with clients in the mock
-  std::string error_msg = "No communication with client in mock version";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-void CortexMock::setThreadPriorities(
-  maThreadPriority listen_for_host,
-  maThreadPriority listen_for_data,
-  maThreadPriority listen_for_clients)
-{
-  // TODO(Gergely Kovacs) if communicating with client,
-  // should we differentiate priority of listening to data and listening for clients?
-  std::string error_msg = "No communication with client neither with host in mock version";
-  errorMsgInString(VL_Error, error_msg);
-}
-
-int CortexMock::configurePortNumbers(
-  int talk_to_host_port,
-  int host_port,
-  int host_multicast_port,
-  int talk_to_clients_request_port,
-  int talk_to_clients_multicast_port,
-  int clients_multicast_port)
-{
-  // TODO(Gergely Kovacs) needs to
-  // be implemented if client communication is going to be enabled
-  std::string error_msg = "No communication with client neither with host in mock version";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-int CortexMock::initialize(
-  char * sz_talk_to_host_nic_card_address,
-  char * sz_host_nic_card_address,
-  char * sz_host_multicast_address,
-  char * sz_talk_to_clients_nic_card_address,
-  char * sz_clients_multicast_address)
-{
-  std::string error_msg = "No communication with client neither with host in mock version";
-  errorMsgInString(VL_Warning, error_msg);
-  // TODO(Gergely Kovacs) address storing needs to
-  // be implemented if client communication is going to be enabled
-  // and complete default initialization, too: sz_host_multicast_address = 225.1.1.1,
-  // sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
-
-  readFile();
-  run_thread = std::thread(&CortexMock::run, this);
-  return RC_Okay;
-}
-
-int CortexMock::getPortNumbers(
-  int * talk_to_host_port,
-  int * host_port,
-  int * host_multicast_port,
-  int * talk_to_clients_request_port,
-  int * talk_to_clients_multicast_port,
-  int * clients_multicast_port) const
-{
-  // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
-  std::string error_msg = "No communication with client neither with host in mock version";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-int CortexMock::getAddresses(
-  char * sz_talk_to_host_nic_card_address,
-  char * sz_host_nic_card_address,
-  char * sz_host_multicast_address,
-  char * sz_talk_to_clients_nic_card_address,
-  char * sz_clients_multicast_address) const
-{
-  // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
-  std::string error_msg = "No communication with client neither with host in mock version";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-int CortexMock::getHostInfo(sHostInfo * p_host_info) const
-{
-  // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
-  std::string error_msg = "Found mock version, no communication with host in mock version";
-  errorMsgInString(VL_Warning, error_msg);
-  return RC_ApiError;
-}
-
-int CortexMock::exit()
-{
-  running_ = false;
-  play_mode_ = static_cast<int>(PlayMode::paused);
-  run_thread.join();
-  return RC_Okay;
-}
-
-int CortexMock::request(char * sz_command, void ** pp_response, int * pn_bytes)
-{
-  std::string command(sz_command), command_extra;
-  size_t pos = command.find('=');
-  if (pos != std::string::npos) {
-    command_extra = command.substr(pos);
-    command = command.substr(0, pos);
-  }
-  auto found_it = map_string_to_request.find(command);
-  if (found_it == map_string_to_request.end()) {
-    std::string error_msg = "Unrecognized request";
-    errorMsgInString(VL_Error, error_msg);
-    return RC_Unrecognized;
-  }
-  std::string error_msg = "Mock handles no live mode requests";
-  Request req_type = found_it->second;
-  switch (req_type) {
-    // Mock doesn't and can't deal with live mode requests
-    // TODO(Gergely Kovacs) should it?
-    case Request::LiveMode:
-    case Request::Pause:
-    case Request::SetOutputName:
-    case Request::StartRecording:
-    case Request::StopRecording:
-    case Request::ResetIDs:
-      errorMsgInString(VL_Error, error_msg);
-      return RC_ApiError;
-    // Mock does deal with post mode requests though
-    case Request::PostForward:
-      play_mode_ = static_cast<int>(PlayMode::forwards);
-      break;
-    case Request::PostBackward:
-      play_mode_ = static_cast<int>(PlayMode::backwards);
-      break;
-    case Request::PostPause:
-      play_mode_ = static_cast<int>(PlayMode::paused);
-      break;
-    case Request::PostGetPlayMode:
-      *pp_response = &play_mode_;
-      break;
-    case Request::GetContextFrameRate:
-      *pp_response = &frame_rate_;
-      break;
-    case Request::GetContextAnalogSampleRate:
-      *pp_response = &analog_sample_rate_;
-      break;
-    case Request::GetContextAnalogBitDepth:
-      *pp_response = &analog_bit_depth_;
-      break;
-    case Request::GetUpAxis:
-      *pp_response = &axis_up_;
-      break;
-    case Request::GetConversionToMillimeters:
-      *pp_response = &conv_rate_to_mm_;
-      break;
-    case Request::GetFrameOfData:
-      if (command_extra.empty()) {*pp_response = &current_frame_;}
-      // TODO(Gergely Kovacs) else return markerset base pos
-      break;
-
-    default:
-      error_msg = "Unrecognized request";
-      errorMsgInString(VL_Error, error_msg);
-      return RC_Unrecognized;
-  }
-
-  return RC_Okay;
-}
-
-sSkyReturn * CortexMock::skyCommand(char * sz_command, int ms_timeout)
-{
-  // TODO(Gergely Kovacs) implement this function
-  std::string error_msg = "Function not implemented yet";
-  errorMsgInString(VL_Error, error_msg);
-  return nullptr;
-}
-
-sBodyDefs * CortexMock::getBodyDefs()
-{
-  return &body_defs_;
 }
 
 void CortexMock::freeBodyDef(sBodyDef & p_body_def, int n_an_channels)
@@ -366,34 +120,6 @@ void CortexMock::freeBodyDef(sBodyDef & p_body_def, int n_an_channels)
     }
   }
   if (n_markers > 0) {delete[] p_body_def.szDofNames;}
-}
-
-int CortexMock::freeBodyDefs(sBodyDefs * p_body_defs)
-{
-  // Free bodydefs
-  if (p_body_defs == nullptr) {return RC_Okay;}
-  int n_body_defs = p_body_defs->nBodyDefs;
-  for (int i = 0; i < n_body_defs; ++i) {
-    freeBodyDef(p_body_defs->BodyDefs[i], p_body_defs->nAnalogChannels);
-  }
-
-  // Free analog data
-  int n_analogch = p_body_defs->nAnalogChannels;
-  for (int i_ach_name = 0; i_ach_name < n_analogch; ++i_ach_name) {
-    if (p_body_defs->szAnalogChannelNames[i_ach_name] != nullptr) {
-      delete[] p_body_defs->szAnalogChannelNames[i_ach_name];
-    }
-  }
-  if (n_analogch > 0) {delete[] p_body_defs->szAnalogChannelNames;}
-  delete[] p_body_defs->AnalogLoVoltage;
-  delete[] p_body_defs->AnalogHiVoltage;
-  return RC_Okay;
-}
-
-sFrameOfData * CortexMock::getCurrentFrame()
-{
-  extractFrame(current_frame_, current_frame_ind_);
-  return &current_frame_;
 }
 
 void CortexMock::copyBodyData(const sBodyData & src_bd, sBodyData & dst_bd) const
@@ -484,46 +210,6 @@ void CortexMock::copyAnalogData(const sAnalogData & src_ad, sAnalogData & dst_ad
   }
 }
 
-int CortexMock::copyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const
-{
-  p_dst->iFrame = p_src->iFrame;
-  p_dst->fDelay = p_src->fDelay;
-
-  // Copy body datas
-  p_dst->nBodies = p_src->nBodies;
-  int n_bodies = p_dst->nBodies;
-  for (int i = 0; i < n_bodies; i++) {
-    copyBodyData(p_src->BodyData[i], p_dst->BodyData[i]);
-  }
-
-  // Copy unidentified markers
-  p_dst->nUnidentifiedMarkers = p_src->nUnidentifiedMarkers;
-  int n_ui_markers = p_dst->nUnidentifiedMarkers;
-  if (n_ui_markers > 0) {
-    p_dst->UnidentifiedMarkers = new tMarkerData[n_ui_markers];
-    memcpy(p_dst->UnidentifiedMarkers, p_src->UnidentifiedMarkers,
-      n_ui_markers * sizeof(tMarkerData));
-  }
-
-  copyAnalogData(p_src->AnalogData, p_dst->AnalogData);
-
-  // Copy recording data
-  p_dst->RecordingStatus.bRecording = p_src->RecordingStatus.bRecording;
-  p_dst->RecordingStatus.iFirstFrame = p_src->RecordingStatus.iFirstFrame;
-  p_dst->RecordingStatus.iLastFrame = p_src->RecordingStatus.iLastFrame;
-  memcpy(p_dst->RecordingStatus.szFilename, p_src->RecordingStatus.szFilename,
-    strlen(p_src->RecordingStatus.szFilename) + 1);
-
-  // Copy time data
-  p_dst->TimeCode.iFrames = p_src->TimeCode.iFrames;
-  p_dst->TimeCode.iHours = p_src->TimeCode.iHours;
-  p_dst->TimeCode.iMinutes = p_src->TimeCode.iMinutes;
-  p_dst->TimeCode.iSeconds = p_src->TimeCode.iSeconds;
-  p_dst->TimeCode.iStandard = p_src->TimeCode.iStandard;
-
-  return RC_Okay;
-}
-
 void CortexMock::freeBodyData(sBodyData & body_data)
 {
   if (body_data.nMarkers > 0) {delete[] body_data.Markers;}
@@ -534,65 +220,6 @@ void CortexMock::freeBodyData(sBodyData & body_data)
     if (body_data.Events[i_event] != nullptr) {delete[] body_data.Events[i_event];}
   }
   if (body_data.nEvents > 0) {delete[] body_data.Events;}
-}
-
-int CortexMock::freeFrame(sFrameOfData * p_frame)
-{
-  // Free body datas
-  if (p_frame == nullptr) {return RC_Okay;}
-  int n_bodies = p_frame->nBodies;
-  if (n_bodies > 0) {
-    for (int i_body = 0; i_body < n_bodies; ++i_body) {
-      freeBodyData(p_frame->BodyData[i_body]);
-    }
-  }
-
-  // Free unidentified markers and analog data
-  if (p_frame->nUnidentifiedMarkers > 0) {delete[] p_frame->UnidentifiedMarkers;}
-  if (p_frame->AnalogData.nAnalogSamples > 0 && p_frame->AnalogData.nAnalogChannels > 0) {
-    delete[] p_frame->AnalogData.AnalogSamples;
-  }
-  if (p_frame->AnalogData.nForceSamples > 0 && p_frame->AnalogData.nForcePlates > 0) {
-    delete[] p_frame->AnalogData.Forces;
-  }
-  if (p_frame->AnalogData.nAngleEncoderSamples > 0 && p_frame->AnalogData.nAngleEncoders > 0) {
-    delete[] p_frame->AnalogData.AngleEncoderSamples;
-  }
-  return RC_Okay;
-}
-
-int CortexMock::sendHtr(sHierarchy * p_hierarchy, tSegmentData * p_frame)
-{
-  // TODO(Gergely Kovacs) implement this function
-  std::string error_msg = "Function not implemented yet";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-int CortexMock::setMetered(bool b_active, float f_fixed_latency)
-{
-  // TODO(Gergely Kovacs) if we enable communication with clients in the mock
-  std::string error_msg = "No communication with client in mock version";
-  errorMsgInString(VL_Error, error_msg);
-  return RC_ApiError;
-}
-
-void CortexMock::constructRotationMatrix(
-  double angles[3], int i_rotation_order,
-  double matrix[3][3]) const
-{
-  // TODO(Gergely Kovacs) implement this function
-  std::string error_msg = "Function not implemented yet";
-  errorMsgInString(VL_Error, error_msg);
-}
-
-void CortexMock::extractEulerAngles(
-  double matrix[3][3], int i_rotation_order,
-  double angles[3]) const
-{
-  // TODO(Gergely Kovacs) implement this function
-  std::string error_msg = "Function not implemented yet";
-  errorMsgInString(VL_Error, error_msg);
 }
 
 void CortexMock::extractBodyDefs(sBodyDefs & body_defs, const rapidjson::Value & body_defs_json)
@@ -897,4 +524,379 @@ void CortexMock::run()
   }
 }
 
-}  // namespace ros2_cortex
+const std::string capture_file_path = "/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json";
+CortexMock mock(capture_file_path);
+
+
+
+int Cortex_GetSdkVersion(unsigned char version[4])
+{
+  version[0] = 0;
+  version[1] = 8;
+  version[2] = 0;
+  version[3] = 0;
+  return RC_Okay;
+}
+
+int Cortex_SetVerbosityLevel(int i_level)
+{
+  mock.verbosity_level_ = i_level;
+  return RC_Okay;
+}
+
+int Cortex_GetVerbosityLevel()
+{
+  return mock.verbosity_level_;
+}
+
+int Cortex_SetMinTimeout(int ms_timeout)
+{
+  // Timeout has no use here actually,
+  // because we don't communicate with the host
+  std::string error_msg = "No use of timeout in mock version";
+  mock.mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+int Cortex_GetMinTimeout()
+{
+  // Timeout has no use here actually,
+  // because we don't communicate with the host
+  std::string error_msg = "No use of timeout in mock version";
+  mock.mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+int Cortex_SetErrorMsgHandlerFunc(
+  void (* errorMsgHandlerFunc)(int i_log_level,
+  char * sz_log_message))
+{
+  mock.errorMsgHandlerFunc_ = errorMsgHandlerFunc;
+  return RC_Okay;
+}
+
+int Cortex_SetDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data))
+{
+  mock.dataHandlerFunc_ = dataHandlerFunc;
+  return RC_Okay;
+}
+
+int Cortex_SendDataToClients(sFrameOfData * p_frame_of_data) const
+{
+  // TODO(Gergely Kovacs) send through TCP if client communication is going to be enabled
+  std::string error_msg = "No communication with client in mock version";
+  mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+void Cortex_SetClientCommunicationEnabled(int b_enabled)
+{
+  // TODO(Gergely Kovacs) do we enable communication with clients in the mock
+  std::string error_msg = "No communication with client in mock version";
+  mock.errorMsgInString(VL_Error, error_msg);
+}
+
+int Cortex_IsClientCommunicationEnabled() const
+{
+  // TODO(Gergely Kovacs) do we enable communication with clients in the mock
+  std::string error_msg = "No communication with client in mock version";
+  mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+void Cortex_SetThreadPriorities(
+  maThreadPriority listen_for_host,
+  maThreadPriority listen_for_data,
+  maThreadPriority listen_for_clients)
+{
+  // TODO(Gergely Kovacs) if communicating with client,
+  // should we differentiate priority of listening to data and listening for clients?
+  std::string error_msg = "No communication with client neither with host in mock version";
+  mock.errorMsgInString(VL_Error, error_msg);
+}
+
+int Cortex_ConfigurePortNumbers(
+  int talk_to_host_port,
+  int host_port,
+  int host_multicast_port,
+  int talk_to_clients_request_port,
+  int talk_to_clients_multicast_port,
+  int clients_multicast_port)
+{
+  // TODO(Gergely Kovacs) needs to
+  // be implemented if client communication is going to be enabled
+  std::string error_msg = "No communication with client neither with host in mock version";
+  mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+int Cortex_Initialize(
+  char * sz_talk_to_host_nic_card_address,
+  char * sz_host_nic_card_address,
+  char * sz_host_multicast_address,
+  char * sz_talk_to_clients_nic_card_address,
+  char * sz_clients_multicast_address)
+{
+  std::string error_msg = "No communication with client neither with host in mock version";
+  mock.errorMsgInString(VL_Warning, error_msg);
+  // TODO(Gergely Kovacs) address storing needs to
+  // be implemented if client communication is going to be enabled
+  // and complete default initialization, too: sz_host_multicast_address = 225.1.1.1,
+  // sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
+
+  mock.readFile();
+  mock.run_thread = std::thread(&CortexMock::run, mock);
+  return RC_Okay;
+}
+
+int Cortex_GetPortNumbers(
+  int * talk_to_host_port,
+  int * host_port,
+  int * host_multicast_port,
+  int * talk_to_clients_request_port,
+  int * talk_to_clients_multicast_port,
+  int * clients_multicast_port) const
+{
+  // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
+  std::string error_msg = "No communication with client neither with host in mock version";
+  mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+int Cortex_GetAddresses(
+  char * sz_talk_to_host_nic_card_address,
+  char * sz_host_nic_card_address,
+  char * sz_host_multicast_address,
+  char * sz_talk_to_clients_nic_card_address,
+  char * sz_clients_multicast_address) const
+{
+  // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
+  std::string error_msg = "No communication with client neither with host in mock version";
+  mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+int Cortex_GetHostInfo(sHostInfo * p_host_info) const
+{
+  // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
+  std::string error_msg = "Found mock version, no communication with host in mock version";
+  mock.errorMsgInString(VL_Warning, error_msg);
+  return RC_ApiError;
+}
+
+int Cortex_Exit()
+{
+  mock.running_ = false;
+  mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
+  if(mock.run_thread.joinable()) mock.run_thread.join();
+  return RC_Okay;
+}
+
+int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
+{
+  std::string command(sz_command), command_extra;
+  size_t pos = command.find('=');
+  if (pos != std::string::npos) {
+    command_extra = command.substr(pos);
+    command = command.substr(0, pos);
+  }
+  auto found_it = mock.map_string_to_request.find(command);
+  if (found_it == mock.map_string_to_request.end()) {
+    std::string error_msg = "Unrecognized request";
+    mock.errorMsgInString(VL_Error, error_msg);
+    return RC_Unrecognized;
+  }
+  std::string error_msg = "Mock handles no live mode requests";
+  CortexMock::Request req_type = found_it->second;
+  switch (req_type) {
+    // Mock doesn't and can't deal with live mode requests
+    // TODO(Gergely Kovacs) should it?
+    case CortexMock::Request::LiveMode:
+    case CortexMock::Request::Pause:
+    case CortexMock::Request::SetOutputName:
+    case CortexMock::Request::StartRecording:
+    case CortexMock::Request::StopRecording:
+    case CortexMock::Request::ResetIDs:
+      mock.errorMsgInString(VL_Error, error_msg);
+      return RC_ApiError;
+    // Mock does deal with post mode requests though
+    case CortexMock::Request::PostForward:
+      mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::forwards);
+      break;
+    case CortexMock::Request::PostBackward:
+      mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::backwards);
+      break;
+    case CortexMock::Request::PostPause:
+      mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
+      break;
+    case CortexMock::Request::PostGetPlayMode:
+      *pp_response = &mock.play_mode_;
+      break;
+    case CortexMock::Request::GetContextFrameRate:
+      *pp_response = &mock.frame_rate_;
+      break;
+    case CortexMock::Request::GetContextAnalogSampleRate:
+      *pp_response = &mock.analog_sample_rate_;
+      break;
+    case CortexMock::Request::GetContextAnalogBitDepth:
+      *pp_response = &mock.analog_bit_depth_;
+      break;
+    case CortexMock::Request::GetUpAxis:
+      *pp_response = &mock.axis_up_;
+      break;
+    case CortexMock::Request::GetConversionToMillimeters:
+      *pp_response = &mock.conv_rate_to_mm_;
+      break;
+    case CortexMock::Request::GetFrameOfData:
+      if (command_extra.empty()) {*pp_response = &mock.current_frame_;}
+      // TODO(Gergely Kovacs) else return markerset base pos
+      break;
+
+    default:
+      error_msg = "Unrecognized request";
+      mock.errorMsgInString(VL_Error, error_msg);
+      return RC_Unrecognized;
+  }
+
+  return RC_Okay;
+}
+
+sSkyReturn * Cortex_SkyCommand(char * sz_command, int ms_timeout)
+{
+  // TODO(Gergely Kovacs) implement this function
+  std::string error_msg = "Function not implemented yet";
+  mock.errorMsgInString(VL_Error, error_msg);
+  return nullptr;
+}
+
+sBodyDefs * Cortex_GetBodyDefs()
+{
+  return &mock.body_defs_;
+}
+
+int Cortex_FreeBodyDefs(sBodyDefs * p_body_defs)
+{
+  // Free bodydefs
+  if (p_body_defs == nullptr) {return RC_Okay;}
+  int n_body_defs = p_body_defs->nBodyDefs;
+  for (int i = 0; i < n_body_defs; ++i) {
+    freeBodyDef(p_body_defs->BodyDefs[i], p_body_defs->nAnalogChannels);
+  }
+
+  // Free analog data
+  int n_analogch = p_body_defs->nAnalogChannels;
+  for (int i_ach_name = 0; i_ach_name < n_analogch; ++i_ach_name) {
+    if (p_body_defs->szAnalogChannelNames[i_ach_name] != nullptr) {
+      delete[] p_body_defs->szAnalogChannelNames[i_ach_name];
+    }
+  }
+  if (n_analogch > 0) {delete[] p_body_defs->szAnalogChannelNames;}
+  delete[] p_body_defs->AnalogLoVoltage;
+  delete[] p_body_defs->AnalogHiVoltage;
+  return RC_Okay;
+}
+
+sFrameOfData * Cortex_GetCurrentFrame()
+{
+  mock.extractFrame(mock.current_frame_, mock.current_frame_ind_);
+  return &mock.current_frame_;
+}
+
+int Cortex_CopyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const
+{
+  p_dst->iFrame = p_src->iFrame;
+  p_dst->fDelay = p_src->fDelay;
+
+  // Copy body datas
+  p_dst->nBodies = p_src->nBodies;
+  int n_bodies = p_dst->nBodies;
+  for (int i = 0; i < n_bodies; i++) {
+    mock.copyBodyData(p_src->BodyData[i], p_dst->BodyData[i]);
+  }
+
+  // Copy unidentified markers
+  p_dst->nUnidentifiedMarkers = p_src->nUnidentifiedMarkers;
+  int n_ui_markers = p_dst->nUnidentifiedMarkers;
+  if (n_ui_markers > 0) {
+    p_dst->UnidentifiedMarkers = new tMarkerData[n_ui_markers];
+    memcpy(p_dst->UnidentifiedMarkers, p_src->UnidentifiedMarkers,
+      n_ui_markers * sizeof(tMarkerData));
+  }
+
+  mock.copyAnalogData(p_src->AnalogData, p_dst->AnalogData);
+
+  // Copy recording data
+  p_dst->RecordingStatus.bRecording = p_src->RecordingStatus.bRecording;
+  p_dst->RecordingStatus.iFirstFrame = p_src->RecordingStatus.iFirstFrame;
+  p_dst->RecordingStatus.iLastFrame = p_src->RecordingStatus.iLastFrame;
+  memcpy(p_dst->RecordingStatus.szFilename, p_src->RecordingStatus.szFilename,
+    strlen(p_src->RecordingStatus.szFilename) + 1);
+
+  // Copy time data
+  p_dst->TimeCode.iFrames = p_src->TimeCode.iFrames;
+  p_dst->TimeCode.iHours = p_src->TimeCode.iHours;
+  p_dst->TimeCode.iMinutes = p_src->TimeCode.iMinutes;
+  p_dst->TimeCode.iSeconds = p_src->TimeCode.iSeconds;
+  p_dst->TimeCode.iStandard = p_src->TimeCode.iStandard;
+
+  return RC_Okay;
+}
+
+int Cortex_FreeFrame(sFrameOfData * p_frame)
+{
+  // Free body datas
+  if (p_frame == nullptr) {return RC_Okay;}
+  int n_bodies = p_frame->nBodies;
+  if (n_bodies > 0) {
+    for (int i_body = 0; i_body < n_bodies; ++i_body) {
+      mock.freeBodyData(p_frame->BodyData[i_body]);
+    }
+  }
+
+  // Free unidentified markers and analog data
+  if (p_frame->nUnidentifiedMarkers > 0) {delete[] p_frame->UnidentifiedMarkers;}
+  if (p_frame->AnalogData.nAnalogSamples > 0 && p_frame->AnalogData.nAnalogChannels > 0) {
+    delete[] p_frame->AnalogData.AnalogSamples;
+  }
+  if (p_frame->AnalogData.nForceSamples > 0 && p_frame->AnalogData.nForcePlates > 0) {
+    delete[] p_frame->AnalogData.Forces;
+  }
+  if (p_frame->AnalogData.nAngleEncoderSamples > 0 && p_frame->AnalogData.nAngleEncoders > 0) {
+    delete[] p_frame->AnalogData.AngleEncoderSamples;
+  }
+  return RC_Okay;
+}
+
+int Cortex_SendHtr(sHierarchy * p_hierarchy, tSegmentData * p_frame)
+{
+  // TODO(Gergely Kovacs) implement this function
+  std::string error_msg = "Function not implemented yet";
+  mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+int Cortex_SetMetered(bool b_active, float f_fixed_latency)
+{
+  // TODO(Gergely Kovacs) if we enable communication with clients in the mock
+  std::string error_msg = "No communication with client in mock version";
+  mock.errorMsgInString(VL_Error, error_msg);
+  return RC_ApiError;
+}
+
+void Cortex_ConstructRotationMatrix(
+  double angles[3], int i_rotation_order,
+  double matrix[3][3]) const
+{
+  // TODO(Gergely Kovacs) implement this function
+  std::string error_msg = "Function not implemented yet";
+  mock.errorMsgInString(VL_Error, error_msg);
+}
+
+void Cortex_ExtractEulerAngles(
+  double matrix[3][3], int i_rotation_order,
+  double angles[3]) const
+{
+  // TODO(Gergely Kovacs) implement this function
+  std::string error_msg = "Function not implemented yet";
+  mock.errorMsgInString(VL_Error, error_msg);
+}
