@@ -14,6 +14,7 @@
 
 #include <string>
 #include <memory>
+#include <functional>
 
 #include "ros2_cortex/MarkerPublisher.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -21,40 +22,22 @@
 namespace ros2_cortex
 {
 
-template<typename Ret, typename ... Params>
-struct CortexClientNode::Callback<Ret(Params...)>
-{
-  template<typename ... Args>
-  static Ret callback(Args... args);
-  static std::function<Ret(Params...)> func;
-};
-
-
 MarkerPublisher::MarkerPublisher()
 : CortexClientNode("marker_publisher")
 {
+  using namespace std::placeholders;
+  CortexClient::getInstance().setDataHandlerFunc(
+    std::bind(&MarkerPublisher::dataHandlerFunc_, this, _1));
   qos.best_effort();
-  Callback<void(sFrameOfData *)>::func = std::bind(&MarkerPublisher::dataHandlerFunc_, this,
-      std::placeholders::_1);
-  auto data_func =
-    static_cast<data_callback_t>(Callback<void(sFrameOfData *)>::callback);
-  setDataHandlerFunc(data_func);
-
-  Callback<void(int i_level, char * sz_msg)>::func = std::bind(
-    &MarkerPublisher::errorMsgHandlerFunc_, this, std::placeholders::_1, std::placeholders::_2);
-  auto error_msg_func = static_cast<error_msg__callback_t>(
-    Callback<void(int i_level, char * sz_msg)>::callback);
-  setErrorMsgHandlerFunc(error_msg_func);
-
   marker_array_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers",
       qos);
 }
 
-void MarkerPublisher::dataHandlerFunc_(sFrameOfData * fod)
+void MarkerPublisher::dataHandlerFunc_(sFrameOfData & frame_of_data)
 {
   marker_array_.markers.clear();
 
-  int n_ui_markers = fod->nUnidentifiedMarkers;
+  int n_ui_markers = frame_of_data.nUnidentifiedMarkers;
   for (int i = 0; i < n_ui_markers; ++i) {
     visualization_msgs::msg::Marker ui_marker;
     auto current_time_ns = rclcpp_lifecycle::LifecycleNode::now().nanoseconds();
@@ -64,9 +47,9 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData * fod)
     ui_marker.ns = "ui_markers";
     ui_marker.id = i;
     ui_marker.action = 0;
-    ui_marker.pose.position.x = fod->UnidentifiedMarkers[i][0];
-    ui_marker.pose.position.y = fod->UnidentifiedMarkers[i][1];
-    ui_marker.pose.position.z = fod->UnidentifiedMarkers[i][2];
+    ui_marker.pose.position.x = frame_of_data.UnidentifiedMarkers[i][0];
+    ui_marker.pose.position.y = frame_of_data.UnidentifiedMarkers[i][1];
+    ui_marker.pose.position.z = frame_of_data.UnidentifiedMarkers[i][2];
     ui_marker.scale.x = 1;
     ui_marker.scale.y = 1;
     ui_marker.scale.z = 1;
@@ -74,21 +57,21 @@ void MarkerPublisher::dataHandlerFunc_(sFrameOfData * fod)
     marker_array_.markers.emplace_back(ui_marker);
   }
 
-  int n_bodies = fod->nBodies;
+  int n_bodies = frame_of_data.nBodies;
   for (int i_body = 0; i_body < n_bodies; ++i_body) {
-    int n_markers = fod->BodyData[i_body].nMarkers;
+    int n_markers = frame_of_data.BodyData[i_body].nMarkers;
     for (int i_marker = 0; i_marker < n_markers; ++i_marker) {
       visualization_msgs::msg::Marker marker;
       auto current_time_ns = rclcpp_lifecycle::LifecycleNode::now().nanoseconds();
       marker.header.stamp.sec = static_cast<int>(current_time_ns / nss_in_s);
       marker.header.stamp.nanosec =
         static_cast<unsigned int>(current_time_ns - marker.header.stamp.sec * nss_in_s);
-      marker.ns = fod->BodyData[i_body].szName;
+      marker.ns = frame_of_data.BodyData[i_body].szName;
       marker.id = i_marker;
       marker.action = 0;
-      marker.pose.position.x = fod->BodyData[i_body].Markers[i_marker][0];
-      marker.pose.position.y = fod->BodyData[i_body].Markers[i_marker][1];
-      marker.pose.position.z = fod->BodyData[i_body].Markers[i_marker][2];
+      marker.pose.position.x = frame_of_data.BodyData[i_body].Markers[i_marker][0];
+      marker.pose.position.y = frame_of_data.BodyData[i_body].Markers[i_marker][1];
+      marker.pose.position.z = frame_of_data.BodyData[i_body].Markers[i_marker][2];
       marker.scale.x = 1;
       marker.scale.y = 1;
       marker.scale.z = 1;

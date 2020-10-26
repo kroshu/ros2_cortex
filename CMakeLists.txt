@@ -29,21 +29,23 @@ find_library(kroshu_ros2_core_LIBRARIES kroshu_ros2_core /root/upstream_ws/build
 
 include_directories(include /root/upstream_ws/src/kroshu_ros2_core/include)
 
-add_library(cortex_mock SHARED
-  src/CortexMock.cpp)
+add_library(cortex_client SHARED
+  src/CortexMock.cpp
+  src/CortexClient.cpp)
 
-add_executable(cortex_client_node
-    src/CortexClientNode.cpp
-    src/CortexClient.cpp)
-ament_target_dependencies(cortex_client_node rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs kroshu_ros2_core)
-target_link_libraries(cortex_client_node
-  cortex_mock ${kroshu_ros2_core_LIBRARIES})
+add_executable(simple_fod_printer
+    src/SimpleFodPrinter.cpp
+    src/CortexClientNode.cpp)
+ament_target_dependencies(simple_fod_printer rclcpp rclcpp_lifecycle lifecycle_msgs kroshu_ros2_core)
+target_link_libraries(simple_fod_printer
+  cortex_client ${kroshu_ros2_core_LIBRARIES})
 
 add_executable(marker_publisher
-    src/MarkerPublisher.cpp)
-ament_target_dependencies(marker_publisher rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs)
+    src/MarkerPublisher.cpp
+    src/CortexClientNode.cpp)
+ament_target_dependencies(marker_publisher rclcpp rclcpp_lifecycle visualization_msgs lifecycle_msgs kroshu_ros2_core)
 target_link_libraries(marker_publisher
-  cortex_mock)
+  cortex_client ${kroshu_ros2_core_LIBRARIES})
 
 add_executable(motion_tracker
     src/MotionTracker.cpp)
@@ -51,7 +53,7 @@ ament_target_dependencies(motion_tracker rclcpp rclcpp_lifecycle visualization_m
             lifecycle_msgs sensor_msgs std_msgs geometry_msgs kroshu_ros2_core)
 target_link_libraries(motion_tracker ${kroshu_ros2_core_LIBRARIES})
 
-install(TARGETS cortex_client marker_publisher motion_tracker
+install(TARGETS simple_fod_printer marker_publisher motion_tracker
     DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

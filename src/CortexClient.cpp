@@ -12,194 +12,306 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <vector>
+#include <string>
+
 #include "ros2_cortex/CortexClient.hpp"
 
 namespace ros2_cortex
 {
-  CortexReturn CortexClient::getSdkVersion(std::vector<int>& version_nums_placeholder) const{
-    unsigned char bridge_array[num_of_version_parts];
-    CortexReturn return_val = Cortex_GetSdkVersion(bridge_array);
-    version_nums_placeholder.resize(num_of_version_parts, 0);
-    for(int i = 0; i < num_of_version_parts; ++i){
-      version_nums_placeholder[i] = static_cast<int>(bridge_array[i]);
-    }
-    return return_val;
-  }
+CortexClient & CortexClient::getInstance()
+{
+  static CortexClient instance;    // Guaranteed to be destroyed.
+                                   // Instantiated on first use.
+  return instance;
+}
 
-  CortexReturn CortexClient::setVerbosityLevel(CortexVerbosityLevel i_level) const{
-    return Cortex_SetVerbosityLevel(static_cast<int>(i_level));
+CortexReturn CortexClient::getSdkVersion(std::vector<int> & version_nums_placeholder)
+{
+  unsigned char bridge_array[num_of_version_parts];
+  CortexReturn return_val = static_cast<CortexReturn>(Cortex_GetSdkVersion(bridge_array));
+  version_nums_placeholder.resize(num_of_version_parts, 0);
+  for (int i = 0; i < num_of_version_parts; ++i) {
+    version_nums_placeholder[i] = static_cast<int>(bridge_array[i]);
   }
+  return return_val;
+}
 
-  CortexVerbosityLevel CortexClient::getVerbosityLevel() const{
-    return Cortex_GetVerbosityLevel();
-  }
+CortexReturn CortexClient::setVerbosityLevel(CortexVerbosityLevel i_level)
+{
+  return static_cast<CortexReturn>(
+    Cortex_SetVerbosityLevel(static_cast<int>(i_level)));
+}
 
-  CortexReturn CortexClient::setMinTimeout(int ms_timeout) const{
-    return Cortex_SetMinTimeout(ms_timeout);
-  }
+CortexVerbosityLevel CortexClient::getVerbosityLevel()
+{
+  return static_cast<CortexVerbosityLevel>(Cortex_GetVerbosityLevel());
+}
 
-  int CortexClient::getMinTimeout() const{
-    return Cortex_GetMinTimeout();
-  }
+CortexReturn CortexClient::setMinTimeout(int ms_timeout)
+{
+  return static_cast<CortexReturn>(Cortex_SetMinTimeout(ms_timeout));
+}
 
-  CortexReturn CortexClient::setErrorMsgHandlerFunc(
-      std::function<void(CortexVerbosityLevel,
-                         const std::string&)> errorMsgHandlerFunc) const{
-    return Cortex_SetErrorMsgHandlerFunc(errorMsgHandlerFunc);
-  }
+int CortexClient::getMinTimeout()
+{
+  return Cortex_GetMinTimeout();
+}
 
-  CortexReturn CortexClient::setDataHandlerFunc(
-      std::function<void(sFrameOfData&)> dataHandlerFunc) const{
-    return Cortex_SetDataHandlerFunc(dataHandlerFunc);
-  }
+void errorMsgHandlerFuncHelper(int i_level, char * msg)
+{
+  const std::string str_msg(msg);
+  CortexClient::getInstance().callErrorMsgHandler(static_cast<CortexVerbosityLevel>(i_level),
+    str_msg);
+}
 
-  CortexReturn CortexClient::sendDataToClients(sFrameOfData& frame_of_data) const{
-    return Cortex_SendDataToClients(&frame_of_data);
-  }
+void CortexClient::callDataHandler(sFrameOfData & fod)
+{
+  dataHandlerFunc_(fod);
+}
 
-  void CortexClient::setClientCommunicationEnabled(bool is_enabled) const{
-    Cortex_SetClientCommunicationEnabled(is_enabled);
-  }
+void CortexClient::callErrorMsgHandler(
+  CortexVerbosityLevel verb_level,
+  const std::string & msg)
+{
+  errorMsgHandlerFunc_(verb_level, msg);
+}
 
-  bool CortexClient::isClientCommunicationEnabled() const{
-    return Cortex_IsClientCommunicationEnabled();
-  }
+CortexReturn CortexClient::setErrorMsgHandlerFunc(
+  std::function<void(CortexVerbosityLevel,
+  const std::string &)> errorMsgHandlerFunc)
+{
+  errorMsgHandlerFunc_ = errorMsgHandlerFunc;
+  return static_cast<CortexReturn>(
+    Cortex_SetErrorMsgHandlerFunc(errorMsgHandlerFuncHelper));
+}
 
-  void CortexClient::setThreadPriorities(
-    CortexThreadPriority listen_for_host, CortexThreadPriority listen_for_data,
-    CortexThreadPriority listen_for_clients) const{
-    Cortex_SetThreadPriorities(static_cast<maThreadPriority>(listen_for_host),
-                               static_cast<maThreadPriority>(listen_for_data),
-                               static_cast<maThreadPriority>(listen_for_clients));
-  }
+void dataHandlerFuncHelper(sFrameOfData * p_fod)
+{
+  CortexClient::getInstance().callDataHandler(*p_fod);
+}
 
-  CortexReturn CortexClient::configurePortNumbers(
-      int talk_to_host_port,  // 0 == find available
-      int host_port,
-      int host_multicast_port,
-      int talk_to_clients_request_port = 0,  // 0 == find available
-      int talk_to_clients_multicast_port = 0,  // 0 == find available
-      int clients_multicast_port = -1) const{
-    return Cortex_ConfigurePortNumbers(talk_to_host_port, host_port,
-                                       host_multicast_port, talk_to_clients_request_port,
-                                       talk_to_clients_multicast_port,
-                                       clients_multicast_port);
-  }
+CortexReturn CortexClient::setDataHandlerFunc(
+  std::function<void(sFrameOfData &)> dataHandlerFunc)
+{
+  dataHandlerFunc_ = dataHandlerFunc;
+  return static_cast<CortexReturn>(
+    Cortex_SetDataHandlerFunc(dataHandlerFuncHelper));
+}
 
-  CortexReturn CortexClient::initialize(
-      const std::string& talk_to_host_nic_card_address,
-      const std::string& host_nic_card_address,
-      const std::string& host_multicast_address = nullptr,
-      const std::string& talk_to_clients_nic_card_address = nullptr,
-      const std::string& clients_multicast_address = nullptr) const{
-    // Ask const in param, but copy, because expected to be const,
-    // but can only be initialized in form of char *
-    std::string param_talk_to_host_nic_card_address = talk_to_host_nic_card_address;
-    std::string param_host_nic_card_address = host_nic_card_address;
-    std::string param_host_multicast_address = host_multicast_address;
-    std::string param_talk_to_clients_nic_card_address = talk_to_clients_nic_card_address;
-    std::string param_clients_multicast_address = clients_multicast_address;
+CortexReturn CortexClient::sendDataToClients(sFrameOfData & frame_of_data)
+{
+  return static_cast<CortexReturn>(Cortex_SendDataToClients(&frame_of_data));
+}
 
-    return Cortex_Initialize(&param_talk_to_host_nic_card_address[0],
-                             &param_host_nic_card_address[0],
-                             &param_host_multicast_address[0],
-                             &param_talk_to_clients_nic_card_address[0],
-                             &param_clients_multicast_address[0]);
-  }
+void CortexClient::setClientCommunicationEnabled(bool is_enabled)
+{
+  Cortex_SetClientCommunicationEnabled(is_enabled);
+}
 
-  CortexReturn CortexClient::getPortNumbers(
-      int& talk_to_host_port,
-      int& host_port,
-      int& host_multicast_port,
-      int& talk_to_clients_request_port,
-      int& talk_to_clients_multicast_port,
-      int& clients_multicast_port) const{
-    return Cortex_GetPortNumbers(&talk_to_host_port, &host_port, &host_multicast_port,
-                                 &talk_to_clients_request_port, &talk_to_clients_multicast_port,
-                                 &clients_multicast_port);
-  }
+bool CortexClient::isClientCommunicationEnabled()
+{
+  return Cortex_IsClientCommunicationEnabled();
+}
 
-  CortexReturn CortexClient::getAddresses(
-      std::string& talk_to_host_nic_card_address_ph,
-      std::string& host_nic_card_address_ph,
-      std::string& host_multicast_address_ph,
-      std::string& talk_to_clients_nic_card_address_ph,
-      std::string& clients_multicast_address_ph) const{
-    return Cortex_GetAddresses(&talk_to_host_nic_card_address_ph[0], &host_nic_card_address_ph[0],
-                      &host_multicast_address_ph[0], &talk_to_clients_nic_card_address_ph[0],
-                      &clients_multicast_address_ph[0]);
-  }
+void CortexClient::setThreadPriorities(
+  CortexThreadPriority listen_for_host, CortexThreadPriority listen_for_data,
+  CortexThreadPriority listen_for_clients)
+{
+  Cortex_SetThreadPriorities(static_cast<maThreadPriority>(listen_for_host),
+    static_cast<maThreadPriority>(listen_for_data),
+    static_cast<maThreadPriority>(listen_for_clients));
+}
 
-  CortexReturn CortexClient::getHostInfo(sHostInfo& host_info_ph) const{
-    return Cortex_GetHostInfo(&host_info_ph);
-  }
+CortexReturn CortexClient::configurePortNumbers(
+  int talk_to_host_port,
+  int host_port,
+  int host_multicast_port,
+  int talk_to_clients_request_port,
+  int talk_to_clients_multicast_port,
+  int clients_multicast_port)
+{
+  return static_cast<CortexReturn>(Cortex_ConfigurePortNumbers(talk_to_host_port, host_port,
+         host_multicast_port, talk_to_clients_request_port,
+         talk_to_clients_multicast_port,
+         clients_multicast_port));
+}
 
-  CortexReturn CortexClient::exit() const{
-    return Cortex_Exit();
-  }
+CortexReturn CortexClient::initialize(
+  const std::string & talk_to_host_nic_card_address,
+  const std::string & host_nic_card_address,
+  const std::string & host_multicast_address,
+  const std::string & talk_to_clients_nic_card_address,
+  const std::string & clients_multicast_address)
+{
+  // Ask const in param, but copy, because expected to be const,
+  // but can only be initialized in form of char *
+  std::string param_talk_to_host_nic_card_address = talk_to_host_nic_card_address;
+  std::string param_host_nic_card_address = host_nic_card_address;
+  std::string param_host_multicast_address = host_multicast_address;
+  std::string param_talk_to_clients_nic_card_address = talk_to_clients_nic_card_address;
+  std::string param_clients_multicast_address = clients_multicast_address;
 
-  CortexReturn CortexClient::request(const std::string& command, void& pp_response,
-                                     int& pn_bytes) const{
-    // Ask const in param, but copy, because expected to be const,
-    // but can only be initialized in form of char *
-    std::string temp_command = command;
-    return Cortex_Request(&temp_command[0], &pp_response, &pn_bytes);
-  }
+  return static_cast<CortexReturn>(Cortex_Initialize(
+           &param_talk_to_host_nic_card_address[0],
+           &param_host_nic_card_address[0],
+           &param_host_multicast_address[0],
+           &param_talk_to_clients_nic_card_address[0],
+           &param_clients_multicast_address[0]));
+}
 
-  sSkyReturn& CortexClient::skyCommand(const std::string& command, int ms_timeout) const{
-    std::string temp_command = command;
-    return Cortex_SkyCommand(&temp_command[0], ms_timeout);
-  }
+CortexReturn CortexClient::getPortNumbers(
+  int & talk_to_host_port,
+  int & host_port,
+  int & host_multicast_port,
+  int & talk_to_clients_request_port,
+  int & talk_to_clients_multicast_port,
+  int & clients_multicast_port)
+{
+  return static_cast<CortexReturn>(Cortex_GetPortNumbers(&talk_to_host_port,
+         &host_port, &host_multicast_port,
+         &talk_to_clients_request_port,
+         &talk_to_clients_multicast_port,
+         &clients_multicast_port));
+}
 
-  sBodyDefs& CortexClient::getBodyDefs() const{
-    return Cortex_GetBodyDefs();
-  }
+CortexReturn CortexClient::getAddresses(
+  std::string & talk_to_host_nic_card_address_ph,
+  std::string & host_nic_card_address_ph,
+  std::string & host_multicast_address_ph,
+  std::string & talk_to_clients_nic_card_address_ph,
+  std::string & clients_multicast_address_ph)
+{
+  return static_cast<CortexReturn>(Cortex_GetAddresses(&talk_to_host_nic_card_address_ph[0],
+         &host_nic_card_address_ph[0],
+         &host_multicast_address_ph[0],
+         &talk_to_clients_nic_card_address_ph[0],
+         &clients_multicast_address_ph[0]));
+}
 
-  CortexReturn CortexClient::freeBodyDefs(sBodyDefs& body_defs) const{
-    return Cortex_FreeBodyDefs(&body_defs);
-  }
+CortexReturn CortexClient::getHostInfo(sHostInfo & host_info_ph)
+{
+  return static_cast<CortexReturn>(Cortex_GetHostInfo(&host_info_ph));
+}
 
-  sFrameOfData& CortexClient::getCurrentFrame() const{
-    return Cortex_GetCurrentFrame();
-  }
+CortexReturn CortexClient::exit()
+{
+  return static_cast<CortexReturn>(Cortex_Exit());
+}
 
-  CortexReturn CortexClient::copyFrame(const sFrameOfData& src, sFrameOfData& dst) const{
-    return Cortex_CopyFrame(&src, &dst);
-  }
+CortexReturn CortexClient::request(
+  CortexRequestWithNoReturn command,
+  const std::string & optional_arg)
+{
+  std::string req_str = optional_arg.empty() ?
+    names_of_reqs_with_no_return.at(command) :
+    names_of_reqs_with_no_return.at(command) + "=" + optional_arg;
+  return static_cast<CortexReturn>(Cortex_Request(&req_str[0], nullptr, nullptr));
+}
+CortexReturn CortexClient::request(
+  CortexRequestWithIntReturn command,
+  int & ret_placeholder)
+{
+  void * p_response = nullptr;
+  int req_size = sizeof(void *);
+  std::string req_str = names_of_reqs_with_int_return.at(command);
+  CortexReturn ret_value = static_cast<CortexReturn>(Cortex_Request(&req_str[0],
+    &p_response, &req_size));
+  ret_placeholder = *static_cast<int *>(p_response);
+  return ret_value;
+}
+CortexReturn CortexClient::request(
+  CortexRequestWithFloatReturn command,
+  float & ret_placeholder)
+{
+  void * p_response = nullptr;
+  int req_size = sizeof(void *);
+  std::string req_str = names_of_reqs_with_float_return.at(command);
+  CortexReturn ret_value = static_cast<CortexReturn>(Cortex_Request(&req_str[0],
+    &p_response, &req_size));
+  ret_placeholder = *static_cast<float *>(p_response);
+  return ret_value;
+}
+CortexReturn CortexClient::requestFrameOfData(
+  sFrameOfData & ret_placeholder,
+  bool base_positions)
+{
+  void * p_response = nullptr;
+  int req_size = sizeof(void *);
+  std::string req_str = base_positions ? "GetFrameOfData=BasePositions" : "GetFrameOfData";
+  CortexReturn ret_value = static_cast<CortexReturn>(Cortex_Request(&req_str[0],
+    &p_response, &req_size));
+  ret_placeholder = *static_cast<sFrameOfData *>(p_response);
+  return ret_value;
+}
 
-  CortexReturn CortexClient::freeFrame(sFrameOfData& frame) const{
-    return Cortex_FreeFrame(&frame);
-  }
+sSkyReturn & CortexClient::skyCommand(const std::string & command, int ms_timeout)
+{
+  std::string temp_command = command;
+  return *Cortex_SkyCommand(&temp_command[0], ms_timeout);
+}
 
-  CortexReturn CortexClient::sendHtr(const sHierarchy& hierarchy,
-                                     const tSegmentData& segment_data) const{
-    // Ask const in param, but copy, because expected to be const,
-    // but can only be initialized in form of pointers
-    sHierarchy param_hierarchy = hierarchy;
-    tSegmentData param_segment_data = segment_data;
-    return Cortex_SendHtr(&param_hierarchy, &param_segment_data);
-  }
+sBodyDefs & CortexClient::getBodyDefs()
+{
+  return *Cortex_GetBodyDefs();
+}
 
-  CortexReturn CortexClient::setMetered(bool active, float fixed_latency) const{
-    return Cortex_SetMetered(active, fixed_latency);
-  }
+CortexReturn CortexClient::freeBodyDefs(sBodyDefs & body_defs)
+{
+  return static_cast<CortexReturn>(Cortex_FreeBodyDefs(&body_defs));
+}
 
-  // TODO(Gergely Kovacs) maybe use Eigen?
-  void CortexClient::constructRotationMatrix(std::array<double, 3> angles, int rotation_order,
-                               std::array<std::array<double, 3>, 3> matrix) const{
-    double param_angles[3] = {angles[0], angles[1], angles[2]};
-    double param_matrix[3][3];
-    std::copy(std::begin(param_matrix), std::end(param_matrix),
-              std::begin(matrix));
-    Cortex_ConstructRotationMatrix(param_angles, rotation_order, param_matrix);
-  }
+sFrameOfData & CortexClient::getCurrentFrame()
+{
+  return *Cortex_GetCurrentFrame();
+}
 
-  void CortexClient::extractEulerAngles(std::array<std::array<double, 3>, 3> matrix,
-                          int rotation_order, std::array<double, 3> angles) const{
-    double param_angles[3] = {angles[0], angles[1], angles[2]};
-        double param_matrix[3][3];
-        std::copy(std::begin(param_matrix), std::end(param_matrix),
-                  std::begin(matrix));
-    Cortex_ExtractEulerAngles(param_matrix, rotation_order, param_angles);
-  }
+CortexReturn CortexClient::copyFrame(const sFrameOfData & src, sFrameOfData & dst)
+{
+  return static_cast<CortexReturn>(Cortex_CopyFrame(&src, &dst));
+}
+
+CortexReturn CortexClient::freeFrame(sFrameOfData & frame)
+{
+  return static_cast<CortexReturn>(Cortex_FreeFrame(&frame));
+}
+
+CortexReturn CortexClient::sendHtr(
+  const sHierarchy & hierarchy,
+  const tSegmentData & segment_data)
+{
+  // Ask const in param, but copy, because expected to be const,
+  // but can only be initialized in form of pointers
+  sHierarchy param_hierarchy = hierarchy;
+  tSegmentData param_segment_data = {segment_data[0], segment_data[1],
+    segment_data[2], segment_data[3],
+    segment_data[4], segment_data[5],
+    segment_data[6]};
+  return static_cast<CortexReturn>(Cortex_SendHtr(&param_hierarchy,
+         &param_segment_data));
+}
+
+CortexReturn CortexClient::setMetered(bool active, float fixed_latency)
+{
+  return static_cast<CortexReturn>(Cortex_SetMetered(active, fixed_latency));
+}
+
+//  // TODO(Gergely Kovacs) maybe use Eigen?
+//  void CortexClient::constructRotationMatrix(std::array<double, 3> angles, int rotation_order,
+//                               std::array<std::array<double, 3>, 3> matrix){
+//    double param_angles[3] = {angles[0], angles[1], angles[2]};
+//    double param_matrix[3][3];
+//    std::copy(std::begin(param_matrix), std::end(param_matrix),
+//              std::begin(matrix));
+//    Cortex_ConstructRotationMatrix(param_angles, rotation_order, param_matrix);
+//  }
+//
+//  void CortexClient::extractEulerAngles(std::array<std::array<double, 3>, 3> matrix,
+//                          int rotation_order, std::array<double, 3> angles){
+//    double param_angles[3] = {angles[0], angles[1], angles[2]};
+//        double param_matrix[3][3];
+//        std::copy(std::begin(param_matrix), std::end(param_matrix),
+//                  std::begin(matrix));
+//    Cortex_ExtractEulerAngles(param_matrix, rotation_order, param_angles);
+//  }
 }  // namespace ros2_cortex

@@ -77,7 +77,7 @@ CortexMock & CortexMock::operator=(CortexMock other)
 CortexMock::~CortexMock()
 {
   if (run_thread.joinable()) {run_thread.join();}
-  freeFrame(&current_frame_);
+  Cortex_FreeFrame(&current_frame_);
 }
 
 void CortexMock::errorMsgInString(int i_level, std::string & msg_str) const
@@ -455,7 +455,7 @@ void CortexMock::extractSegments(
 
 void CortexMock::extractFrame(sFrameOfData & fod, int i_frame)
 {
-  freeFrame(&fod);
+  Cortex_FreeFrame(&fod);
   const rapidjson::Value & frame = document_["framesArray"][i_frame];
   fod.iFrame = frame["frame"].GetInt();
   fod.fDelay = frame["frameDelay"].GetFloat();
@@ -524,10 +524,9 @@ void CortexMock::run()
   }
 }
 
-const std::string capture_file_path = "/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json";
+const char capture_file_path[] =
+  "/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json";
 CortexMock mock(capture_file_path);
-
-
 
 int Cortex_GetSdkVersion(unsigned char version[4])
 {
@@ -554,7 +553,7 @@ int Cortex_SetMinTimeout(int ms_timeout)
   // Timeout has no use here actually,
   // because we don't communicate with the host
   std::string error_msg = "No use of timeout in mock version";
-  mock.mock.errorMsgInString(VL_Error, error_msg);
+  mock.errorMsgInString(VL_Error, error_msg);
   return RC_ApiError;
 }
 
@@ -563,7 +562,7 @@ int Cortex_GetMinTimeout()
   // Timeout has no use here actually,
   // because we don't communicate with the host
   std::string error_msg = "No use of timeout in mock version";
-  mock.mock.errorMsgInString(VL_Error, error_msg);
+  mock.errorMsgInString(VL_Error, error_msg);
   return RC_ApiError;
 }
 
@@ -581,7 +580,7 @@ int Cortex_SetDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of
   return RC_Okay;
 }
 
-int Cortex_SendDataToClients(sFrameOfData * p_frame_of_data) const
+int Cortex_SendDataToClients(sFrameOfData * p_frame_of_data)
 {
   // TODO(Gergely Kovacs) send through TCP if client communication is going to be enabled
   std::string error_msg = "No communication with client in mock version";
@@ -596,7 +595,7 @@ void Cortex_SetClientCommunicationEnabled(int b_enabled)
   mock.errorMsgInString(VL_Error, error_msg);
 }
 
-int Cortex_IsClientCommunicationEnabled() const
+int Cortex_IsClientCommunicationEnabled()
 {
   // TODO(Gergely Kovacs) do we enable communication with clients in the mock
   std::string error_msg = "No communication with client in mock version";
@@ -655,7 +654,7 @@ int Cortex_GetPortNumbers(
   int * host_multicast_port,
   int * talk_to_clients_request_port,
   int * talk_to_clients_multicast_port,
-  int * clients_multicast_port) const
+  int * clients_multicast_port)
 {
   // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
   std::string error_msg = "No communication with client neither with host in mock version";
@@ -668,7 +667,7 @@ int Cortex_GetAddresses(
   char * sz_host_nic_card_address,
   char * sz_host_multicast_address,
   char * sz_talk_to_clients_nic_card_address,
-  char * sz_clients_multicast_address) const
+  char * sz_clients_multicast_address)
 {
   // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
   std::string error_msg = "No communication with client neither with host in mock version";
@@ -676,7 +675,7 @@ int Cortex_GetAddresses(
   return RC_ApiError;
 }
 
-int Cortex_GetHostInfo(sHostInfo * p_host_info) const
+int Cortex_GetHostInfo(sHostInfo * p_host_info)
 {
   // TODO(Gergely Kovacs) needs to be implemented if client communication is going to be enabled
   std::string error_msg = "Found mock version, no communication with host in mock version";
@@ -688,7 +687,7 @@ int Cortex_Exit()
 {
   mock.running_ = false;
   mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
-  if(mock.run_thread.joinable()) mock.run_thread.join();
+  if (mock.run_thread.joinable()) {mock.run_thread.join();}
   return RC_Okay;
 }
 
@@ -780,7 +779,7 @@ int Cortex_FreeBodyDefs(sBodyDefs * p_body_defs)
   if (p_body_defs == nullptr) {return RC_Okay;}
   int n_body_defs = p_body_defs->nBodyDefs;
   for (int i = 0; i < n_body_defs; ++i) {
-    freeBodyDef(p_body_defs->BodyDefs[i], p_body_defs->nAnalogChannels);
+    mock.freeBodyDef(p_body_defs->BodyDefs[i], p_body_defs->nAnalogChannels);
   }
 
   // Free analog data
@@ -802,7 +801,7 @@ sFrameOfData * Cortex_GetCurrentFrame()
   return &mock.current_frame_;
 }
 
-int Cortex_CopyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst) const
+int Cortex_CopyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
 {
   p_dst->iFrame = p_src->iFrame;
   p_dst->fDelay = p_src->fDelay;
@@ -885,7 +884,7 @@ int Cortex_SetMetered(bool b_active, float f_fixed_latency)
 
 void Cortex_ConstructRotationMatrix(
   double angles[3], int i_rotation_order,
-  double matrix[3][3]) const
+  double matrix[3][3])
 {
   // TODO(Gergely Kovacs) implement this function
   std::string error_msg = "Function not implemented yet";
@@ -894,7 +893,7 @@ void Cortex_ConstructRotationMatrix(
 
 void Cortex_ExtractEulerAngles(
   double matrix[3][3], int i_rotation_order,
-  double angles[3]) const
+  double angles[3])
 {
   // TODO(Gergely Kovacs) implement this function
   std::string error_msg = "Function not implemented yet";
