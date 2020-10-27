@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <mutex>
 
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/writer.h"
@@ -37,6 +38,7 @@ void CortexMock::readFile()
   std::vector<char> read_buffer(read_buffer_size_);
   rapidjson::FileReadStream is(fp, read_buffer.data(), read_buffer_size_);
 
+  std::lock_guard<std::mutex> guard(run_cycle_mutex);
   document_.ParseStream(is);
   fclose(fp);
   n_frames_ = document_["framesArray"].Size();
@@ -44,39 +46,10 @@ void CortexMock::readFile()
   // extractBodyDefs(body_defs_, document_["bodyDefs"]);
 }
 
-CortexMock::CortexMock(const CortexMock & other)
-: verbosity_level_(other.verbosity_level_), analog_bit_depth_(other.analog_bit_depth_),
-  conv_rate_to_mm_(other.conv_rate_to_mm_), frame_rate_(other.frame_rate_), analog_sample_rate_(
-    other.analog_sample_rate_), play_mode_(other.play_mode_),
-  axis_up_(other.axis_up_), capture_file_name_(other.capture_file_name_),
-  current_frame_ind_(other.current_frame_ind_)
-{
-  // the result of the copy-constructor isn't active yet, even if the other one was active
-  // TODO(Gergely Kovacs) if we connect to client, addresses and ports need to be copied, too
-}
-
-void CortexMock::swap(CortexMock & other) noexcept
-{
-  std::swap(verbosity_level_, other.verbosity_level_);
-  std::swap(analog_bit_depth_, other.analog_bit_depth_);
-  std::swap(conv_rate_to_mm_, other.conv_rate_to_mm_);
-  std::swap(frame_rate_, other.frame_rate_);
-  std::swap(analog_sample_rate_, other.analog_sample_rate_);
-  std::swap(play_mode_, other.play_mode_);
-  std::swap(axis_up_, other.axis_up_);
-  std::swap(capture_file_name_, other.capture_file_name_);
-  std::swap(current_frame_ind_, other.current_frame_ind_);
-}
-
-CortexMock & CortexMock::operator=(CortexMock other)
-{
-  other.swap(*this);  // Non-throwing swap
-  return *this;
-}
-
 CortexMock::~CortexMock()
 {
   if (run_thread.joinable()) {run_thread.join();}
+  // Locking mutex not needed here, run_thread is joint
   Cortex_FreeFrame(&current_frame_);
 }
 
@@ -504,21 +477,25 @@ void CortexMock::extractFrame(sFrameOfData & fod, int i_frame)
 void CortexMock::run()
 {
   running_ = true;
-  while (running_) {
-    switch (static_cast<PlayMode>(play_mode_)) {
-      case PlayMode::forwards:
-        extractFrame(current_frame_, current_frame_ind_);
-        dataHandlerFunc_(&current_frame_);
-        current_frame_ind_ = current_frame_ind_ < n_frames_ - 1 ? current_frame_ind_ + 1 : 0;
-        break;
-      case PlayMode::backwards:
-        extractFrame(current_frame_, current_frame_ind_);
-        dataHandlerFunc_(&current_frame_);
-        current_frame_ind_ = current_frame_ind_ > 0 ? current_frame_ind_ - 1 : n_frames_ - 1;
-        break;
+  while (true) {
+    {
+      std::lock_guard<std::mutex> guard(run_cycle_mutex);
+      if (!running_) {break;}
+      switch (static_cast<PlayMode>(play_mode_)) {
+        case PlayMode::forwards:
+          extractFrame(current_frame_, current_frame_ind_);
+          dataHandlerFunc_(&current_frame_);
+          current_frame_ind_ = current_frame_ind_ < n_frames_ - 1 ? current_frame_ind_ + 1 : 0;
+          break;
+        case PlayMode::backwards:
+          extractFrame(current_frame_, current_frame_ind_);
+          dataHandlerFunc_(&current_frame_);
+          current_frame_ind_ = current_frame_ind_ > 0 ? current_frame_ind_ - 1 : n_frames_ - 1;
+          break;
 
-      default:
-        break;
+        default:
+          break;
+      }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(ms_in_s / frame_rate_)));
   }
@@ -576,6 +553,7 @@ int Cortex_SetErrorMsgHandlerFunc(
 
 int Cortex_SetDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data))
 {
+  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
   mock.dataHandlerFunc_ = dataHandlerFunc;
   return RC_Okay;
 }
@@ -685,6 +663,7 @@ int Cortex_GetHostInfo(sHostInfo * p_host_info)
 
 int Cortex_Exit()
 {
+  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
   mock.running_ = false;
   mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
   if (mock.run_thread.joinable()) {mock.run_thread.join();}
@@ -720,18 +699,23 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
       return RC_ApiError;
     // Mock does deal with post mode requests though
     case CortexMock::Request::PostForward:
+      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
       mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::forwards);
       break;
     case CortexMock::Request::PostBackward:
+      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
       mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::backwards);
       break;
     case CortexMock::Request::PostPause:
+      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
       mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
       break;
     case CortexMock::Request::PostGetPlayMode:
+      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
       *pp_response = &mock.play_mode_;
       break;
     case CortexMock::Request::GetContextFrameRate:
+      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
       *pp_response = &mock.frame_rate_;
       break;
     case CortexMock::Request::GetContextAnalogSampleRate:
@@ -747,7 +731,10 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
       *pp_response = &mock.conv_rate_to_mm_;
       break;
     case CortexMock::Request::GetFrameOfData:
-      if (command_extra.empty()) {*pp_response = &mock.current_frame_;}
+      if (command_extra.empty()) {
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        *pp_response = &mock.current_frame_;
+      }
       // TODO(Gergely Kovacs) else return markerset base pos
       break;
 
@@ -797,6 +784,7 @@ int Cortex_FreeBodyDefs(sBodyDefs * p_body_defs)
 
 sFrameOfData * Cortex_GetCurrentFrame()
 {
+  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
   mock.extractFrame(mock.current_frame_, mock.current_frame_ind_);
   return &mock.current_frame_;
 }

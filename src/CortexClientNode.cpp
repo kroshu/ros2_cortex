@@ -47,10 +47,10 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
   CortexClient::getInstance().setErrorMsgHandlerFunc(
     std::bind(&CortexClientNode::errorMsgHandlerFunc_, this, _1, _2));
 
-  std::string forw_comm = "PostPause";
+  std::string first_comm = "PostPause";
   kroshu_ros2_core::ROS2BaseNode::declareParameter("request_command",
     rclcpp::ParameterValue(
-      forw_comm),
+      first_comm),
     rclcpp::ParameterType::PARAMETER_STRING, kroshu_ros2_core::ParameterSetAccessRights {
       false, false, true, false},
     std::bind(&CortexClientNode::onRequestCommandChanged, this, std::placeholders::_1));

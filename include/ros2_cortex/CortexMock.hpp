@@ -24,6 +24,7 @@
 #include <map>
 #include <utility>
 #include <thread>
+#include <mutex>
 
 #include "Cortex.h"
 #include "rapidjson/document.h"
@@ -32,9 +33,8 @@ class CortexMock
 {
 public:
   explicit CortexMock(const std::string & capture_file_name);
-  CortexMock(const CortexMock & other);
-  void swap(CortexMock & other) noexcept;
-  CortexMock & operator=(CortexMock other);
+  CortexMock(const CortexMock & other) = delete;
+  CortexMock & operator=(CortexMock other) = delete;
   ~CortexMock();
   int n_frames_, current_frame_ind_ = 0,
     verbosity_level_ = 2, analog_bit_depth_ = 16;    // a_b_d_ 12 or 16 usually
@@ -42,6 +42,7 @@ public:
   static constexpr float ms_in_s = 1000.0;
   bool running_ = false;
   std::thread run_thread;
+  std::mutex run_cycle_mutex;
   float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
   enum class PlayMode {backwards = -1, paused, forwards};
   int play_mode_ = static_cast<int>(PlayMode::paused);
