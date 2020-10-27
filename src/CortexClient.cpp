@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <string>
+#include <algorithm>
 
 #include "ros2_cortex/CortexClient.hpp"
 
@@ -296,22 +297,26 @@ CortexReturn CortexClient::setMetered(bool active, float fixed_latency)
   return static_cast<CortexReturn>(Cortex_SetMetered(active, fixed_latency));
 }
 
-//  // TODO(Gergely Kovacs) maybe use Eigen?
-//  void CortexClient::constructRotationMatrix(std::array<double, 3> angles, int rotation_order,
-//                               std::array<std::array<double, 3>, 3> matrix){
-//    double param_angles[3] = {angles[0], angles[1], angles[2]};
-//    double param_matrix[3][3];
-//    std::copy(std::begin(param_matrix), std::end(param_matrix),
-//              std::begin(matrix));
-//    Cortex_ConstructRotationMatrix(param_angles, rotation_order, param_matrix);
-//  }
-//
-//  void CortexClient::extractEulerAngles(std::array<std::array<double, 3>, 3> matrix,
-//                          int rotation_order, std::array<double, 3> angles){
-//    double param_angles[3] = {angles[0], angles[1], angles[2]};
-//        double param_matrix[3][3];
-//        std::copy(std::begin(param_matrix), std::end(param_matrix),
-//                  std::begin(matrix));
-//    Cortex_ExtractEulerAngles(param_matrix, rotation_order, param_angles);
-//  }
+// TODO(Gergely Kovacs) maybe use Eigen?
+void CortexClient::constructRotationMatrix(
+  std::array<double, 3> angles, int rotation_order,
+  std::array<std::array<double, 3>, 3> matrix)
+{
+  double param_angles[3] = {angles[0], angles[1], angles[2]};
+  double param_matrix[3][3] = {matrix[0][0], matrix[0][1], matrix[0][2],
+    matrix[1][0], matrix[1][1], matrix[1][2],
+    matrix[2][0], matrix[2][1], matrix[2][2]};
+  Cortex_ConstructRotationMatrix(param_angles, rotation_order, param_matrix);
+}
+
+void CortexClient::extractEulerAngles(
+  std::array<std::array<double, 3>, 3> matrix,
+  int rotation_order, std::array<double, 3> angles)
+{
+  double param_angles[3] = {angles[0], angles[1], angles[2]};
+  double param_matrix[3][3] = {matrix[0][0], matrix[0][1], matrix[0][2],
+    matrix[1][0], matrix[1][1], matrix[1][2],
+    matrix[2][0], matrix[2][1], matrix[2][2]};
+  Cortex_ExtractEulerAngles(param_matrix, rotation_order, param_angles);
+}
 }  // namespace ros2_cortex

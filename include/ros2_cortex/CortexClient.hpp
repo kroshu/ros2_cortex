@@ -174,10 +174,12 @@ public:
   CortexReturn sendHtr(const sHierarchy & p_hierarchy, const tSegmentData & p_frame);
   CortexReturn setMetered(bool active, float fixed_latency);
   // TODO(Gergely Kovacs) maybe use Eigen?
-//  void constructRotationMatrix(std::array<double, 3> angles, int rotation_order,
-//                               std::array<std::array<double, 3>, 3> matrix);
-//  void extractEulerAngles(std::array<std::array<double, 3>, 3> matrix,
-//                          int rotation_order, std::array<double, 3> angles);
+  void constructRotationMatrix(
+    std::array<double, 3> angles, int rotation_order,
+    std::array<std::array<double, 3>, 3> matrix);
+  void extractEulerAngles(
+    std::array<std::array<double, 3>, 3> matrix,
+    int rotation_order, std::array<double, 3> angles);
 
 private:
   CortexClient() {}
