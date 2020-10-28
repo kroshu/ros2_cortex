@@ -20,7 +20,7 @@ int main(int argc, char const * argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::executors::SingleThreadedExecutor executor;
-  auto node = std::make_shared<ros2_cortex::CortexClientNode>("cortex_client");
+  auto node = std::make_shared<ros2_cortex::CortexClientNode>("simple_fod_printer");
   executor.add_node(node->get_node_base_interface());
   executor.spin();
   rclcpp::shutdown();

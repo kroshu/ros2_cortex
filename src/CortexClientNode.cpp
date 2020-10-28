@@ -74,14 +74,9 @@ void CortexClientNode::exit()
 
 void CortexClientNode::run()
 {
-  CortexClient::getInstance().initialize(nullptr, nullptr);
+  const std::string empty_str = "";
+  CortexClient::getInstance().initialize(empty_str, empty_str);
   CortexClient::getInstance().request(CortexRequestWithNoReturn::PostForward);
-}
-
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-CortexClientNode::on_configure(const rclcpp_lifecycle::State & state)
-{
-  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn

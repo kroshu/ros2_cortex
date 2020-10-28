@@ -141,9 +141,9 @@ public:
   CortexReturn initialize(
     const std::string & talk_to_host_nic_card_address,
     const std::string & host_nic_card_address,
-    const std::string & host_multicast_address = nullptr,
-    const std::string & talk_to_clients_nic_card_address = nullptr,
-    const std::string & clients_multicast_address = nullptr);
+    const std::string & host_multicast_address = "",
+    const std::string & talk_to_clients_nic_card_address = "",
+    const std::string & clients_multicast_address = "");
   CortexReturn getPortNumbers(
     int & talk_to_host_port,
     int & host_port,
