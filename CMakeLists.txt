@@ -48,8 +48,8 @@ add_executable(motion_tracker
 ament_target_dependencies(motion_tracker rclcpp rclcpp_lifecycle visualization_msgs
             lifecycle_msgs sensor_msgs std_msgs geometry_msgs kroshu_ros2_core)
 target_link_libraries(motion_tracker
-   ${kroshu_ros2_core_LIBRARIES})
-  
+  ${kroshu_ros2_core_LIBRARIES})
+
 target_include_directories(cortex_client
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
