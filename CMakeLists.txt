@@ -25,10 +25,6 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(kroshu_ros2_core REQUIRED)
 
-find_library(kroshu_ros2_core_LIBRARIES kroshu_ros2_core /root/upstream_ws/build/kroshu_ros2_core)
-
-include_directories(include /root/upstream_ws/src/kroshu_ros2_core/include)
-
 add_library(cortex_client SHARED
   src/CortexMock.cpp
   src/CortexClient.cpp)
@@ -51,8 +47,26 @@ add_executable(motion_tracker
     src/MotionTracker.cpp)
 ament_target_dependencies(motion_tracker rclcpp rclcpp_lifecycle visualization_msgs
             lifecycle_msgs sensor_msgs std_msgs geometry_msgs kroshu_ros2_core)
-target_link_libraries(motion_tracker ${kroshu_ros2_core_LIBRARIES})
+target_link_libraries(motion_tracker
+   ${kroshu_ros2_core_LIBRARIES})
+  
+target_include_directories(cortex_client
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    ${kroshu_ros2_core_INCLUDE_DIRS})
 
+target_include_directories(simple_fod_printer
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    ${kroshu_ros2_core_INCLUDE_DIRS})
+target_include_directories(marker_publisher
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    ${kroshu_ros2_core_INCLUDE_DIRS})
+target_include_directories(motion_tracker
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    ${kroshu_ros2_core_INCLUDE_DIRS})
 install(TARGETS simple_fod_printer marker_publisher motion_tracker
     DESTINATION lib/${PROJECT_NAME})
 
