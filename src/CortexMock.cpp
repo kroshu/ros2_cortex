@@ -622,7 +622,7 @@ int Cortex_Initialize(
   // sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
 
   mock.readFile();
-  mock.run_thread = std::thread(&CortexMock::run, mock);
+  mock.run_thread = std::thread(&CortexMock::run, &mock);
   return RC_Okay;
 }
 
