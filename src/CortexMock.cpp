@@ -38,7 +38,7 @@ void CortexMock::readFile()
   std::vector<char> read_buffer(read_buffer_size_);
   rapidjson::FileReadStream is(fp, read_buffer.data(), read_buffer_size_);
 
-  std::lock_guard<std::mutex> guard(run_cycle_mutex);
+  std::lock_guard<std::mutex> guard(run_cycle_mutex_);
   document_.ParseStream(is);
   fclose(fp);
   n_frames_ = document_["framesArray"].Size();
@@ -48,7 +48,7 @@ void CortexMock::readFile()
 
 CortexMock::~CortexMock()
 {
-  if (run_thread.joinable()) {run_thread.join();}
+  if (run_thread_.joinable()) {run_thread_.join();}
   // Locking mutex not needed here, run_thread is joint
   Cortex_FreeFrame(&current_frame_);
 }
@@ -479,7 +479,7 @@ void CortexMock::run()
   running_ = true;
   while (true) {
     {
-      std::lock_guard<std::mutex> guard(run_cycle_mutex);
+      std::lock_guard<std::mutex> guard(run_cycle_mutex_);
       if (!running_) {break;}
       switch (static_cast<PlayMode>(play_mode_)) {
         case PlayMode::forwards:
@@ -553,7 +553,7 @@ int Cortex_SetErrorMsgHandlerFunc(
 
 int Cortex_SetDataHandlerFunc(void (* dataHandlerFunc)(sFrameOfData * p_frame_of_data))
 {
-  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
   mock.dataHandlerFunc_ = dataHandlerFunc;
   return RC_Okay;
 }
@@ -622,7 +622,7 @@ int Cortex_Initialize(
   // sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
 
   mock.readFile();
-  mock.run_thread = std::thread(&CortexMock::run, &mock);
+  mock.run_thread_ = std::thread(&CortexMock::run, &mock);
   return RC_Okay;
 }
 
@@ -663,10 +663,12 @@ int Cortex_GetHostInfo(sHostInfo * p_host_info)
 
 int Cortex_Exit()
 {
-  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
-  mock.running_ = false;
-  mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
-  if (mock.run_thread.joinable()) {mock.run_thread.join();}
+  {
+    std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
+    mock.running_ = false;
+    mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
+  }
+  if (mock.run_thread_.joinable()) {mock.run_thread_.join();}
   return RC_Okay;
 }
 
@@ -700,31 +702,31 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
     // Mock does deal with post mode requests though
     case CortexMock::Request::PostForward:
       {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
         mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::forwards);
       }
       break;
     case CortexMock::Request::PostBackward:
       {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
         mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::backwards);
       }
       break;
     case CortexMock::Request::PostPause:
       {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
         mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
       }
       break;
     case CortexMock::Request::PostGetPlayMode:
       {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
         *pp_response = &mock.play_mode_;
       }
       break;
     case CortexMock::Request::GetContextFrameRate:
       {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
         *pp_response = &mock.frame_rate_;
       }
       break;
@@ -743,7 +745,7 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
     case CortexMock::Request::GetFrameOfData:
       {
         if (command_extra.empty()) {
-          std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+          std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
           *pp_response = &mock.current_frame_;
         }
       }
@@ -796,7 +798,7 @@ int Cortex_FreeBodyDefs(sBodyDefs * p_body_defs)
 
 sFrameOfData * Cortex_GetCurrentFrame()
 {
-  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
   mock.extractFrame(mock.current_frame_, mock.current_frame_ind_);
   return &mock.current_frame_;
 }

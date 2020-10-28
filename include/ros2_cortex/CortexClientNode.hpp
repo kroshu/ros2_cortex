@@ -49,7 +49,7 @@ public:
   on_deactivate(const rclcpp_lifecycle::State & state);
 
 private:
-  std::thread run_thread;
+  std::thread run_thread_;
   void run();
   void exit();
   bool onCapFileNameChangeRequest(const kroshu_ros2_core::Parameter & param);

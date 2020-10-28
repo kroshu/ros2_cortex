@@ -61,13 +61,14 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
 
 CortexClientNode::~CortexClientNode()
 {
-  if (run_thread.joinable()) {run_thread.join();}
+  if (run_thread_.joinable()) {run_thread_.join();}
   CortexClient::getInstance().freeFrame(current_fod_);
   CortexClient::getInstance().exit();
 }
 
 void CortexClientNode::exit()
 {
+  if (run_thread_.joinable()) {run_thread_.join();}
   CortexClient::getInstance().freeFrame(current_fod_);
   CortexClient::getInstance().exit();
 }
@@ -82,7 +83,7 @@ void CortexClientNode::run()
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_activate(const rclcpp_lifecycle::State & state)
 {
-  run_thread = std::thread(&CortexClientNode::run, this);
+  run_thread_ = std::thread(&CortexClientNode::run, this);
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
@@ -90,7 +91,6 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_deactivate(const rclcpp_lifecycle::State & state)
 {
   exit();
-  run_thread.join();
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
@@ -133,7 +133,12 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
         names_of_reqs_with_no_return.begin(),
         names_of_reqs_with_no_return.end(),
         [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
-      success = CortexClient::getInstance().request(command->first);
+      if (command == names_of_reqs_with_no_return.end()) {
+        RCLCPP_ERROR(get_logger(), "No request with the name exists");
+        success = CortexReturn::GeneralError;
+      } else {
+        success = CortexClient::getInstance().request(command->first);
+      }
     }
   }
 
