@@ -699,24 +699,34 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
       return RC_ApiError;
     // Mock does deal with post mode requests though
     case CortexMock::Request::PostForward:
-      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
-      mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::forwards);
+      {
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::forwards);
+      }
       break;
     case CortexMock::Request::PostBackward:
-      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
-      mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::backwards);
+      {
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::backwards);
+      }
       break;
     case CortexMock::Request::PostPause:
-      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
-      mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
+      {
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
+      }
       break;
     case CortexMock::Request::PostGetPlayMode:
-      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
-      *pp_response = &mock.play_mode_;
+      {
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        *pp_response = &mock.play_mode_;
+      }
       break;
     case CortexMock::Request::GetContextFrameRate:
-      std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
-      *pp_response = &mock.frame_rate_;
+      {
+        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+        *pp_response = &mock.frame_rate_;
+      }
       break;
     case CortexMock::Request::GetContextAnalogSampleRate:
       *pp_response = &mock.analog_sample_rate_;
@@ -731,9 +741,11 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
       *pp_response = &mock.conv_rate_to_mm_;
       break;
     case CortexMock::Request::GetFrameOfData:
-      if (command_extra.empty()) {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
-        *pp_response = &mock.current_frame_;
+      {
+        if (command_extra.empty()) {
+          std::lock_guard<std::mutex> guard(mock.run_cycle_mutex);
+          *pp_response = &mock.current_frame_;
+        }
       }
       // TODO(Gergely Kovacs) else return markerset base pos
       break;
