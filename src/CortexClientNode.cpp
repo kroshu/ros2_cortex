@@ -134,46 +134,48 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
       RCLCPP_INFO(get_logger(),
         "Number of unidentified markers " + std::to_string(fod.nUnidentifiedMarkers));
     } else {
+      std::string command_extra;
+      size_t pos = comm_str.find('=');
+      if (pos != std::string::npos) {
+        command_extra = comm_str.substr(pos);
+        comm_str = comm_str.substr(0, pos);
+      }
       auto command = std::find_if(
         names_of_reqs_with_no_return.begin(),
         names_of_reqs_with_no_return.end(),
         [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
       if (command == names_of_reqs_with_no_return.end()) {
         RCLCPP_ERROR(get_logger(), "No request with the name exists");
-        success = CortexReturn::GeneralError;
-      } else {
-        switch (command->first) {
-          case CortexRequestWithNoReturn::LiveMode:
-            CortexClient::getInstance().liveMode();
-            break;
-          case CortexRequestWithNoReturn::Pause:
-            CortexClient::getInstance().pause();
-            break;
-          case CortexRequestWithNoReturn::SetOutputName:
-            CortexClient::getInstance().setOutputName(file_name);
-            break;
-          case CortexRequestWithNoReturn::StartRecording:
-            CortexClient::getInstance().startRecording();
-            break;
-          case CortexRequestWithNoReturn::StopRecording:
-            CortexClient::getInstance().stopRecording();
-            break;
-          case CortexRequestWithNoReturn::ResetIDs:
-            CortexClient::getInstance().resetIds(marker_set_name);
-            break;
-          case CortexRequestWithNoReturn::PostForward:
-            CortexClient::getInstance().postForward();
-            break;
-          case CortexRequestWithNoReturn::PostBackward:
-            CortexClient::getInstance().postBackward();
-            break;
-          case CortexRequestWithNoReturn::PostPause:
-            CortexClient::getInstance().postPause();
-            break;
-          default:
-            CortexClient::getInstance().liveMode();
-            break;
-        }
+        return false;
+      }
+      switch (command->first) {
+        case CortexRequestWithNoReturn::LiveMode:
+          CortexClient::getInstance().liveMode();
+          break;
+        case CortexRequestWithNoReturn::Pause:
+          CortexClient::getInstance().pause();
+          break;
+        case CortexRequestWithNoReturn::SetOutputName:
+          CortexClient::getInstance().setOutputName(command_extra);
+          break;
+        case CortexRequestWithNoReturn::StartRecording:
+          CortexClient::getInstance().startRecording();
+          break;
+        case CortexRequestWithNoReturn::StopRecording:
+          CortexClient::getInstance().stopRecording();
+          break;
+        case CortexRequestWithNoReturn::ResetIDs:
+          CortexClient::getInstance().resetIds(command_extra);
+          break;
+        case CortexRequestWithNoReturn::PostForward:
+          CortexClient::getInstance().postForward();
+          break;
+        case CortexRequestWithNoReturn::PostBackward:
+          CortexClient::getInstance().postBackward();
+          break;
+        default:
+          CortexClient::getInstance().postPause();
+          break;
       }
     }
   }
