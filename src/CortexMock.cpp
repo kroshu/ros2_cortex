@@ -38,7 +38,6 @@ void CortexMock::readFile()
   std::vector<char> read_buffer(read_buffer_size_);
   rapidjson::FileReadStream is(fp, read_buffer.data(), read_buffer_size_);
 
-  std::lock_guard<std::mutex> guard(run_cycle_mutex_);
   document_.ParseStream(is);
   fclose(fp);
   n_frames_ = document_["framesArray"].Size();

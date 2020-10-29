@@ -30,14 +30,6 @@
 namespace ros2_cortex
 {
 
-std::string getFileExtension(const std::string & file_name)
-{
-  if (file_name.find_last_of(".") != std::string::npos) {
-    return file_name.substr(file_name.find_last_of(".") + 1);
-  }
-  return "";
-}
-
 CortexClientNode::CortexClientNode(const std::string & node_name)
 : kroshu_ros2_core::ROS2BaseNode(node_name)
 {
@@ -61,29 +53,22 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
 
 CortexClientNode::~CortexClientNode()
 {
-  if (run_thread_.joinable()) {run_thread_.join();}
   CortexClient::getInstance().freeFrame(current_fod_);
   CortexClient::getInstance().exit();
 }
 
 void CortexClientNode::exit()
 {
-  if (run_thread_.joinable()) {run_thread_.join();}
   CortexClient::getInstance().freeFrame(current_fod_);
   CortexClient::getInstance().exit();
-}
-
-void CortexClientNode::run()
-{
-  const std::string empty_str = "";
-  CortexClient::getInstance().initialize(empty_str, empty_str);
-  CortexClient::getInstance().request(CortexRequestWithNoReturn::PostForward);
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_activate(const rclcpp_lifecycle::State & state)
 {
-  run_thread_ = std::thread(&CortexClientNode::run, this);
+  const std::string empty_str = "";
+  CortexClient::getInstance().initialize(empty_str, empty_str);
+  CortexClient::getInstance().postForward();
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
@@ -94,7 +79,7 @@ CortexClientNode::on_deactivate(const rclcpp_lifecycle::State & state)
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
-bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter & param)
+bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter & param) const
 {
   CortexReturn success = CortexReturn::Okay;
   const std::string comm_str = param.getValue().get<std::string>();
@@ -106,7 +91,17 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
       names_of_reqs_with_int_return.begin(),
       names_of_reqs_with_int_return.end(),
       [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
-    success = CortexClient::getInstance().request(command->first, response);
+    switch (command->first) {
+      case CortexRequestWithIntReturn::PostGetPlayMode:
+        response = CortexClient::getInstance().postGetPlayMode();
+        break;
+      case CortexRequestWithIntReturn::GetContextAnalogBitDepth:
+        response = CortexClient::getInstance().getContextAnalogBitDepth();
+        break;
+      default:
+        response = CortexClient::getInstance().getUpAxis();
+        break;
+    }
     RCLCPP_INFO(get_logger(),
       "Result of request " + comm_str + ": " + std::to_string(response));
   } else {  // Formatted this way, so that both cpplint and uncrustify can pass
@@ -119,12 +114,22 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
         names_of_reqs_with_float_return.begin(),
         names_of_reqs_with_float_return.end(),
         [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
-      success = CortexClient::getInstance().request(command->first, response);
+      switch (command->first) {
+        case CortexRequestWithFloatReturn::GetContextFrameRate:
+          response = CortexClient::getInstance().getContextFrameRate();
+          break;
+        case CortexRequestWithFloatReturn::GetContextAnalogSampleRate:
+          response = CortexClient::getInstance().getContextAnalogSampleRate();
+          break;
+        default:
+          response = CortexClient::getInstance().getConversionToMillimeters();
+          break;
+      }
       RCLCPP_INFO(get_logger(),
         "Result of request " + comm_str + ": " + std::to_string(response));
     } else if (comm_str == "GetFrameOfData") {
       sFrameOfData fod;
-      success = CortexClient::getInstance().requestFrameOfData(fod, false);
+      CortexClient::getInstance().getFrameOfData(fod, false);
       RCLCPP_INFO(get_logger(), "Frame " + std::to_string(fod.iFrame));
       RCLCPP_INFO(get_logger(),
         "Number of unidentified markers " + std::to_string(fod.nUnidentifiedMarkers));
@@ -137,7 +142,38 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
         RCLCPP_ERROR(get_logger(), "No request with the name exists");
         success = CortexReturn::GeneralError;
       } else {
-        success = CortexClient::getInstance().request(command->first);
+        switch (command->first) {
+          case CortexRequestWithNoReturn::LiveMode:
+            CortexClient::getInstance().liveMode();
+            break;
+          case CortexRequestWithNoReturn::Pause:
+            CortexClient::getInstance().pause();
+            break;
+          case CortexRequestWithNoReturn::SetOutputName:
+            CortexClient::getInstance().setOutputName(file_name);
+            break;
+          case CortexRequestWithNoReturn::StartRecording:
+            CortexClient::getInstance().startRecording();
+            break;
+          case CortexRequestWithNoReturn::StopRecording:
+            CortexClient::getInstance().stopRecording();
+            break;
+          case CortexRequestWithNoReturn::ResetIDs:
+            CortexClient::getInstance().resetIds(marker_set_name);
+            break;
+          case CortexRequestWithNoReturn::PostForward:
+            CortexClient::getInstance().postForward();
+            break;
+          case CortexRequestWithNoReturn::PostBackward:
+            CortexClient::getInstance().postBackward();
+            break;
+          case CortexRequestWithNoReturn::PostPause:
+            CortexClient::getInstance().postPause();
+            break;
+          default:
+            CortexClient::getInstance().liveMode();
+            break;
+        }
       }
     }
   }

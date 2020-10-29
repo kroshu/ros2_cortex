@@ -111,75 +111,83 @@ public:
   static CortexClient & getInstance();
   CortexClient(CortexClient const &) = delete;
   void operator=(CortexClient const &) = delete;
-  CortexReturn getSdkVersion(std::vector<int> & version_nums_placeholder);
-  CortexReturn setVerbosityLevel(CortexVerbosityLevel i_level);
-  CortexVerbosityLevel getVerbosityLevel();
-  CortexReturn setMinTimeout(int ms_timeout);
-  int getMinTimeout();
+  CortexReturn getSdkVersion(std::vector<int> & version_nums_placeholder) const;
+  CortexReturn setVerbosityLevel(CortexVerbosityLevel i_level) const;
+  CortexVerbosityLevel getVerbosityLevel() const;
+  CortexReturn setMinTimeout(int ms_timeout) const;
+  int getMinTimeout() const;
   CortexReturn setErrorMsgHandlerFunc(
-    std::function<void(CortexVerbosityLevel,
-    const std::string &)> errorMsgHandlerFunc);
-  void callDataHandler(sFrameOfData & fod);
-  void callErrorMsgHandler(
-    CortexVerbosityLevel verb_level,
-    const std::string & msg);
+    const std::function<void(CortexVerbosityLevel,
+    const std::string &)> & errorMsgHandlerFunc);
+  static void dataHandlerFuncHelper(sFrameOfData * p_fod);
+  static void errorMsgHandlerFuncHelper(int i_level, char * msg);
   CortexReturn setDataHandlerFunc(
-    std::function<void(sFrameOfData &)> dataHandlerFunc);
-  CortexReturn sendDataToClients(sFrameOfData & frame_of_data);
-  void setClientCommunicationEnabled(bool is_enabled);
-  bool isClientCommunicationEnabled();
+    const std::function<void(sFrameOfData &)> & dataHandlerFunc);
+  CortexReturn sendDataToClients(sFrameOfData & frame_of_data) const;
+  void setClientCommunicationEnabled(bool is_enabled) const;
+  bool isClientCommunicationEnabled() const;
   void setThreadPriorities(
     CortexThreadPriority listen_for_host, CortexThreadPriority listen_for_data,
-    CortexThreadPriority listen_for_clients);
+    CortexThreadPriority listen_for_clients) const;
   CortexReturn configurePortNumbers(
     int talk_to_host_port,    // 0 == find available
     int host_port,
     int host_multicast_port,
     int talk_to_clients_request_port = 0,    // 0 == find available
     int talk_to_clients_multicast_port = 0,    // 0 == find available
-    int clients_multicast_port = -1);
+    int clients_multicast_port = -1) const;
   CortexReturn initialize(
     const std::string & talk_to_host_nic_card_address,
     const std::string & host_nic_card_address,
     const std::string & host_multicast_address = "",
     const std::string & talk_to_clients_nic_card_address = "",
-    const std::string & clients_multicast_address = "");
+    const std::string & clients_multicast_address = "") const;
   CortexReturn getPortNumbers(
     int & talk_to_host_port,
     int & host_port,
     int & host_multicast_port,
     int & talk_to_clients_request_port,
     int & talk_to_clients_multicast_port,
-    int & clients_multicast_port);
+    int & clients_multicast_port) const;
   CortexReturn getAddresses(
     std::string & talk_to_host_nic_card_address_ph,
     std::string & host_nic_card_address_ph,
     std::string & host_multicast_address_ph,
     std::string & talk_to_clients_nic_card_address_ph,
-    std::string & clients_multicast_address_ph);
-  CortexReturn getHostInfo(sHostInfo & host_info_ph);
-  CortexReturn exit();
-  CortexReturn request(
-    CortexRequestWithNoReturn command,
-    const std::string & optional_arg = "");
-  CortexReturn request(CortexRequestWithIntReturn command, int & ret_placeholder);
-  CortexReturn request(CortexRequestWithFloatReturn command, float & ret_placeholder);
-  CortexReturn requestFrameOfData(sFrameOfData & ret_placeholder, bool base_positions);
-  sSkyReturn & skyCommand(const std::string & command, int ms_timeout);
-  sBodyDefs & getBodyDefs();
-  CortexReturn freeBodyDefs(sBodyDefs & body_defs);
-  sFrameOfData & getCurrentFrame();
-  CortexReturn copyFrame(const sFrameOfData & src, sFrameOfData & dst);
-  CortexReturn freeFrame(sFrameOfData & frame);
-  CortexReturn sendHtr(const sHierarchy & p_hierarchy, const tSegmentData & p_frame);
-  CortexReturn setMetered(bool active, float fixed_latency);
+    std::string & clients_multicast_address_ph) const;
+  CortexReturn getHostInfo(sHostInfo & host_info_ph) const;
+  CortexReturn exit() const;
+  void liveMode() const;
+  void pause() const;
+  void setOutputName(const std::string & file_name) const;
+  void startRecording() const;
+  void stopRecording() const;
+  void resetIds(const std::string & marker_set_name) const;
+  void postForward() const;
+  void postBackward() const;
+  void postPause() const;
+  int postGetPlayMode() const;
+  float getContextFrameRate() const;
+  float getContextAnalogSampleRate() const;
+  int getContextAnalogBitDepth() const;
+  int getUpAxis() const;
+  float getConversionToMillimeters() const;
+  void getFrameOfData(sFrameOfData & ret_placeholder, bool base_positions) const;
+  sSkyReturn & skyCommand(const std::string & command, int ms_timeout) const;
+  sBodyDefs & getBodyDefs() const;
+  CortexReturn freeBodyDefs(sBodyDefs & body_defs) const;
+  sFrameOfData & getCurrentFrame() const;
+  CortexReturn copyFrame(const sFrameOfData & src, sFrameOfData & dst) const;
+  CortexReturn freeFrame(sFrameOfData & frame) const;
+  CortexReturn sendHtr(const sHierarchy & p_hierarchy, const tSegmentData & p_frame) const;
+  CortexReturn setMetered(bool active, float fixed_latency) const;
   // TODO(Gergely Kovacs) maybe use Eigen?
   void constructRotationMatrix(
-    std::array<double, 3> angles, int rotation_order,
-    std::array<std::array<double, 3>, 3> matrix);
+    const std::array<double, 3> & angles, int rotation_order,
+    const std::array<std::array<double, 3>, 3> & matrix) const;
   void extractEulerAngles(
-    std::array<std::array<double, 3>, 3> matrix,
-    int rotation_order, std::array<double, 3> angles);
+    const std::array<std::array<double, 3>, 3> & matrix,
+    int rotation_order, const std::array<double, 3> & angles) const;
 
 private:
   CortexClient() {}
@@ -187,6 +195,11 @@ private:
   std::function<void(CortexVerbosityLevel,
     const std::string &)> errorMsgHandlerFunc_;
   std::function<void(sFrameOfData &)> dataHandlerFunc_;
+  CortexReturn request(
+    CortexRequestWithNoReturn command,
+    const std::string & optional_arg = "") const;
+  CortexReturn request(CortexRequestWithIntReturn command, int & ret_placeholder) const;
+  CortexReturn request(CortexRequestWithFloatReturn command, float & ret_placeholder) const;
 };
 
 }  // namespace ros2_cortex
