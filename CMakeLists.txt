@@ -25,6 +25,10 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(kroshu_ros2_core REQUIRED)
 
+find_library(kroshu_ros2_core_LIBRARIES kroshu_ros2_core /root/upstream_ws/build/kroshu_ros2_core)
+
+include_directories(include /root/upstream_ws/src/kroshu_ros2_core/include)
+
 add_library(cortex_client SHARED
   src/CortexMock.cpp
   src/CortexClient.cpp)
