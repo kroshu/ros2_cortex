@@ -82,7 +82,7 @@ CortexClientNode::on_deactivate(const rclcpp_lifecycle::State & state)
 bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter & param) const
 {
   CortexReturn success = CortexReturn::Okay;
-  const std::string comm_str = param.getValue().get<std::string>();
+  std::string comm_str = param.getValue().get<std::string>();
   if (comm_str == "PostGetPlayMode" || comm_str == "GetContextAnalogBitDepth" ||
     comm_str == "GetUpAxis")
   {
