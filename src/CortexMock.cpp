@@ -736,11 +736,17 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
   std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
   switch (req_type) {
     case CortexMock::Request::LiveMode:
-      mock.is_in_live_ = true;
+      if (!mock.is_in_live_) {
+        mock.is_in_live_ = true;
+        mock.current_frame_ind_ = 0;
+      }
       mock.is_playing_in_live = true;
       break;
     case CortexMock::Request::Pause:
-      mock.is_in_live_ = true;
+      if (!mock.is_in_live_) {
+        mock.is_in_live_ = true;
+        mock.current_frame_ind_ = 0;
+      }
       mock.is_playing_in_live = false;
       break;
     case CortexMock::Request::SetOutputName:
@@ -760,15 +766,24 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
       return RC_ApiError;
     // Mock does deal with post mode requests though
     case CortexMock::Request::PostForward:
-      mock.is_in_live_ = false;
+      if (mock.is_in_live_) {
+        mock.is_in_live_ = false;
+        mock.current_frame_ind_ = mock.post_starter_frame_;
+      }
       mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::forwards);
       break;
     case CortexMock::Request::PostBackward:
-      mock.is_in_live_ = false;
+      if (mock.is_in_live_) {
+        mock.is_in_live_ = false;
+        mock.current_frame_ind_ = mock.post_starter_frame_;
+      }
       mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::backwards);
       break;
     case CortexMock::Request::PostPause:
-      mock.is_in_live_ = false;
+      if (mock.is_in_live_) {
+        mock.is_in_live_ = false;
+        mock.current_frame_ind_ = mock.post_starter_frame_;
+      }
       mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::paused);
       break;
     case CortexMock::Request::PostGetPlayMode:

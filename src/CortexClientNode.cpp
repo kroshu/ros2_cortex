@@ -68,7 +68,7 @@ CortexClientNode::on_activate(const rclcpp_lifecycle::State & state)
 {
   const std::string empty_str = "";
   CortexClient::getInstance().initialize(empty_str, empty_str);
-  CortexClient::getInstance().postForward();
+  CortexClient::getInstance().liveMode();
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
