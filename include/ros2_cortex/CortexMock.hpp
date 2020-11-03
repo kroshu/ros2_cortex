@@ -44,8 +44,12 @@ public:
   std::thread run_thread_;
   std::mutex run_cycle_mutex_;
   float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
-  enum class PlayMode {backwards = -1, paused, forwards};
-  int play_mode_ = static_cast<int>(PlayMode::paused);
+  enum class PostPlayMode {backwards = -1, paused, forwards};
+  int post_play_mode_ = static_cast<int>(PostPlayMode::paused);
+  int post_starter_frame_ = 0, post_end_frame_;
+  int repeat_num_ = 0, actual_repeat_ = 0;
+  bool is_in_live_ = true, is_playing_in_live = false;
+  bool is_recording_in_live = false;
   enum class Request {LiveMode, Pause, SetOutputName, StartRecording,
     StopRecording, ResetIDs, PostForward, PostBackward, PostPause,
     PostGetPlayMode, GetContextFrameRate, GetContextAnalogSampleRate,
@@ -83,6 +87,10 @@ public:
   std::function<void(sFrameOfData *)> dataHandlerFunc_;
   std::function<void(int iLogLevel, char * szLogMessage)> errorMsgHandlerFunc_;
   void run();
+  void runCycle();
+  void liveRunCycle();
+  void postForwardRunCycle();
+  void postBackwardRunCycle();
   void extractFrame(sFrameOfData & fod, int iFrame);
   void extractBodies(sFrameOfData & fod, const rapidjson::Value & parent_frame_json);
   // TODO(Gergely Kovacs) check if passing vector would be better here

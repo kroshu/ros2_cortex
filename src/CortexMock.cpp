@@ -473,29 +473,75 @@ void CortexMock::extractFrame(sFrameOfData & fod, int i_frame)
   }
 }
 
+void CortexMock::runCycle()
+{
+  std::lock_guard<std::mutex> guard(run_cycle_mutex_);
+  if (!running_) {return;}
+  if (is_in_live_) {
+    liveRunCycle();
+  } else {
+    switch (static_cast<PostPlayMode>(post_play_mode_)) {
+      case PostPlayMode::forwards:
+        postForwardRunCycle();
+        break;
+      case PostPlayMode::backwards:
+        postBackwardRunCycle();
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+void CortexMock::liveRunCycle()
+{
+  if (is_playing_in_live) {
+    extractFrame(current_frame_, current_frame_ind_);
+    dataHandlerFunc_(&current_frame_);
+    if (current_frame_ind_ < n_frames_ - 1) {
+      current_frame_ind_++;
+    } else {
+      current_frame_ind_ = 0;
+      if (is_recording_in_live) {repeat_num_++;}
+    }
+  }
+}
+
+void CortexMock::postForwardRunCycle()
+{
+  extractFrame(current_frame_, current_frame_ind_);
+  dataHandlerFunc_(&current_frame_);
+  if (actual_repeat_ < repeat_num_) {
+    current_frame_ind_ = current_frame_ind_ < n_frames_ - 1 ?
+      current_frame_ind_ + 1 : 0;
+    if (current_frame_ind_ == 0) {actual_repeat_++;}
+  } else {
+    if (current_frame_ind_ == post_end_frame_) {actual_repeat_ = 0;}
+    current_frame_ind_ = current_frame_ind_ < post_end_frame_ ?
+      current_frame_ind_ + 1 : post_starter_frame_;
+  }
+}
+
+void CortexMock::postBackwardRunCycle()
+{
+  extractFrame(current_frame_, current_frame_ind_);
+  dataHandlerFunc_(&current_frame_);
+  if (actual_repeat_ > 0) {
+    current_frame_ind_ = current_frame_ind_ > 0 ?
+      current_frame_ind_ - 1 : n_frames_ - 1;
+    if (current_frame_ind_ == n_frames_ - 1) {actual_repeat_--;}
+  } else {
+    if (current_frame_ind_ == post_starter_frame_) {actual_repeat_ = repeat_num_;}
+    current_frame_ind_ = current_frame_ind_ > post_starter_frame_ ?
+      current_frame_ind_ - 1 : post_end_frame_;
+  }
+}
+
 void CortexMock::run()
 {
   running_ = true;
   while (true) {
-    {
-      std::lock_guard<std::mutex> guard(run_cycle_mutex_);
-      if (!running_) {break;}
-      switch (static_cast<PlayMode>(play_mode_)) {
-        case PlayMode::forwards:
-          extractFrame(current_frame_, current_frame_ind_);
-          dataHandlerFunc_(&current_frame_);
-          current_frame_ind_ = current_frame_ind_ < n_frames_ - 1 ? current_frame_ind_ + 1 : 0;
-          break;
-        case PlayMode::backwards:
-          extractFrame(current_frame_, current_frame_ind_);
-          dataHandlerFunc_(&current_frame_);
-          current_frame_ind_ = current_frame_ind_ > 0 ? current_frame_ind_ - 1 : n_frames_ - 1;
-          break;
-
-        default:
-          break;
-      }
-    }
+    runCycle();
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(ms_in_s / frame_rate_)));
   }
 }
@@ -665,7 +711,7 @@ int Cortex_Exit()
   {
     std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
     mock.running_ = false;
-    mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
+    mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::paused);
   }
   if (mock.run_thread_.joinable()) {mock.run_thread_.join();}
   return RC_Okay;
@@ -687,47 +733,49 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
   }
   std::string error_msg = "Mock handles no live mode requests";
   CortexMock::Request req_type = found_it->second;
+  std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
   switch (req_type) {
-    // Mock doesn't and can't deal with live mode requests
-    // TODO(Gergely Kovacs) should it?
     case CortexMock::Request::LiveMode:
+      mock.is_in_live_ = true;
+      mock.is_playing_in_live = true;
+      break;
     case CortexMock::Request::Pause:
+      mock.is_in_live_ = true;
+      mock.is_playing_in_live = false;
+      break;
     case CortexMock::Request::SetOutputName:
+      break;
     case CortexMock::Request::StartRecording:
+      mock.is_recording_in_live = true;
+      mock.repeat_num_ = 0;
+      mock.actual_repeat_ = 0;
+      mock.post_starter_frame_ = mock.current_frame_ind_;
+      break;
     case CortexMock::Request::StopRecording:
+      mock.is_recording_in_live = false;
+      mock.post_end_frame_ = mock.current_frame_ind_;
+      break;
     case CortexMock::Request::ResetIDs:
       mock.errorMsgInString(VL_Error, error_msg);
       return RC_ApiError;
     // Mock does deal with post mode requests though
     case CortexMock::Request::PostForward:
-      {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
-        mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::forwards);
-      }
+      mock.is_in_live_ = false;
+      mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::forwards);
       break;
     case CortexMock::Request::PostBackward:
-      {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
-        mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::backwards);
-      }
+      mock.is_in_live_ = false;
+      mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::backwards);
       break;
     case CortexMock::Request::PostPause:
-      {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
-        mock.play_mode_ = static_cast<int>(CortexMock::PlayMode::paused);
-      }
+      mock.is_in_live_ = false;
+      mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::paused);
       break;
     case CortexMock::Request::PostGetPlayMode:
-      {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
-        *pp_response = &mock.play_mode_;
-      }
+      *pp_response = &mock.post_play_mode_;
       break;
     case CortexMock::Request::GetContextFrameRate:
-      {
-        std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
-        *pp_response = &mock.frame_rate_;
-      }
+      *pp_response = &mock.frame_rate_;
       break;
     case CortexMock::Request::GetContextAnalogSampleRate:
       *pp_response = &mock.analog_sample_rate_;
@@ -742,11 +790,8 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
       *pp_response = &mock.conv_rate_to_mm_;
       break;
     case CortexMock::Request::GetFrameOfData:
-      {
-        if (command_extra.empty()) {
-          std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
-          *pp_response = &mock.current_frame_;
-        }
+      if (command_extra.empty()) {
+        *pp_response = &mock.current_frame_;
       }
       // TODO(Gergely Kovacs) else return markerset base pos
       break;
