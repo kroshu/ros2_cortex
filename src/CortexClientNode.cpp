@@ -34,12 +34,16 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
 : kroshu_ros2_core::ROS2BaseNode(node_name)
 {
   using namespace std::placeholders;
-  CortexClient::getInstance().setDataHandlerFunc(
-    std::bind(&CortexClientNode::dataHandlerFunc_, this, _1));
-  CortexClient::getInstance().setErrorMsgHandlerFunc(
-    std::bind(&CortexClientNode::errorMsgHandlerFunc_, this, _1, _2));
+  cortex_client_->setDataHandlerFunc([this](sFrameOfData & fod) {
+      CortexClientNode::dataHandlerFunc_(fod);
+    });
+  cortex_client_->setErrorMsgHandlerFunc(
+    [this](CortexVerbosityLevel log_level,
+    const std::string & log_message) {
+      CortexClientNode::errorMsgHandlerFunc_(log_level, log_message);
+    });
 
-  std::string first_comm = "PostPause";
+  std::string first_comm = "Pause";
   kroshu_ros2_core::ROS2BaseNode::declareParameter("request_command",
     rclcpp::ParameterValue(
       first_comm),
@@ -53,22 +57,22 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
 
 CortexClientNode::~CortexClientNode()
 {
-  CortexClient::getInstance().freeFrame(current_fod_);
-  CortexClient::getInstance().exit();
+  cortex_client_->freeFrame(current_fod_);
+  cortex_client_->exit();
 }
 
 void CortexClientNode::exit()
 {
-  CortexClient::getInstance().freeFrame(current_fod_);
-  CortexClient::getInstance().exit();
+  cortex_client_->freeFrame(current_fod_);
+  cortex_client_->exit();
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_activate(const rclcpp_lifecycle::State & state)
 {
   const std::string empty_str = "";
-  CortexClient::getInstance().initialize(empty_str, empty_str);
-  CortexClient::getInstance().liveMode();
+  cortex_client_->initialize(empty_str, empty_str);
+  cortex_client_->liveMode();
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
@@ -93,13 +97,13 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
       [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
     switch (command->first) {
       case CortexRequestWithIntReturn::PostGetPlayMode:
-        response = CortexClient::getInstance().postGetPlayMode();
+        response = cortex_client_->postGetPlayMode();
         break;
       case CortexRequestWithIntReturn::GetContextAnalogBitDepth:
-        response = CortexClient::getInstance().getContextAnalogBitDepth();
+        response = cortex_client_->getContextAnalogBitDepth();
         break;
       default:
-        response = CortexClient::getInstance().getUpAxis();
+        response = cortex_client_->getUpAxis();
         break;
     }
     RCLCPP_INFO(get_logger(),
@@ -116,20 +120,20 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
         [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
       switch (command->first) {
         case CortexRequestWithFloatReturn::GetContextFrameRate:
-          response = CortexClient::getInstance().getContextFrameRate();
+          response = cortex_client_->getContextFrameRate();
           break;
         case CortexRequestWithFloatReturn::GetContextAnalogSampleRate:
-          response = CortexClient::getInstance().getContextAnalogSampleRate();
+          response = cortex_client_->getContextAnalogSampleRate();
           break;
         default:
-          response = CortexClient::getInstance().getConversionToMillimeters();
+          response = cortex_client_->getConversionToMillimeters();
           break;
       }
       RCLCPP_INFO(get_logger(),
         "Result of request " + comm_str + ": " + std::to_string(response));
     } else if (comm_str == "GetFrameOfData") {
       sFrameOfData fod;
-      CortexClient::getInstance().getFrameOfData(fod, false);
+      cortex_client_->getFrameOfData(fod, false);
       RCLCPP_INFO(get_logger(), "Frame " + std::to_string(fod.iFrame));
       RCLCPP_INFO(get_logger(),
         "Number of unidentified markers " + std::to_string(fod.nUnidentifiedMarkers));
@@ -150,31 +154,31 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
       }
       switch (command->first) {
         case CortexRequestWithNoReturn::LiveMode:
-          CortexClient::getInstance().liveMode();
+          cortex_client_->liveMode();
           break;
         case CortexRequestWithNoReturn::Pause:
-          CortexClient::getInstance().pause();
+          cortex_client_->pause();
           break;
         case CortexRequestWithNoReturn::SetOutputName:
-          CortexClient::getInstance().setOutputName(command_extra);
+          cortex_client_->setOutputName(command_extra);
           break;
         case CortexRequestWithNoReturn::StartRecording:
-          CortexClient::getInstance().startRecording();
+          cortex_client_->startRecording();
           break;
         case CortexRequestWithNoReturn::StopRecording:
-          CortexClient::getInstance().stopRecording();
+          cortex_client_->stopRecording();
           break;
         case CortexRequestWithNoReturn::ResetIDs:
-          CortexClient::getInstance().resetIds(command_extra);
+          cortex_client_->resetIds(command_extra);
           break;
         case CortexRequestWithNoReturn::PostForward:
-          CortexClient::getInstance().postForward();
+          cortex_client_->postForward();
           break;
         case CortexRequestWithNoReturn::PostBackward:
-          CortexClient::getInstance().postBackward();
+          cortex_client_->postBackward();
           break;
         default:
-          CortexClient::getInstance().postPause();
+          cortex_client_->postPause();
           break;
       }
     }
@@ -185,7 +189,7 @@ bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter
 
 void CortexClientNode::dataHandlerFunc_(sFrameOfData & fod)
 {
-  CortexClient::getInstance().copyFrame(fod, current_fod_);
+  cortex_client_->copyFrame(fod, current_fod_);
   RCLCPP_INFO(get_logger(), "Frame " + std::to_string(current_fod_.iFrame));
   RCLCPP_INFO(get_logger(),
     "Number of unidentified markers " + std::to_string(current_fod_.nUnidentifiedMarkers));

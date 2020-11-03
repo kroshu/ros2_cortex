@@ -26,8 +26,9 @@ MarkerPublisher::MarkerPublisher()
 : CortexClientNode("marker_publisher")
 {
   using namespace std::placeholders;
-  CortexClient::getInstance().setDataHandlerFunc(
-    std::bind(&MarkerPublisher::dataHandlerFunc_, this, _1));
+  cortex_client_->setDataHandlerFunc([this](sFrameOfData & fod) {
+      MarkerPublisher::dataHandlerFunc_(fod);
+    });
   qos.best_effort();
   marker_array_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers",
       qos);

@@ -20,6 +20,8 @@
 #include <map>
 #include <array>
 #include <string>
+#include <memory>
+#include <mutex>
 
 #include "Cortex.h"
 #include "ros2_cortex/CortexClient.hpp"
@@ -108,7 +110,7 @@ const std::map<CortexRequestWithFloatReturn, std::string> names_of_reqs_with_flo
 class CortexClient
 {
 public:
-  static CortexClient & getInstance();
+  static std::shared_ptr<CortexClient> getInstance();
   CortexClient(CortexClient const &) = delete;
   void operator=(CortexClient const &) = delete;
   CortexReturn getSdkVersion(std::vector<int> & version_nums_placeholder) const;
@@ -117,12 +119,12 @@ public:
   CortexReturn setMinTimeout(int ms_timeout) const;
   int getMinTimeout() const;
   CortexReturn setErrorMsgHandlerFunc(
-    const std::function<void(CortexVerbosityLevel,
-    const std::string &)> & errorMsgHandlerFunc);
+    std::function<void(CortexVerbosityLevel,
+    const std::string &)> errorMsgHandlerFunc);
   static void dataHandlerFuncHelper(sFrameOfData * p_fod);
   static void errorMsgHandlerFuncHelper(int i_level, char * msg);
   CortexReturn setDataHandlerFunc(
-    const std::function<void(sFrameOfData &)> & dataHandlerFunc);
+    std::function<void(sFrameOfData &)> dataHandlerFunc);
   CortexReturn sendDataToClients(sFrameOfData & frame_of_data) const;
   void setClientCommunicationEnabled(bool is_enabled) const;
   bool isClientCommunicationEnabled() const;
@@ -191,10 +193,13 @@ public:
 
 private:
   CortexClient() {}
+  static std::shared_ptr<CortexClient> instance_;
+  static std::mutex instance_mutex_;
+  static bool is_instantiated_;
   static const int num_of_version_parts = 4;
-  std::function<void(CortexVerbosityLevel,
+  static std::function<void(CortexVerbosityLevel,
     const std::string &)> errorMsgHandlerFunc_;
-  std::function<void(sFrameOfData &)> dataHandlerFunc_;
+  static std::function<void(sFrameOfData &)> dataHandlerFunc_;
   CortexReturn request(
     CortexRequestWithNoReturn command,
     const std::string & optional_arg = "") const;

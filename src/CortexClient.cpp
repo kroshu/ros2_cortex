@@ -15,16 +15,31 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <stdexcept>
+#include <memory>
 
 #include "ros2_cortex/CortexClient.hpp"
 
 namespace ros2_cortex
 {
-CortexClient & CortexClient::getInstance()
+
+std::shared_ptr<CortexClient> CortexClient::instance_;
+std::mutex CortexClient::instance_mutex_;
+bool CortexClient::is_instantiated_ = false;
+std::function<void(CortexVerbosityLevel,
+  const std::string &)> CortexClient::errorMsgHandlerFunc_;
+std::function<void(sFrameOfData &)> CortexClient::dataHandlerFunc_;
+
+std::shared_ptr<CortexClient> CortexClient::getInstance()
 {
-  static CortexClient instance;    // Guaranteed to be destroyed.
-                                   // Instantiated on first use.
-  return instance;
+  std::unique_lock<std::mutex> lock(instance_mutex_,
+    std::try_to_lock);
+  if (!lock.owns_lock() || is_instantiated_) {
+    throw std::runtime_error("Cannot instantiate multiple times");
+  } else {
+    is_instantiated_ = true;
+    return instance_;
+  }
 }
 
 CortexReturn CortexClient::getSdkVersion(std::vector<int> & version_nums_placeholder) const
@@ -62,13 +77,13 @@ int CortexClient::getMinTimeout() const
 void CortexClient::errorMsgHandlerFuncHelper(int i_level, char * msg)
 {
   const std::string str_msg(msg);
-  getInstance().errorMsgHandlerFunc_(static_cast<CortexVerbosityLevel>(i_level),
+  errorMsgHandlerFunc_(static_cast<CortexVerbosityLevel>(i_level),
     str_msg);
 }
 
 CortexReturn CortexClient::setErrorMsgHandlerFunc(
-  const std::function<void(CortexVerbosityLevel,
-  const std::string &)> & errorMsgHandlerFunc)
+  std::function<void(CortexVerbosityLevel,
+  const std::string &)> errorMsgHandlerFunc)
 {
   errorMsgHandlerFunc_ = errorMsgHandlerFunc;
   return static_cast<CortexReturn>(
@@ -77,11 +92,11 @@ CortexReturn CortexClient::setErrorMsgHandlerFunc(
 
 void CortexClient::dataHandlerFuncHelper(sFrameOfData * p_fod)
 {
-  getInstance().dataHandlerFunc_(*p_fod);
+  dataHandlerFunc_(*p_fod);
 }
 
 CortexReturn CortexClient::setDataHandlerFunc(
-  const std::function<void(sFrameOfData &)> & dataHandlerFunc)
+  std::function<void(sFrameOfData &)> dataHandlerFunc)
 {
   dataHandlerFunc_ = dataHandlerFunc;
   return static_cast<CortexReturn>(

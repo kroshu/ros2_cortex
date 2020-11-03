@@ -53,6 +53,7 @@ private:
   bool onRequestCommandChanged(const kroshu_ros2_core::Parameter & param) const;
 
 protected:
+  std::shared_ptr<CortexClient> cortex_client_ = CortexClient::getInstance();
   sFrameOfData current_fod_;
 };
 }  // namespace ros2_cortex

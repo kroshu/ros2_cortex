@@ -87,7 +87,7 @@ public:
   std::function<void(sFrameOfData *)> dataHandlerFunc_;
   std::function<void(int iLogLevel, char * szLogMessage)> errorMsgHandlerFunc_;
   void run();
-  void runCycle();
+  bool runCycle();
   void liveRunCycle();
   void postForwardRunCycle();
   void postBackwardRunCycle();

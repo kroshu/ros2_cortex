@@ -473,10 +473,10 @@ void CortexMock::extractFrame(sFrameOfData & fod, int i_frame)
   }
 }
 
-void CortexMock::runCycle()
+bool CortexMock::runCycle()
 {
   std::lock_guard<std::mutex> guard(run_cycle_mutex_);
-  if (!running_) {return;}
+  if (!running_) {return false;}
   if (is_in_live_) {
     liveRunCycle();
   } else {
@@ -491,6 +491,7 @@ void CortexMock::runCycle()
         break;
     }
   }
+  return true;
 }
 
 void CortexMock::liveRunCycle()
@@ -541,7 +542,7 @@ void CortexMock::run()
 {
   running_ = true;
   while (true) {
-    runCycle();
+    if (!runCycle()) {return;}
     std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(ms_in_s / frame_rate_)));
   }
 }
@@ -667,6 +668,7 @@ int Cortex_Initialize(
   // sz_talk_to_clients_nic_card_address = 127.0.0.1, sz_clients_multicast_address = 225.1.1.2
 
   mock.readFile();
+  mock.current_frame_ind_ = 0;
   mock.run_thread_ = std::thread(&CortexMock::run, &mock);
   return RC_Okay;
 }
@@ -711,7 +713,6 @@ int Cortex_Exit()
   {
     std::lock_guard<std::mutex> guard(mock.run_cycle_mutex_);
     mock.running_ = false;
-    mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::paused);
   }
   if (mock.run_thread_.joinable()) {mock.run_thread_.join();}
   return RC_Okay;
