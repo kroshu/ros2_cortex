@@ -62,12 +62,16 @@ private:
   void setEmptyWithArgServices();
 
   rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr post_get_play_mode_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr get_context_analog_bit_depth_service;
+  rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr
+    get_context_analog_bit_depth_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr get_up_axis_service;
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr get_context_frame_rate_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr get_context_analog_sample_rate_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr get_conversion_to_millimeters_service;
+  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr
+    get_context_frame_rate_service;
+  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr
+    get_context_analog_sample_rate_service;
+  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr
+    get_conversion_to_millimeters_service;
 
   rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr live_mode_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr pause_service;
@@ -77,10 +81,12 @@ private:
   rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr post_backward_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr post_pause_service;
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmptyWithArg>::SharedPtr set_output_name_service;
+  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmptyWithArg>::SharedPtr
+    set_output_name_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestEmptyWithArg>::SharedPtr reset_ids_service;
 
   rclcpp::Service<cortex_interfaces::srv::CortexRequestFod>::SharedPtr get_frame_of_data_service;
+
 protected:
   std::shared_ptr<CortexClient> cortex_client_ = CortexClient::getInstance();
   sFrameOfData current_fod_;
