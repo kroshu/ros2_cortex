@@ -769,6 +769,7 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
     case CortexMock::Request::PostForward:
       if (mock.is_in_live_) {
         mock.is_in_live_ = false;
+        if (mock.is_recording_in_live) {mock.post_end_frame_ = mock.current_frame_ind_;}
         mock.current_frame_ind_ = mock.post_starter_frame_;
       }
       mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::forwards);
@@ -776,6 +777,7 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
     case CortexMock::Request::PostBackward:
       if (mock.is_in_live_) {
         mock.is_in_live_ = false;
+        if (mock.is_recording_in_live) {mock.post_end_frame_ = mock.current_frame_ind_;}
         mock.current_frame_ind_ = mock.post_starter_frame_;
       }
       mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::backwards);
@@ -783,6 +785,7 @@ int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
     case CortexMock::Request::PostPause:
       if (mock.is_in_live_) {
         mock.is_in_live_ = false;
+        if (mock.is_recording_in_live) {mock.post_end_frame_ = mock.current_frame_ind_;}
         mock.current_frame_ind_ = mock.post_starter_frame_;
       }
       mock.post_play_mode_ = static_cast<int>(CortexMock::PostPlayMode::paused);
