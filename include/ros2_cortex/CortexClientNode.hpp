@@ -28,6 +28,11 @@
 #include "ros2_cortex/CortexClient.hpp"
 #include "kroshu_ros2_core/Parameter.hpp"
 #include "kroshu_ros2_core/ROS2BaseNode.hpp"
+#include "kuka_sunrise_interfaces/srv/cortex_request_int.hpp"
+#include "kuka_sunrise_interfaces/srv/cortex_request_float.hpp"
+#include "kuka_sunrise_interfaces/srv/cortex_request_empty.hpp"
+#include "kuka_sunrise_interfaces/srv/cortex_request_empty_with_arg.hpp"
+#include "kuka_sunrise_interfaces/srv/cortex_request_fod.hpp"
 
 namespace ros2_cortex
 {
@@ -50,8 +55,32 @@ public:
 
 private:
   void exit();
-  bool onRequestCommandChanged(const kroshu_ros2_core::Parameter & param) const;
+  void setServices();
+  void setIntServices();
+  void setFloatServices();
+  void setEmptyServices();
+  void setEmptyWithArgServices();
 
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestInt>::SharedPtr post_get_play_mode_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestInt>::SharedPtr get_context_analog_bit_depth_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestInt>::SharedPtr get_up_axis_service;
+
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestFloat>::SharedPtr get_context_frame_rate_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestFloat>::SharedPtr get_context_analog_sample_rate_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestFloat>::SharedPtr get_conversion_to_millimeters_service;
+
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>::SharedPtr live_mode_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>::SharedPtr pause_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>::SharedPtr start_recording_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>::SharedPtr stop_recording_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>::SharedPtr post_forward_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>::SharedPtr post_backward_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>::SharedPtr post_pause_service;
+
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg>::SharedPtr set_output_name_service;
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg>::SharedPtr reset_ids_service;
+
+  rclcpp::Service<kuka_sunrise_interfaces::srv::CortexRequestFod>::SharedPtr get_frame_of_data_service;
 protected:
   std::shared_ptr<CortexClient> cortex_client_ = CortexClient::getInstance();
   sFrameOfData current_fod_;

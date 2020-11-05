@@ -43,16 +43,7 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
       CortexClientNode::errorMsgHandlerFunc_(log_level, log_message);
     });
 
-  std::string first_comm = "Pause";
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("request_command",
-    rclcpp::ParameterValue(
-      first_comm),
-    rclcpp::ParameterType::PARAMETER_STRING, kroshu_ros2_core::ParameterSetAccessRights {
-      false, false, true, false},
-    std::bind(&CortexClientNode::onRequestCommandChanged, this, std::placeholders::_1));
-
-  this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
-    {return CortexClientNode::onParamChange(parameters);});
+  setServices();
 }
 
 CortexClientNode::~CortexClientNode()
@@ -83,108 +74,150 @@ CortexClientNode::on_deactivate(const rclcpp_lifecycle::State & state)
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
-bool CortexClientNode::onRequestCommandChanged(const kroshu_ros2_core::Parameter & param) const
-{
-  CortexReturn success = CortexReturn::Okay;
-  std::string comm_str = param.getValue().get<std::string>();
-  if (comm_str == "PostGetPlayMode" || comm_str == "GetContextAnalogBitDepth" ||
-    comm_str == "GetUpAxis")
-  {
-    int response;
-    auto command = std::find_if(
-      names_of_reqs_with_int_return.begin(),
-      names_of_reqs_with_int_return.end(),
-      [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
-    switch (command->first) {
-      case CortexRequestWithIntReturn::PostGetPlayMode:
-        response = cortex_client_->postGetPlayMode();
-        break;
-      case CortexRequestWithIntReturn::GetContextAnalogBitDepth:
-        response = cortex_client_->getContextAnalogBitDepth();
-        break;
-      default:
-        response = cortex_client_->getUpAxis();
-        break;
-    }
-    RCLCPP_INFO(get_logger(),
-      "Result of request " + comm_str + ": " + std::to_string(response));
-  } else {  // Formatted this way, so that both cpplint and uncrustify can pass
-    if (comm_str == "GetContextFrameRate" ||
-      comm_str == "GetContextAnalogSampleRate" ||
-      comm_str == "GetConversionToMillimeters")
-    {
-      float response;
-      auto command = std::find_if(
-        names_of_reqs_with_float_return.begin(),
-        names_of_reqs_with_float_return.end(),
-        [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
-      switch (command->first) {
-        case CortexRequestWithFloatReturn::GetContextFrameRate:
-          response = cortex_client_->getContextFrameRate();
-          break;
-        case CortexRequestWithFloatReturn::GetContextAnalogSampleRate:
-          response = cortex_client_->getContextAnalogSampleRate();
-          break;
-        default:
-          response = cortex_client_->getConversionToMillimeters();
-          break;
-      }
-      RCLCPP_INFO(get_logger(),
-        "Result of request " + comm_str + ": " + std::to_string(response));
-    } else if (comm_str == "GetFrameOfData") {
-      sFrameOfData fod;
-      cortex_client_->getFrameOfData(fod, false);
-      RCLCPP_INFO(get_logger(), "Frame " + std::to_string(fod.iFrame));
-      RCLCPP_INFO(get_logger(),
-        "Number of unidentified markers " + std::to_string(fod.nUnidentifiedMarkers));
-    } else {
-      std::string command_extra;
-      size_t pos = comm_str.find('=');
-      if (pos != std::string::npos) {
-        command_extra = comm_str.substr(pos);
-        comm_str = comm_str.substr(0, pos);
-      }
-      auto command = std::find_if(
-        names_of_reqs_with_no_return.begin(),
-        names_of_reqs_with_no_return.end(),
-        [&comm_str](const auto & temp_comm) {return temp_comm.second == comm_str;});
-      if (command == names_of_reqs_with_no_return.end()) {
-        RCLCPP_ERROR(get_logger(), "No request with the name exists");
-        return false;
-      }
-      switch (command->first) {
-        case CortexRequestWithNoReturn::LiveMode:
-          cortex_client_->liveMode();
-          break;
-        case CortexRequestWithNoReturn::Pause:
-          cortex_client_->pause();
-          break;
-        case CortexRequestWithNoReturn::SetOutputName:
-          cortex_client_->setOutputName(command_extra);
-          break;
-        case CortexRequestWithNoReturn::StartRecording:
-          cortex_client_->startRecording();
-          break;
-        case CortexRequestWithNoReturn::StopRecording:
-          cortex_client_->stopRecording();
-          break;
-        case CortexRequestWithNoReturn::ResetIDs:
-          cortex_client_->resetIds(command_extra);
-          break;
-        case CortexRequestWithNoReturn::PostForward:
-          cortex_client_->postForward();
-          break;
-        case CortexRequestWithNoReturn::PostBackward:
-          cortex_client_->postBackward();
-          break;
-        default:
-          cortex_client_->postPause();
-          break;
-      }
-    }
-  }
+void CortexClientNode::setServices(){
+  setIntServices();
+  setFloatServices();
+  setEmptyServices();
+  setEmptyWithArgServices();
 
-  return success == CortexReturn::Okay;
+  get_frame_of_data_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestFod>(
+          "get_frame_of_data", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFod::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFod::Response> response){
+    sFrameOfData fod;
+    this->cortex_client_->getFrameOfData(fod, request->base_positions);
+    response->fod.frame_id = fod.iFrame;
+    response->fod.num_of_ui_markers = fod.nUnidentifiedMarkers;
+  });
+}
+
+void CortexClientNode::setIntServices(){
+  post_get_play_mode_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestInt>(
+          "post_get_play_mode", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Response> response){
+    response->response = this->cortex_client_->postGetPlayMode();
+  });
+
+  get_context_analog_bit_depth_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestInt>(
+          "get_context_analog_bit_depth", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Response> response){
+    response->response = this->cortex_client_->getContextAnalogBitDepth();
+  });
+
+  get_up_axis_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestInt>(
+          "get_up_axis", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Response> response){
+    response->response = this->cortex_client_->getUpAxis();
+  });
+}
+
+void CortexClientNode::setFloatServices(){
+  get_context_frame_rate_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestFloat>(
+          "get_context_frame_rate", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Response> response){
+    response->response = this->cortex_client_->getContextFrameRate();
+  });
+
+  get_context_analog_sample_rate_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestFloat>(
+          "get_context_analog_sample_rate", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Response> response){
+    response->response = this->cortex_client_->getContextAnalogSampleRate();
+  });
+
+  get_conversion_to_millimeters_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestFloat>(
+          "get_conversion_to_millimeters", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Response> response){
+    response->response = this->cortex_client_->getConversionToMillimeters();
+  });
+}
+
+void CortexClientNode::setEmptyServices(){
+  live_mode_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+          "live_mode", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+    this->cortex_client_->liveMode();
+  });
+
+  pause_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+          "pause", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+    this->cortex_client_->pause();
+  });
+
+  start_recording_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+          "start_recording", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+    this->cortex_client_->startRecording();
+  });
+
+  stop_recording_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+          "stop_recording", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+    this->cortex_client_->stopRecording();
+  });
+
+  post_forward_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+          "post_forward", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+    this->cortex_client_->postForward();
+  });
+
+  post_backward_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+          "post_backward", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+    this->cortex_client_->postBackward();
+  });
+
+  post_pause_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+          "post_pause", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+    this->cortex_client_->postPause();
+  });
+}
+
+void CortexClientNode::setEmptyWithArgServices(){
+  set_output_name_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg>(
+          "set_output_name", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg::Response> response){
+    this->cortex_client_->setOutputName(request->arg);
+  });
+
+  reset_ids_service =
+      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg>(
+          "reset_ids", [this](
+              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg::Request> request,
+              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg::Response> response){
+    this->cortex_client_->resetIds(request->arg);
+  });
 }
 
 void CortexClientNode::dataHandlerFunc_(sFrameOfData & fod)
