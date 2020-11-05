@@ -81,10 +81,10 @@ void CortexClientNode::setServices(){
   setEmptyWithArgServices();
 
   get_frame_of_data_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestFod>(
+      this->create_service<cortex_interfaces::srv::CortexRequestFod>(
           "get_frame_of_data", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFod::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFod::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestFod::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestFod::Response> response){
     sFrameOfData fod;
     this->cortex_client_->getFrameOfData(fod, request->base_positions);
     response->fod.frame_id = fod.iFrame;
@@ -94,128 +94,128 @@ void CortexClientNode::setServices(){
 
 void CortexClientNode::setIntServices(){
   post_get_play_mode_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestInt>(
+      this->create_service<cortex_interfaces::srv::CortexRequestInt>(
           "post_get_play_mode", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestInt::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestInt::Response> response){
     response->response = this->cortex_client_->postGetPlayMode();
   });
 
   get_context_analog_bit_depth_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestInt>(
+      this->create_service<cortex_interfaces::srv::CortexRequestInt>(
           "get_context_analog_bit_depth", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestInt::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestInt::Response> response){
     response->response = this->cortex_client_->getContextAnalogBitDepth();
   });
 
   get_up_axis_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestInt>(
+      this->create_service<cortex_interfaces::srv::CortexRequestInt>(
           "get_up_axis", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestInt::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestInt::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestInt::Response> response){
     response->response = this->cortex_client_->getUpAxis();
   });
 }
 
 void CortexClientNode::setFloatServices(){
   get_context_frame_rate_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestFloat>(
+      this->create_service<cortex_interfaces::srv::CortexRequestFloat>(
           "get_context_frame_rate", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestFloat::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestFloat::Response> response){
     response->response = this->cortex_client_->getContextFrameRate();
   });
 
   get_context_analog_sample_rate_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestFloat>(
+      this->create_service<cortex_interfaces::srv::CortexRequestFloat>(
           "get_context_analog_sample_rate", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestFloat::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestFloat::Response> response){
     response->response = this->cortex_client_->getContextAnalogSampleRate();
   });
 
   get_conversion_to_millimeters_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestFloat>(
+      this->create_service<cortex_interfaces::srv::CortexRequestFloat>(
           "get_conversion_to_millimeters", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestFloat::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestFloat::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestFloat::Response> response){
     response->response = this->cortex_client_->getConversionToMillimeters();
   });
 }
 
 void CortexClientNode::setEmptyServices(){
   live_mode_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
           "live_mode", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response){
     this->cortex_client_->liveMode();
   });
 
   pause_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
           "pause", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response){
     this->cortex_client_->pause();
   });
 
   start_recording_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
           "start_recording", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response){
     this->cortex_client_->startRecording();
   });
 
   stop_recording_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
           "stop_recording", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response){
     this->cortex_client_->stopRecording();
   });
 
   post_forward_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
           "post_forward", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response){
     this->cortex_client_->postForward();
   });
 
   post_backward_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
           "post_backward", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response){
     this->cortex_client_->postBackward();
   });
 
   post_pause_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmpty>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
           "post_pause", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmpty::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response){
     this->cortex_client_->postPause();
   });
 }
 
 void CortexClientNode::setEmptyWithArgServices(){
   set_output_name_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmptyWithArg>(
           "set_output_name", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmptyWithArg::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmptyWithArg::Response> response){
     this->cortex_client_->setOutputName(request->arg);
   });
 
   reset_ids_service =
-      this->create_service<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg>(
+      this->create_service<cortex_interfaces::srv::CortexRequestEmptyWithArg>(
           "reset_ids", [this](
-              const std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg::Request> request,
-              std::shared_ptr<kuka_sunrise_interfaces::srv::CortexRequestEmptyWithArg::Response> response){
+              const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmptyWithArg::Request> request,
+              std::shared_ptr<cortex_interfaces::srv::CortexRequestEmptyWithArg::Response> response){
     this->cortex_client_->resetIds(request->arg);
   });
 }

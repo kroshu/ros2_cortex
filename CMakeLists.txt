@@ -24,7 +24,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(kroshu_ros2_core REQUIRED)
-find_package(kuka_sunrise_interfaces REQUIRED)
+find_package(cortex_interfaces REQUIRED)
 
 add_library(cortex_client SHARED
   src/CortexMock.cpp
@@ -34,7 +34,7 @@ add_executable(simple_fod_printer
     src/SimpleFodPrinter.cpp
     src/CortexClientNode.cpp)
 ament_target_dependencies(simple_fod_printer rclcpp rclcpp_lifecycle
-  lifecycle_msgs kroshu_ros2_core kuka_sunrise_interfaces)
+  lifecycle_msgs kroshu_ros2_core cortex_interfaces)
 target_link_libraries(simple_fod_printer
   cortex_client ${kroshu_ros2_core_LIBRARIES})
 
@@ -42,7 +42,7 @@ add_executable(marker_publisher
     src/MarkerPublisher.cpp
     src/CortexClientNode.cpp)
 ament_target_dependencies(marker_publisher rclcpp rclcpp_lifecycle visualization_msgs
-  lifecycle_msgs kroshu_ros2_core kuka_sunrise_interfaces)
+  lifecycle_msgs kroshu_ros2_core cortex_interfaces)
 target_link_libraries(marker_publisher
   cortex_client ${kroshu_ros2_core_LIBRARIES})
 
