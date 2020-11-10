@@ -68,10 +68,10 @@ private:
   static const int nss_in_s = 1000000000;
   void markersReceivedCallback(visualization_msgs::msg::MarkerArray::ConstSharedPtr msg);
   static double distBetweenPoints(
-    geometry_msgs::msg::Point & first,
-    geometry_msgs::msg::Point & second);
-  bool onLowerLimitsChangeRequest(const kroshu_ros2_core::Parameter & param);
-  bool onUpperLimitsChangeRequest(const kroshu_ros2_core::Parameter & param);
+    const geometry_msgs::msg::Point & first,
+    const geometry_msgs::msg::Point & second);
+  bool onLowerLimitsChangeRequest(const kroshu_ros2_core::Parameter<std::vector<double>> & param);
+  bool onUpperLimitsChangeRequest(const kroshu_ros2_core::Parameter<std::vector<double>> & param);
 };
 
 }  // namespace ros2_cortex

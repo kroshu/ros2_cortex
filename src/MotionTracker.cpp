@@ -50,7 +50,7 @@ MotionTracker::MotionTracker()
   msg_strategy =
     std::make_shared<rclcpp::message_memory_strategy::
       MessageMemoryStrategy<visualization_msgs::msg::MarkerArray>>();
-  callback = [this](visualization_msgs::msg::MarkerArray::ConstSharedPtr msg) -> void
+  callback = [this](visualization_msgs::msg::MarkerArray::ConstSharedPtr msg)
     {markersReceivedCallback(msg);};
   marker_array_subscriber_ = this->create_subscription<visualization_msgs::msg::MarkerArray>(
     "markers",
@@ -66,24 +66,36 @@ MotionTracker::MotionTracker()
 
   lower_limits_rad_ = {-170, -120, -170, -120, -170, -120, -175};
   upper_limits_rad_ = {170, 120, 170, 120, 170, 120, 175};
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("lower_limits_deg", rclcpp::ParameterValue(
-      lower_limits_rad_),
-    rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY, kroshu_ros2_core::ParameterSetAccessRights {
+  typedef std::function<bool (
+        const kroshu_ros2_core::Parameter<std::vector<double>> &)> param_callback_type;
+
+  auto lower_limits_lambda =
+    [this](const kroshu_ros2_core::Parameter<std::vector<double>> & param) {
+      return this->onLowerLimitsChangeRequest(param);
+    };
+  auto upper_limits_lambda =
+    [this](const kroshu_ros2_core::Parameter<std::vector<double>> & param) {
+      return this->onUpperLimitsChangeRequest(param);
+    };
+
+  kroshu_ros2_core::ROS2BaseNode::declareParameter("lower_limits_deg",
+    lower_limits_rad_,
+    kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
-    std::bind(&MotionTracker::onLowerLimitsChangeRequest, this, std::placeholders::_1));
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("upper_limits_deg", rclcpp::ParameterValue(
-      upper_limits_rad_),
-    rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY, kroshu_ros2_core::ParameterSetAccessRights {
+    static_cast<param_callback_type>(lower_limits_lambda));
+  kroshu_ros2_core::ROS2BaseNode::declareParameter("upper_limits_deg",
+    upper_limits_rad_,
+    kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
-    std::bind(&MotionTracker::onUpperLimitsChangeRequest, this, std::placeholders::_1));
+    static_cast<param_callback_type>(lower_limits_lambda));
 
   this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
-    {return MotionTracker::onParamChange(parameters);});
+    {return onParamChange(parameters);});
 }
 
 double MotionTracker::distBetweenPoints(
-  geometry_msgs::msg::Point & first,
-  geometry_msgs::msg::Point & second)
+  const geometry_msgs::msg::Point & first,
+  const geometry_msgs::msg::Point & second)
 {
   return sqrt(pow(std::fabs(first.x - second.x),
            2) + pow(std::fabs(first.y - second.y), 2) + pow(std::fabs(first.z - second.z), 2));
@@ -165,9 +177,12 @@ MotionTracker::on_deactivate(const rclcpp_lifecycle::State & state)
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
-bool MotionTracker::onLowerLimitsChangeRequest(const kroshu_ros2_core::Parameter & param)
+bool MotionTracker::onLowerLimitsChangeRequest(
+  const kroshu_ros2_core::Parameter<std::vector<double>> & param)
 {
-  auto value = param.getValue().get<std::vector<double>>();
+  std::vector<double> value;
+  bool success = param.getValue(value);
+  if (!success) {return false;}
   if (value.size() != joint_num_) {
     RCLCPP_ERROR(this->get_logger(), "Invalid parameter array length for parameter %s",
       param.getName().c_str());
@@ -178,9 +193,12 @@ bool MotionTracker::onLowerLimitsChangeRequest(const kroshu_ros2_core::Parameter
   return true;
 }
 
-bool MotionTracker::onUpperLimitsChangeRequest(const kroshu_ros2_core::Parameter & param)
+bool MotionTracker::onUpperLimitsChangeRequest(
+  const kroshu_ros2_core::Parameter<std::vector<double>> & param)
 {
-  auto value = param.getValue().get<std::vector<double>>();
+  std::vector<double> value;
+  bool success = param.getValue(value);
+  if (!success) {return false;}
   if (value.size() != joint_num_) {
     RCLCPP_ERROR(this->get_logger(), "Invalid parameter array length for parameter %s",
       param.getName().c_str());
