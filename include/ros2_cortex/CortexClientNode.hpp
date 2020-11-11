@@ -48,18 +48,22 @@ public:
     const std::string & log_message);
 
   virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+  on_configure(const rclcpp_lifecycle::State & state);
+
+  virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_activate(const rclcpp_lifecycle::State & state);
 
   virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_deactivate(const rclcpp_lifecycle::State & state);
 
 private:
-  void exit();
   void setServices();
   void setIntServices();
   void setFloatServices();
   void setEmptyServices();
   void setEmptyWithArgServices();
+  bool onOutputFilenameChangeRequest(kroshu_ros2_core::Parameter<std::string> param);
+  bool onPlayModeChangeRequest(kroshu_ros2_core::Parameter<std::string> param);
 
   rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr post_get_play_mode_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr
@@ -73,16 +77,9 @@ private:
   rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr
     get_conversion_to_millimeters_service;
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr live_mode_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr pause_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr start_recording_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr stop_recording_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr post_forward_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr post_backward_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr post_pause_service;
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmptyWithArg>::SharedPtr
-    set_output_name_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestEmptyWithArg>::SharedPtr reset_ids_service;
 
   rclcpp::Service<cortex_interfaces::srv::CortexRequestFod>::SharedPtr get_frame_of_data_service;

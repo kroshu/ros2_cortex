@@ -43,7 +43,34 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
       CortexClientNode::errorMsgHandlerFunc_(log_level, log_message);
     });
 
-  setServices();
+  // Creating output filename param
+  typedef std::function<bool (
+        const kroshu_ros2_core::Parameter<std::string> &)> string_callback_type;
+  auto output_filename_lambda =
+    [this](const kroshu_ros2_core::Parameter<std::string> & param) {
+      return this->onOutputFilenameChangeRequest(param);
+    };
+  std::string default_output_filename = "CortexDefaultOutput.cap";
+  kroshu_ros2_core::ROS2BaseNode::declareParameter("output_filename",
+    default_output_filename,
+    kroshu_ros2_core::ParameterSetAccessRights {
+      true, true, false, false},
+    static_cast<string_callback_type>(output_filename_lambda));
+
+  // Creating play mode param
+  auto play_mode_lambda =
+    [this](const kroshu_ros2_core::Parameter<std::string> & param) {
+      return this->onPlayModeChangeRequest(param);
+    };
+  std::string default_play_mode = "live";
+  kroshu_ros2_core::ROS2BaseNode::declareParameter("play_mode",
+    default_play_mode,
+    kroshu_ros2_core::ParameterSetAccessRights {
+      true, true, true, false},
+    static_cast<string_callback_type>(play_mode_lambda));
+
+  this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
+    {return onParamChange(parameters);});
 }
 
 CortexClientNode::~CortexClientNode()
@@ -52,25 +79,39 @@ CortexClientNode::~CortexClientNode()
   cortex_client_->exit();
 }
 
-void CortexClientNode::exit()
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+CortexClientNode::on_configure(const rclcpp_lifecycle::State & state)
 {
-  cortex_client_->freeFrame(current_fod_);
-  cortex_client_->exit();
+  const std::string empty_str = "";
+  cortex_client_->initialize(empty_str, empty_str);
+  setServices();
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_activate(const rclcpp_lifecycle::State & state)
 {
-  const std::string empty_str = "";
-  cortex_client_->initialize(empty_str, empty_str);
-  cortex_client_->liveMode();
+  auto play_mode =
+    std::dynamic_pointer_cast<kroshu_ros2_core::Parameter<std::string>>(
+    params_.find("play_mode")->second);
+  onPlayModeChangeRequest(*play_mode);
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_deactivate(const rclcpp_lifecycle::State & state)
 {
-  exit();
+  std::string play_mode;
+  bool success =
+    std::dynamic_pointer_cast<kroshu_ros2_core::Parameter<std::string>>(
+    params_.find("play_mode")->second)->getValue(play_mode);
+  if (!success) {
+    return kroshu_ros2_core::ROS2BaseNode::ERROR;
+  }
+  if (play_mode == "live") {
+    cortex_client_->pause();
+  } else {
+    cortex_client_->postPause();
+  }
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
@@ -149,22 +190,6 @@ void CortexClientNode::setFloatServices()
 
 void CortexClientNode::setEmptyServices()
 {
-  live_mode_service =
-    this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
-    "live_mode", [this](
-      const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
-      std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response) {
-      this->cortex_client_->liveMode();
-    });
-
-  pause_service =
-    this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
-    "pause", [this](
-      const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
-      std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response) {
-      this->cortex_client_->pause();
-    });
-
   start_recording_service =
     this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
     "start_recording", [this](
@@ -180,42 +205,10 @@ void CortexClientNode::setEmptyServices()
       std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response) {
       this->cortex_client_->stopRecording();
     });
-
-  post_forward_service =
-    this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
-    "post_forward", [this](
-      const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
-      std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response) {
-      this->cortex_client_->postForward();
-    });
-
-  post_backward_service =
-    this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
-    "post_backward", [this](
-      const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
-      std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response) {
-      this->cortex_client_->postBackward();
-    });
-
-  post_pause_service =
-    this->create_service<cortex_interfaces::srv::CortexRequestEmpty>(
-    "post_pause", [this](
-      const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Request> request,
-      std::shared_ptr<cortex_interfaces::srv::CortexRequestEmpty::Response> response) {
-      this->cortex_client_->postPause();
-    });
 }
 
 void CortexClientNode::setEmptyWithArgServices()
 {
-  set_output_name_service =
-    this->create_service<cortex_interfaces::srv::CortexRequestEmptyWithArg>(
-    "set_output_name", [this](
-      const std::shared_ptr<cortex_interfaces::srv::CortexRequestEmptyWithArg::Request> request,
-      std::shared_ptr<cortex_interfaces::srv::CortexRequestEmptyWithArg::Response> response) {
-      this->cortex_client_->setOutputName(request->arg);
-    });
-
   reset_ids_service =
     this->create_service<cortex_interfaces::srv::CortexRequestEmptyWithArg>(
     "reset_ids", [this](
@@ -223,6 +216,31 @@ void CortexClientNode::setEmptyWithArgServices()
       std::shared_ptr<cortex_interfaces::srv::CortexRequestEmptyWithArg::Response> response) {
       this->cortex_client_->resetIds(request->arg);
     });
+}
+
+bool CortexClientNode::onOutputFilenameChangeRequest(
+  kroshu_ros2_core::Parameter<std::string> param)
+{
+  std::string value;
+  bool success = param.getValue(value);
+  if (!success) {return false;}
+  cortex_client_->setOutputName(value);
+  return true;
+}
+
+bool CortexClientNode::onPlayModeChangeRequest(
+  kroshu_ros2_core::Parameter<std::string> param)
+{
+  std::string value;
+  bool success = param.getValue(value);
+  if (!success) {return false;}
+  if (value == "live") {cortex_client_->liveMode();} else if (value == "post_forward") {
+    cortex_client_->postForward();
+  } else if (value == "post_backward") {cortex_client_->postBackward();} else {
+    RCLCPP_ERROR(get_logger(), "Invalid parameter value for play_mode");
+    return false;
+  }
+  return true;
 }
 
 void CortexClientNode::dataHandlerFunc_(sFrameOfData & fod)

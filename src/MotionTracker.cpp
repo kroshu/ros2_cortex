@@ -67,7 +67,7 @@ MotionTracker::MotionTracker()
   lower_limits_rad_ = {-170, -120, -170, -120, -170, -120, -175};
   upper_limits_rad_ = {170, 120, 170, 120, 170, 120, 175};
   typedef std::function<bool (
-        const kroshu_ros2_core::Parameter<std::vector<double>> &)> param_callback_type;
+        const kroshu_ros2_core::Parameter<std::vector<double>> &)> doublevec_callback_type;
 
   auto lower_limits_lambda =
     [this](const kroshu_ros2_core::Parameter<std::vector<double>> & param) {
@@ -82,12 +82,12 @@ MotionTracker::MotionTracker()
     lower_limits_rad_,
     kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
-    static_cast<param_callback_type>(lower_limits_lambda));
+    static_cast<doublevec_callback_type>(lower_limits_lambda));
   kroshu_ros2_core::ROS2BaseNode::declareParameter("upper_limits_deg",
     upper_limits_rad_,
     kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
-    static_cast<param_callback_type>(lower_limits_lambda));
+    static_cast<doublevec_callback_type>(upper_limits_lambda));
 
   this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
     {return onParamChange(parameters);});
