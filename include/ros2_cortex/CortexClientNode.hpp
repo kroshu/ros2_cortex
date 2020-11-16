@@ -62,8 +62,8 @@ private:
   void setFloatServices();
   void setEmptyServices();
   void setEmptyWithArgServices();
-  bool onOutputFilenameChangeRequest(kroshu_ros2_core::Parameter<std::string> param);
-  bool onPlayModeChangeRequest(kroshu_ros2_core::Parameter<std::string> param);
+  bool onOutputFilenameChangeRequest(const std::string & new_value);
+  bool onPlayModeChangeRequest(const std::string & new_value);
 
   rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr post_get_play_mode_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr

@@ -70,8 +70,8 @@ private:
   static double distBetweenPoints(
     const geometry_msgs::msg::Point & first,
     const geometry_msgs::msg::Point & second);
-  bool onLowerLimitsChangeRequest(const kroshu_ros2_core::Parameter<std::vector<double>> & param);
-  bool onUpperLimitsChangeRequest(const kroshu_ros2_core::Parameter<std::vector<double>> & param);
+  bool onLowerLimitsChangeRequest(const std::vector<double> & new_value);
+  bool onUpperLimitsChangeRequest(const std::vector<double> & new_value);
 };
 
 }  // namespace ros2_cortex

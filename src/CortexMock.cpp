@@ -96,7 +96,8 @@ void CortexMock::freeBodyDef(sBodyDef & p_body_def, int n_an_channels)
 
 void CortexMock::copyBodyData(const sBodyData & src_bd, sBodyData & dst_bd) const
 {
-  memcpy(dst_bd.szName, src_bd.szName,
+  memcpy(
+    dst_bd.szName, src_bd.szName,
     strlen(src_bd.szName) + 1);
 
   // Copy markers
@@ -104,7 +105,8 @@ void CortexMock::copyBodyData(const sBodyData & src_bd, sBodyData & dst_bd) cons
   int n_markers = dst_bd.nMarkers;
   if (n_markers > 0) {
     dst_bd.Markers = new tMarkerData[n_markers];
-    memcpy(dst_bd.Markers, src_bd.Markers,
+    memcpy(
+      dst_bd.Markers, src_bd.Markers,
       n_markers * sizeof(tMarkerData));
   }
   dst_bd.fAvgMarkerResidual = src_bd.fAvgMarkerResidual;
@@ -114,7 +116,8 @@ void CortexMock::copyBodyData(const sBodyData & src_bd, sBodyData & dst_bd) cons
   int n_segments = dst_bd.nSegments;
   if (n_segments > 0) {
     dst_bd.Segments = new tSegmentData[n_segments];
-    memcpy(dst_bd.Segments, src_bd.Segments,
+    memcpy(
+      dst_bd.Segments, src_bd.Segments,
       n_segments * sizeof(tSegmentData));
   }
 
@@ -132,7 +135,8 @@ void CortexMock::copyBodyData(const sBodyData & src_bd, sBodyData & dst_bd) cons
   dst_bd.ZoomEncoderValue = src_bd.ZoomEncoderValue;
   dst_bd.FocusEncoderValue = src_bd.FocusEncoderValue;
   dst_bd.IrisEncoderValue = src_bd.IrisEncoderValue;
-  memcpy(dst_bd.CamTrackParams, src_bd.CamTrackParams,
+  memcpy(
+    dst_bd.CamTrackParams, src_bd.CamTrackParams,
     sizeof(tCamTrackParameters));
 
   // Copy events
@@ -158,7 +162,8 @@ void CortexMock::copyAnalogData(const sAnalogData & src_ad, sAnalogData & dst_ad
   int n_analogs = dst_ad.nAnalogChannels * dst_ad.nAnalogSamples;
   if (n_analogs > 0) {
     dst_ad.AnalogSamples = new short[n_analogs];  // NOLINT
-    memcpy(dst_ad.AnalogSamples, src_ad.AnalogSamples,
+    memcpy(
+      dst_ad.AnalogSamples, src_ad.AnalogSamples,
       n_analogs * sizeof(short));  // NOLINT
   }
 
@@ -177,7 +182,8 @@ void CortexMock::copyAnalogData(const sAnalogData & src_ad, sAnalogData & dst_ad
   int n_all_ae_samples = dst_ad.nAngleEncoders * dst_ad.nAngleEncoderSamples;
   if (n_analogs > 0) {
     dst_ad.AngleEncoderSamples = new double[n_all_ae_samples];
-    memcpy(dst_ad.AngleEncoderSamples, src_ad.AngleEncoderSamples,
+    memcpy(
+      dst_ad.AngleEncoderSamples, src_ad.AngleEncoderSamples,
       n_all_ae_samples * sizeof(double));
   }
 }
@@ -275,7 +281,8 @@ void CortexMock::extractBodies(sFrameOfData & fod, const rapidjson::Value & pare
   for (int i = 0; i < n_bodies; ++i) {
     const rapidjson::Value & i_body_json = parent_frame_json["bodies"][i];
     sBodyData & i_body_data = fod.BodyData[i];
-    memcpy(i_body_data.szName, i_body_json["name"].GetString(),
+    memcpy(
+      i_body_data.szName, i_body_json["name"].GetString(),
       strlen(i_body_json["name"].GetString()) + 1);
 
     // Extract markers
@@ -333,7 +340,8 @@ void CortexMock::extractBodies(sFrameOfData & fod, const rapidjson::Value & pare
       i_body_data.Events = new char *[n_events];
       for (int i_event = 0; i_event < n_events; ++i_event) {
         i_body_data.Events[i_event] = new char[i_body_json["events"][i].GetStringLength()];
-        memcpy(i_body_data.Events[i_event], i_body_json["events"][i].GetString(),
+        memcpy(
+          i_body_data.Events[i_event], i_body_json["events"][i].GetString(),
           strlen(i_body_json["events"][i].GetString()) + 1);
       }
     }
@@ -450,7 +458,8 @@ void CortexMock::extractFrame(sFrameOfData & fod, int i_frame)
   fod.RecordingStatus.bRecording = rc_status["recording"].GetInt();
   fod.RecordingStatus.iFirstFrame = rc_status["firstFrame"].GetInt();
   fod.RecordingStatus.iLastFrame = rc_status["lastFrame"].GetInt();
-  memcpy(fod.RecordingStatus.szFilename, rc_status["captureFileName"].GetString(),
+  memcpy(
+    fod.RecordingStatus.szFilename, rc_status["captureFileName"].GetString(),
     strlen(rc_status["captureFileName"].GetString()) + 1);
 
   // Extract time data
@@ -590,8 +599,9 @@ int Cortex_GetMinTimeout()
 }
 
 int Cortex_SetErrorMsgHandlerFunc(
-  void (* errorMsgHandlerFunc)(int i_log_level,
-  char * sz_log_message))
+  void (* errorMsgHandlerFunc)(
+    int i_log_level,
+    char * sz_log_message))
 {
   mock.errorMsgHandlerFunc_ = errorMsgHandlerFunc;
   return RC_Okay;
@@ -883,7 +893,8 @@ int Cortex_CopyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
   int n_ui_markers = p_dst->nUnidentifiedMarkers;
   if (n_ui_markers > 0) {
     p_dst->UnidentifiedMarkers = new tMarkerData[n_ui_markers];
-    memcpy(p_dst->UnidentifiedMarkers, p_src->UnidentifiedMarkers,
+    memcpy(
+      p_dst->UnidentifiedMarkers, p_src->UnidentifiedMarkers,
       n_ui_markers * sizeof(tMarkerData));
   }
 
@@ -893,7 +904,8 @@ int Cortex_CopyFrame(const sFrameOfData * p_src, sFrameOfData * p_dst)
   p_dst->RecordingStatus.bRecording = p_src->RecordingStatus.bRecording;
   p_dst->RecordingStatus.iFirstFrame = p_src->RecordingStatus.iFirstFrame;
   p_dst->RecordingStatus.iLastFrame = p_src->RecordingStatus.iLastFrame;
-  memcpy(p_dst->RecordingStatus.szFilename, p_src->RecordingStatus.szFilename,
+  memcpy(
+    p_dst->RecordingStatus.szFilename, p_src->RecordingStatus.szFilename,
     strlen(p_src->RecordingStatus.szFilename) + 1);
 
   // Copy time data

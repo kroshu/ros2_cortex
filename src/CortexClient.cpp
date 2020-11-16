@@ -77,7 +77,8 @@ int CortexClient::getMinTimeout() const
 void CortexClient::errorMsgHandlerFuncHelper(int i_level, char * msg)
 {
   const std::string str_msg(msg);
-  errorMsgHandlerFunc_(static_cast<CortexVerbosityLevel>(i_level),
+  errorMsgHandlerFunc_(
+    static_cast<CortexVerbosityLevel>(i_level),
     str_msg);
 }
 
@@ -122,7 +123,8 @@ void CortexClient::setThreadPriorities(
   CortexThreadPriority listen_for_host, CortexThreadPriority listen_for_data,
   CortexThreadPriority listen_for_clients) const
 {
-  Cortex_SetThreadPriorities(static_cast<maThreadPriority>(listen_for_host),
+  Cortex_SetThreadPriorities(
+    static_cast<maThreadPriority>(listen_for_host),
     static_cast<maThreadPriority>(listen_for_data),
     static_cast<maThreadPriority>(listen_for_clients));
 }
@@ -135,10 +137,11 @@ CortexReturn CortexClient::configurePortNumbers(
   int talk_to_clients_multicast_port,
   int clients_multicast_port) const
 {
-  return static_cast<CortexReturn>(Cortex_ConfigurePortNumbers(talk_to_host_port, host_port,
-         host_multicast_port, talk_to_clients_request_port,
-         talk_to_clients_multicast_port,
-         clients_multicast_port));
+  return static_cast<CortexReturn>(Cortex_ConfigurePortNumbers(
+           talk_to_host_port, host_port,
+           host_multicast_port, talk_to_clients_request_port,
+           talk_to_clients_multicast_port,
+           clients_multicast_port));
 }
 
 CortexReturn CortexClient::initialize(
@@ -172,11 +175,12 @@ CortexReturn CortexClient::getPortNumbers(
   int & talk_to_clients_multicast_port,
   int & clients_multicast_port) const
 {
-  return static_cast<CortexReturn>(Cortex_GetPortNumbers(&talk_to_host_port,
-         &host_port, &host_multicast_port,
-         &talk_to_clients_request_port,
-         &talk_to_clients_multicast_port,
-         &clients_multicast_port));
+  return static_cast<CortexReturn>(Cortex_GetPortNumbers(
+           &talk_to_host_port,
+           &host_port, &host_multicast_port,
+           &talk_to_clients_request_port,
+           &talk_to_clients_multicast_port,
+           &clients_multicast_port));
 }
 
 CortexReturn CortexClient::getAddresses(
@@ -186,11 +190,12 @@ CortexReturn CortexClient::getAddresses(
   std::string & talk_to_clients_nic_card_address_ph,
   std::string & clients_multicast_address_ph) const
 {
-  return static_cast<CortexReturn>(Cortex_GetAddresses(&talk_to_host_nic_card_address_ph[0],
-         &host_nic_card_address_ph[0],
-         &host_multicast_address_ph[0],
-         &talk_to_clients_nic_card_address_ph[0],
-         &clients_multicast_address_ph[0]));
+  return static_cast<CortexReturn>(Cortex_GetAddresses(
+           &talk_to_host_nic_card_address_ph[0],
+           &host_nic_card_address_ph[0],
+           &host_multicast_address_ph[0],
+           &talk_to_clients_nic_card_address_ph[0],
+           &clients_multicast_address_ph[0]));
 }
 
 CortexReturn CortexClient::getHostInfo(sHostInfo & host_info_ph) const
@@ -297,7 +302,8 @@ void CortexClient::getFrameOfData(
   void * p_response = nullptr;
   int req_size = sizeof(void *);
   std::string req_str = base_positions ? "GetFrameOfData=BasePositions" : "GetFrameOfData";
-  Cortex_Request(&req_str[0],
+  Cortex_Request(
+    &req_str[0],
     &p_response, &req_size);
   ret_placeholder = *static_cast<sFrameOfData *>(p_response);
 }
@@ -318,8 +324,9 @@ CortexReturn CortexClient::request(
   void * p_response = nullptr;
   int req_size = sizeof(void *);
   std::string req_str = names_of_reqs_with_int_return.at(command);
-  auto ret_value = static_cast<CortexReturn>(Cortex_Request(&req_str[0],
-    &p_response, &req_size));
+  auto ret_value = static_cast<CortexReturn>(Cortex_Request(
+      &req_str[0],
+      &p_response, &req_size));
   ret_placeholder = *static_cast<int *>(p_response);
   return ret_value;
 }
@@ -330,8 +337,9 @@ CortexReturn CortexClient::request(
   void * p_response = nullptr;
   int req_size = sizeof(void *);
   std::string req_str = names_of_reqs_with_float_return.at(command);
-  auto ret_value = static_cast<CortexReturn>(Cortex_Request(&req_str[0],
-    &p_response, &req_size));
+  auto ret_value = static_cast<CortexReturn>(Cortex_Request(
+      &req_str[0],
+      &p_response, &req_size));
   ret_placeholder = *static_cast<float *>(p_response);
   return ret_value;
 }
@@ -379,8 +387,9 @@ CortexReturn CortexClient::sendHtr(
     segment_data[2], segment_data[3],
     segment_data[4], segment_data[5],
     segment_data[6]};
-  return static_cast<CortexReturn>(Cortex_SendHtr(&param_hierarchy,
-         &param_segment_data));
+  return static_cast<CortexReturn>(Cortex_SendHtr(
+           &param_hierarchy,
+           &param_segment_data));
 }
 
 CortexReturn CortexClient::setMetered(bool active, float fixed_latency) const

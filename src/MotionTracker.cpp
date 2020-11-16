@@ -67,29 +67,32 @@ MotionTracker::MotionTracker()
   lower_limits_rad_ = {-170, -120, -170, -120, -170, -120, -175};
   upper_limits_rad_ = {170, 120, 170, 120, 170, 120, 175};
   typedef std::function<bool (
-        const kroshu_ros2_core::Parameter<std::vector<double>> &)> doublevec_callback_type;
+        const std::vector<double> &)> doublevec_callback_type;
 
   auto lower_limits_lambda =
-    [this](const kroshu_ros2_core::Parameter<std::vector<double>> & param) {
-      return this->onLowerLimitsChangeRequest(param);
+    [this](const std::vector<double> & new_value) {
+      return this->onLowerLimitsChangeRequest(new_value);
     };
   auto upper_limits_lambda =
-    [this](const kroshu_ros2_core::Parameter<std::vector<double>> & param) {
-      return this->onUpperLimitsChangeRequest(param);
+    [this](const std::vector<double> & new_value) {
+      return this->onUpperLimitsChangeRequest(new_value);
     };
 
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("lower_limits_deg",
+  kroshu_ros2_core::ROS2BaseNode::declareParameter(
+    "lower_limits_deg",
     lower_limits_rad_,
     kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
     static_cast<doublevec_callback_type>(lower_limits_lambda));
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("upper_limits_deg",
+  kroshu_ros2_core::ROS2BaseNode::declareParameter(
+    "upper_limits_deg",
     upper_limits_rad_,
     kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
     static_cast<doublevec_callback_type>(upper_limits_lambda));
 
-  this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
+  this->set_on_parameters_set_callback(
+    [this](const std::vector<rclcpp::Parameter> & parameters)
     {return onParamChange(parameters);});
 }
 
@@ -97,15 +100,18 @@ double MotionTracker::distBetweenPoints(
   const geometry_msgs::msg::Point & first,
   const geometry_msgs::msg::Point & second)
 {
-  return sqrt(pow(std::fabs(first.x - second.x),
-           2) + pow(std::fabs(first.y - second.y), 2) + pow(std::fabs(first.z - second.z), 2));
+  return sqrt(
+    pow(
+      std::fabs(first.x - second.x),
+      2) + pow(std::fabs(first.y - second.y), 2) + pow(std::fabs(first.z - second.z), 2));
 }
 
 void MotionTracker::markersReceivedCallback(
   visualization_msgs::msg::MarkerArray::ConstSharedPtr msg)
 {
   std::vector<visualization_msgs::msg::Marker> joint_markers;
-  std::copy_if(msg->markers.begin(), msg->markers.end(), std::back_inserter(joint_markers),
+  std::copy_if(
+    msg->markers.begin(), msg->markers.end(), std::back_inserter(joint_markers),
     [](const visualization_msgs::msg::Marker & marker) -> bool {
       return marker.ns == "joint_markers";
     });
@@ -178,34 +184,32 @@ MotionTracker::on_deactivate(const rclcpp_lifecycle::State & state)
 }
 
 bool MotionTracker::onLowerLimitsChangeRequest(
-  const kroshu_ros2_core::Parameter<std::vector<double>> & param)
+  const std::vector<double> & new_value)
 {
-  std::vector<double> value;
-  bool success = param.getValue(value);
-  if (!success) {return false;}
-  if (value.size() != joint_num_) {
-    RCLCPP_ERROR(this->get_logger(), "Invalid parameter array length for parameter %s",
-      param.getName().c_str());
+  if (new_value.size() != joint_num_) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "Invalid parameter array length for parameter lower_limits_deg");
     return false;
   }
-  std::transform(value.begin(),
-    value.end(), lower_limits_rad_.begin(), d2r);
+  std::transform(
+    new_value.begin(),
+    new_value.end(), lower_limits_rad_.begin(), d2r);
   return true;
 }
 
 bool MotionTracker::onUpperLimitsChangeRequest(
-  const kroshu_ros2_core::Parameter<std::vector<double>> & param)
+  const std::vector<double> & new_value)
 {
-  std::vector<double> value;
-  bool success = param.getValue(value);
-  if (!success) {return false;}
-  if (value.size() != joint_num_) {
-    RCLCPP_ERROR(this->get_logger(), "Invalid parameter array length for parameter %s",
-      param.getName().c_str());
+  if (new_value.size() != joint_num_) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "Invalid parameter array length for parameter upper_limits_deg");
     return false;
   }
-  std::transform(value.begin(),
-    value.end(), upper_limits_rad_.begin(), d2r);
+  std::transform(
+    new_value.begin(),
+    new_value.end(), lower_limits_rad_.begin(), d2r);
   return true;
 }
 

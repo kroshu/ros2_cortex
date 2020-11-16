@@ -34,7 +34,8 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
 : kroshu_ros2_core::ROS2BaseNode(node_name)
 {
   using namespace std::placeholders;
-  cortex_client_->setDataHandlerFunc([this](sFrameOfData & fod) {
+  cortex_client_->setDataHandlerFunc(
+    [this](sFrameOfData & fod) {
       CortexClientNode::dataHandlerFunc_(fod);
     });
   cortex_client_->setErrorMsgHandlerFunc(
@@ -45,13 +46,14 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
 
   // Creating output filename param
   typedef std::function<bool (
-        const kroshu_ros2_core::Parameter<std::string> &)> string_callback_type;
+        const std::string &)> string_callback_type;
   auto output_filename_lambda =
-    [this](const kroshu_ros2_core::Parameter<std::string> & param) {
-      return this->onOutputFilenameChangeRequest(param);
+    [this](const std::string & new_value) {
+      return this->onOutputFilenameChangeRequest(new_value);
     };
   std::string default_output_filename = "CortexDefaultOutput.cap";
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("output_filename",
+  kroshu_ros2_core::ROS2BaseNode::declareParameter(
+    "output_filename",
     default_output_filename,
     kroshu_ros2_core::ParameterSetAccessRights {
       true, true, false, false},
@@ -59,17 +61,19 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
 
   // Creating play mode param
   auto play_mode_lambda =
-    [this](const kroshu_ros2_core::Parameter<std::string> & param) {
-      return this->onPlayModeChangeRequest(param);
+    [this](const std::string & new_value) {
+      return this->onPlayModeChangeRequest(new_value);
     };
   std::string default_play_mode = "live";
-  kroshu_ros2_core::ROS2BaseNode::declareParameter("play_mode",
+  kroshu_ros2_core::ROS2BaseNode::declareParameter(
+    "play_mode",
     default_play_mode,
     kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
     static_cast<string_callback_type>(play_mode_lambda));
 
-  this->set_on_parameters_set_callback([this](const std::vector<rclcpp::Parameter> & parameters)
+  this->set_on_parameters_set_callback(
+    [this](const std::vector<rclcpp::Parameter> & parameters)
     {return onParamChange(parameters);});
 }
 
@@ -90,10 +94,14 @@ CortexClientNode::on_configure(const rclcpp_lifecycle::State & state)
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_activate(const rclcpp_lifecycle::State & state)
 {
-  auto play_mode =
+  std::string play_mode;
+  bool success =
     std::dynamic_pointer_cast<kroshu_ros2_core::Parameter<std::string>>(
-    params_.find("play_mode")->second);
-  onPlayModeChangeRequest(*play_mode);
+    params_.find("play_mode")->second)->getValue(play_mode);
+  if (!success) {
+    return kroshu_ros2_core::ROS2BaseNode::ERROR;
+  }
+  onPlayModeChangeRequest(play_mode);
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
@@ -219,24 +227,18 @@ void CortexClientNode::setEmptyWithArgServices()
 }
 
 bool CortexClientNode::onOutputFilenameChangeRequest(
-  kroshu_ros2_core::Parameter<std::string> param)
+  const std::string & new_value)
 {
-  std::string value;
-  bool success = param.getValue(value);
-  if (!success) {return false;}
-  cortex_client_->setOutputName(value);
+  cortex_client_->setOutputName(new_value);
   return true;
 }
 
 bool CortexClientNode::onPlayModeChangeRequest(
-  kroshu_ros2_core::Parameter<std::string> param)
+  const std::string & new_value)
 {
-  std::string value;
-  bool success = param.getValue(value);
-  if (!success) {return false;}
-  if (value == "live") {cortex_client_->liveMode();} else if (value == "post_forward") {
+  if (new_value == "live") {cortex_client_->liveMode();} else if (new_value == "post_forward") {
     cortex_client_->postForward();
-  } else if (value == "post_backward") {cortex_client_->postBackward();} else {
+  } else if (new_value == "post_backward") {cortex_client_->postBackward();} else {
     RCLCPP_ERROR(get_logger(), "Invalid parameter value for play_mode");
     return false;
   }
@@ -247,7 +249,8 @@ void CortexClientNode::dataHandlerFunc_(sFrameOfData & fod)
 {
   cortex_client_->copyFrame(fod, current_fod_);
   RCLCPP_INFO(get_logger(), "Frame " + std::to_string(current_fod_.iFrame));
-  RCLCPP_INFO(get_logger(),
+  RCLCPP_INFO(
+    get_logger(),
     "Number of unidentified markers " + std::to_string(current_fod_.nUnidentifiedMarkers));
 }
 
