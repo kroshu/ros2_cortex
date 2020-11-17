@@ -64,8 +64,14 @@ MotionTracker::MotionTracker()
   reference_joint_state_ = std::make_shared<sensor_msgs::msg::JointState>();
   reference_joint_state_->position.resize(joint_num_);
 
-  lower_limits_rad_ = {-170, -120, -170, -120, -170, -120, -175};
-  upper_limits_rad_ = {170, 120, 170, 120, 170, 120, 175};
+  std::vector<double> lower_limits_deg = {-170, -120, -170, -120, -170, -120, -175};
+  std::transform(
+    lower_limits_deg.begin(),
+    lower_limits_deg.end(), lower_limits_rad_.begin(), d2r);
+  std::vector<double> upper_limits_deg = {170, 120, 170, 120, 170, 120, 175};
+  std::transform(
+    upper_limits_deg.begin(),
+    upper_limits_deg.end(), upper_limits_rad_.begin(), d2r);
   typedef std::function<bool (
         const std::vector<double> &)> doublevec_callback_type;
 
@@ -80,13 +86,13 @@ MotionTracker::MotionTracker()
 
   kroshu_ros2_core::ROS2BaseNode::declareParameter(
     "lower_limits_deg",
-    lower_limits_rad_,
+    lower_limits_deg,
     kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
     static_cast<doublevec_callback_type>(lower_limits_lambda));
   kroshu_ros2_core::ROS2BaseNode::declareParameter(
     "upper_limits_deg",
-    upper_limits_rad_,
+    upper_limits_deg,
     kroshu_ros2_core::ParameterSetAccessRights {
       true, true, true, false},
     static_cast<doublevec_callback_type>(upper_limits_lambda));
@@ -209,7 +215,7 @@ bool MotionTracker::onUpperLimitsChangeRequest(
   }
   std::transform(
     new_value.begin(),
-    new_value.end(), lower_limits_rad_.begin(), d2r);
+    new_value.end(), upper_limits_rad_.begin(), d2r);
   return true;
 }
 

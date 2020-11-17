@@ -89,6 +89,7 @@ CortexClientNode::on_configure(const rclcpp_lifecycle::State & state)
   const std::string empty_str = "";
   cortex_client_->initialize(empty_str, empty_str);
   setServices();
+  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
