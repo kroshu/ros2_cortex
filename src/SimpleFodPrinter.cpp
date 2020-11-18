@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <memory>
+#include "rclcpp/rclcpp.hpp"
 
 #include "ros2_cortex/CortexClientNode.hpp"
 

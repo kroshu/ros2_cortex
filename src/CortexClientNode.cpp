@@ -23,7 +23,6 @@
 #include <functional>
 
 #include "rclcpp/rclcpp.hpp"
-#include "kroshu_ros2_core/Parameter.hpp"
 #include "kroshu_ros2_core/ROS2BaseNode.hpp"
 #include "ros2_cortex/CortexClient.hpp"
 
@@ -31,8 +30,26 @@ namespace ros2_cortex
 {
 
 CortexClientNode::CortexClientNode(const std::string & node_name)
-: kroshu_ros2_core::ROS2BaseNode(node_name)
+: kroshu_ros2_core::ROS2BaseNode(node_name),
+  play_mode_(std::make_shared<Parameter<std::string>>(
+      "play_mode", "live",
+      ParameterSetAccessRights {
+    true, true, true, false},
+      [this](const std::string & new_value) {
+        return this->onPlayModeChangeRequest(new_value);
+      }, *this)),
+  output_filename_(
+    std::make_shared<Parameter<std::string>>(
+      "output_filename", "CortexDefaultOutput.cap",
+      ParameterSetAccessRights {
+    true, true, false, false},
+      [this](const std::string & new_value) {
+        return this->onOutputFilenameChangeRequest(new_value);
+      }, *this))
 {
+  ROS2BaseNode::registerParameter(play_mode_);
+  ROS2BaseNode::registerParameter(output_filename_);
+
   using namespace std::placeholders;
   cortex_client_->setDataHandlerFunc(
     [this](sFrameOfData & fod) {
@@ -45,32 +62,19 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
     });
 
   // Creating output filename param
-  typedef std::function<bool (
-        const std::string &)> string_callback_type;
-  auto output_filename_lambda =
-    [this](const std::string & new_value) {
-      return this->onOutputFilenameChangeRequest(new_value);
-    };
-  std::string default_output_filename = "CortexDefaultOutput.cap";
-  kroshu_ros2_core::ROS2BaseNode::declareParameter(
-    "output_filename",
-    default_output_filename,
-    kroshu_ros2_core::ParameterSetAccessRights {
-      true, true, false, false},
-    static_cast<string_callback_type>(output_filename_lambda));
-
-  // Creating play mode param
-  auto play_mode_lambda =
-    [this](const std::string & new_value) {
-      return this->onPlayModeChangeRequest(new_value);
-    };
-  std::string default_play_mode = "live";
-  kroshu_ros2_core::ROS2BaseNode::declareParameter(
-    "play_mode",
-    default_play_mode,
-    kroshu_ros2_core::ParameterSetAccessRights {
-      true, true, true, false},
-    static_cast<string_callback_type>(play_mode_lambda));
+//  typedef std::function<bool (
+//        const std::string &)> string_callback_type;
+//  auto output_filename_lambda =
+//    [this](const std::string & new_value) {
+//      return this->onOutputFilenameChangeRequest(new_value);
+//    };
+//  std::string default_output_filename = "CortexDefaultOutput.cap";
+//  kroshu_ros2_core::ROS2BaseNode::declareParameter(
+//    "output_filename",
+//    default_output_filename,
+//    kroshu_ros2_core::ParameterSetAccessRights {
+//      true, true, false, false},
+//    static_cast<string_callback_type>(output_filename_lambda));
 
   this->set_on_parameters_set_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters)
@@ -95,28 +99,24 @@ CortexClientNode::on_configure(const rclcpp_lifecycle::State & state)
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_activate(const rclcpp_lifecycle::State & state)
 {
-  std::string play_mode;
-  bool success =
-    std::dynamic_pointer_cast<kroshu_ros2_core::Parameter<std::string>>(
-    params_.find("play_mode")->second)->getValue(play_mode);
+  std::string play_mode_str = "live";
+  bool success = play_mode_->getValue(play_mode_str);
   if (!success) {
     return kroshu_ros2_core::ROS2BaseNode::ERROR;
   }
-  onPlayModeChangeRequest(play_mode);
+  onPlayModeChangeRequest(play_mode_str);
   return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CortexClientNode::on_deactivate(const rclcpp_lifecycle::State & state)
 {
-  std::string play_mode;
-  bool success =
-    std::dynamic_pointer_cast<kroshu_ros2_core::Parameter<std::string>>(
-    params_.find("play_mode")->second)->getValue(play_mode);
+  std::string play_mode_str = "live";
+  bool success = play_mode_->getValue(play_mode_str);
   if (!success) {
     return kroshu_ros2_core::ROS2BaseNode::ERROR;
   }
-  if (play_mode == "live") {
+  if (play_mode_str == "live") {
     cortex_client_->pause();
   } else {
     cortex_client_->postPause();

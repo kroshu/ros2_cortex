@@ -26,7 +26,6 @@
 
 #include "Cortex.h"
 #include "ros2_cortex/CortexClient.hpp"
-#include "kroshu_ros2_core/Parameter.hpp"
 #include "kroshu_ros2_core/ROS2BaseNode.hpp"
 #include "cortex_interfaces/srv/cortex_request_int.hpp"
 #include "cortex_interfaces/srv/cortex_request_float.hpp"
@@ -87,6 +86,8 @@ private:
 protected:
   std::shared_ptr<CortexClient> cortex_client_ = CortexClient::getInstance();
   sFrameOfData current_fod_;
+  std::shared_ptr<Parameter<std::string>> play_mode_;
+  std::shared_ptr<Parameter<std::string>> output_filename_;
 };
 }  // namespace ros2_cortex
 

@@ -18,6 +18,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <memory>
 
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
@@ -57,6 +58,10 @@ private:
   sensor_msgs::msg::JointState::SharedPtr reference_joint_state_;
   std_msgs::msg::Int8::SharedPtr active_joint_msg_;
   const int joint_num_ = 7;
+  const std::vector<double> lower_limits_deg_default_ =
+  {-170, -120, -170, -120, -170, -120, -175};
+  const std::vector<double> upper_limits_deg_default_ =
+  {170, 120, 170, 120, 170, 120, 175};
   std::vector<double> lower_limits_rad_;
   std::vector<double> upper_limits_rad_;
   std::vector<double> segment_lengths_ = {0.1575, 0.2025,
@@ -72,6 +77,8 @@ private:
     const geometry_msgs::msg::Point & second);
   bool onLowerLimitsChangeRequest(const std::vector<double> & new_value);
   bool onUpperLimitsChangeRequest(const std::vector<double> & new_value);
+  std::shared_ptr<Parameter<std::vector<double>>> lower_limits_param_;
+  std::shared_ptr<Parameter<std::vector<double>>> upper_limits_param_;
 };
 
 }  // namespace ros2_cortex

@@ -22,7 +22,6 @@
 #include "rclcpp/message_memory_strategy.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "kroshu_ros2_core/ROS2BaseNode.hpp"
-#include "kroshu_ros2_core/Parameter.hpp"
 #include "ros2_cortex/MotionTracker.hpp"
 
 namespace ros2_cortex
@@ -36,7 +35,24 @@ double d2r(double degrees)
 MotionTracker::MotionTracker()
 : kroshu_ros2_core::ROS2BaseNode("motion_tracker"),
   lower_limits_rad_(joint_num_), upper_limits_rad_(joint_num_),
-  original_joint_points_(joint_num_)
+  original_joint_points_(joint_num_),
+  lower_limits_param_(std::make_shared<Parameter<std::vector<double>>>(
+      "lower_limits_deg",
+      lower_limits_deg_default_,
+      ParameterSetAccessRights {
+    true, true, true, false},
+      [this](const std::vector<double> & new_value) {
+        return this->onLowerLimitsChangeRequest(new_value);
+      }, *this)),
+  upper_limits_param_(
+    std::make_shared<Parameter<std::vector<double>>>(
+      "upper_limits_deg",
+      upper_limits_deg_default_,
+      ParameterSetAccessRights {
+    true, true, true, false},
+      [this](const std::vector<double> & new_value) {
+        return this->onUpperLimitsChangeRequest(new_value);
+      }, *this))
 {
   original_joint_points_[0].x = 0.0;
   original_joint_points_[0].y = 0.0;
@@ -64,38 +80,14 @@ MotionTracker::MotionTracker()
   reference_joint_state_ = std::make_shared<sensor_msgs::msg::JointState>();
   reference_joint_state_->position.resize(joint_num_);
 
-  std::vector<double> lower_limits_deg = {-170, -120, -170, -120, -170, -120, -175};
-  std::transform(
-    lower_limits_deg.begin(),
-    lower_limits_deg.end(), lower_limits_rad_.begin(), d2r);
-  std::vector<double> upper_limits_deg = {170, 120, 170, 120, 170, 120, 175};
-  std::transform(
-    upper_limits_deg.begin(),
-    upper_limits_deg.end(), upper_limits_rad_.begin(), d2r);
-  typedef std::function<bool (
-        const std::vector<double> &)> doublevec_callback_type;
 
-  auto lower_limits_lambda =
-    [this](const std::vector<double> & new_value) {
-      return this->onLowerLimitsChangeRequest(new_value);
-    };
-  auto upper_limits_lambda =
-    [this](const std::vector<double> & new_value) {
-      return this->onUpperLimitsChangeRequest(new_value);
-    };
+  std::transform(
+    lower_limits_deg_default_.begin(),
+    lower_limits_deg_default_.end(), lower_limits_rad_.begin(), d2r);
 
-  kroshu_ros2_core::ROS2BaseNode::declareParameter(
-    "lower_limits_deg",
-    lower_limits_deg,
-    kroshu_ros2_core::ParameterSetAccessRights {
-      true, true, true, false},
-    static_cast<doublevec_callback_type>(lower_limits_lambda));
-  kroshu_ros2_core::ROS2BaseNode::declareParameter(
-    "upper_limits_deg",
-    upper_limits_deg,
-    kroshu_ros2_core::ParameterSetAccessRights {
-      true, true, true, false},
-    static_cast<doublevec_callback_type>(upper_limits_lambda));
+  std::transform(
+    upper_limits_deg_default_.begin(),
+    upper_limits_deg_default_.end(), upper_limits_rad_.begin(), d2r);
 
   this->set_on_parameters_set_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters)
