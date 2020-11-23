@@ -79,6 +79,7 @@ private:
   bool onUpperLimitsChangeRequest(const std::vector<double> & new_value);
   std::shared_ptr<Parameter<std::vector<double>>> lower_limits_param_;
   std::shared_ptr<Parameter<std::vector<double>>> upper_limits_param_;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback;
 };
 
 }  // namespace ros2_cortex

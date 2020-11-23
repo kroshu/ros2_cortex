@@ -89,7 +89,7 @@ MotionTracker::MotionTracker()
     upper_limits_deg_default_.begin(),
     upper_limits_deg_default_.end(), upper_limits_rad_.begin(), d2r);
 
-  this->set_on_parameters_set_callback(
+  param_callback = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters)
     {return onParamChange(parameters);});
 }

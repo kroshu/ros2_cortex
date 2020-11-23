@@ -88,6 +88,7 @@ protected:
   sFrameOfData current_fod_;
   std::shared_ptr<Parameter<std::string>> play_mode_;
   std::shared_ptr<Parameter<std::string>> output_filename_;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback;
 };
 }  // namespace ros2_cortex
 

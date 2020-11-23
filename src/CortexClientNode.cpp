@@ -76,7 +76,7 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
 //      true, true, false, false},
 //    static_cast<string_callback_type>(output_filename_lambda));
 
-  this->set_on_parameters_set_callback(
+  param_callback = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters)
     {return onParamChange(parameters);});
 }
