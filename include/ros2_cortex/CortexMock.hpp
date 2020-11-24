@@ -43,7 +43,7 @@ public:
   bool running_ = false;
   std::thread run_thread_;
   std::mutex run_cycle_mutex_;
-  float conv_rate_to_mm_ = 1.0, frame_rate_ = 200.0, analog_sample_rate_ = 600.0;
+  float conv_rate_to_mm_ = 1.0, frame_rate_ = 50.0, analog_sample_rate_ = 600.0;
   enum class PostPlayMode {backwards = -1, paused, forwards};
   int post_play_mode_ = static_cast<int>(PostPlayMode::paused);
   int post_starter_frame_ = 0, post_end_frame_;
@@ -86,6 +86,10 @@ public:
   sBodyDefs body_defs_ = sBodyDefs();
   std::function<void(sFrameOfData *)> dataHandlerFunc_;
   std::function<void(int iLogLevel, char * szLogMessage)> errorMsgHandlerFunc_;
+  std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> t_active_;
+  std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> t_after_run_;
+  std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> t_after_sleep_;
+  std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> last_t_after_sleep_;
   void run();
   bool runCycle();
   void liveRunCycle();
