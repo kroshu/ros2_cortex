@@ -105,7 +105,8 @@ if(BUILD_TESTING)
 
   ament_copyright(--exclude ${rapidjson_main_headers} ${rapidjson_error_headers}
                   ${rapidjson_internal_headers} ${rapidjson_msinttypes_headers} Cortex.h)
-  ament_cppcheck(--language=c++)
+  ament_cppcheck(--language=c++ --exclude ${rapidjson_main_headers} ${rapidjson_error_headers}
+                  ${rapidjson_internal_headers} ${rapidjson_msinttypes_headers} Cortex.h)
   ament_pep257()
   ament_flake8()
   ament_cpplint()
