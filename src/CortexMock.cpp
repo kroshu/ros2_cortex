@@ -553,60 +553,61 @@ void CortexMock::run()
 {
   running_ = true;
   t_after_sleep_ =
-		  std::chrono::time_point_cast<std::chrono::nanoseconds>(
-				  std::chrono::system_clock::now());
+    std::chrono::time_point_cast<std::chrono::nanoseconds>(
+    std::chrono::system_clock::now());
   last_t_after_sleep_ = t_after_sleep_;
   while (true) {
     // Store time as t_active_
     t_active_ =
-  		  std::chrono::time_point_cast<std::chrono::nanoseconds>(
-  				  std::chrono::system_clock::now());
+      std::chrono::time_point_cast<std::chrono::nanoseconds>(
+      std::chrono::system_clock::now());
     if (!runCycle()) {return;}
     auto t_to_active = t_active_ - t_after_sleep_;
     auto frame_time = std::chrono::nanoseconds(static_cast<int>(ms_in_s / frame_rate_) * 1000000);
     auto time_of_sleep = frame_time - t_to_active;
     // Store time as t_after_run_
     t_after_run_ =
-  		  std::chrono::time_point_cast<std::chrono::nanoseconds>(
-  				  std::chrono::system_clock::now());
-    // Time of sleep: (ms_in_s/frame_rate) - (t_after_run_ - t_active_) - (t_active_ - t_after_sleep_)
+      std::chrono::time_point_cast<std::chrono::nanoseconds>(
+      std::chrono::system_clock::now());
+    // Time of sleep: (ms_in_s/frame_rate) -
+    // (t_after_run_ - t_active_) - (t_active_ - t_after_sleep_)
     auto t_run = t_after_run_ - t_active_;
     time_of_sleep -= t_run;
     std::this_thread::sleep_for(time_of_sleep);
     // Store time as t_after_sleep_
     t_after_sleep_ =
-  		  std::chrono::time_point_cast<std::chrono::nanoseconds>(
-  				  std::chrono::system_clock::now());
+      std::chrono::time_point_cast<std::chrono::nanoseconds>(
+      std::chrono::system_clock::now());
 
     std::time_t time_now = std::chrono::system_clock::to_time_t(t_after_sleep_);
     auto after_sleep_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        		t_after_sleep_.time_since_epoch()) % 1000;
+      t_after_sleep_.time_since_epoch()) % 1000;
     auto after_sleep_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            		t_after_sleep_.time_since_epoch());
+      t_after_sleep_.time_since_epoch());
     auto after_run_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-    			t_after_run_.time_since_epoch()) % 1000;
+      t_after_run_.time_since_epoch()) % 1000;
     auto after_run_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-    		t_after_run_.time_since_epoch());
+      t_after_run_.time_since_epoch());
     std::cout << "Time at end of the frame: " <<
-    		std::put_time(std::localtime(&time_now), "%H:%M:%S"); // HH:MM:SS
+      std::put_time(std::localtime(&time_now), "%H:%M:%S");           // HH:MM:SS
     std::cout << '.' << std::setfill('0') << std::setw(3) << after_sleep_ms.count() <<
-    		'.' << std::setfill('0') << std::setw(3) << after_sleep_in_ns.count() % 1000000 << "\n";
+      '.' << std::setfill('0') << std::setw(3) << after_sleep_in_ns.count() % 1000000 << "\n";
 
-    if((t_run + t_to_active).count() >= frame_time.count()){
-    	std::cout << "Time of sleep: already spent"
-    			"more time before sleep than needed in the whole frame.\n";
-    } else{
-    std::cout << "Time of sleep: " << time_of_sleep.count() / 1000000 << "." <<
-    		time_of_sleep.count() % 1000000 << "ms, but actually " <<
-    		(after_sleep_in_ns.count() - after_run_in_ns.count()) / 1000000 << "." <<
-			(after_sleep_in_ns.count() - after_run_in_ns.count()) % 1000000 << "ms\n";
+    if ((t_run + t_to_active).count() >= frame_time.count()) {
+      std::cout << "Time of sleep: already spent"
+        "more time before sleep than needed in the whole frame.\n";
+    } else {
+      std::cout << "Time of sleep: " << time_of_sleep.count() / 1000000 << "." <<
+        time_of_sleep.count() % 1000000 << "ms, but actually " <<
+      (after_sleep_in_ns.count() - after_run_in_ns.count()) / 1000000 << "." <<
+      (after_sleep_in_ns.count() - after_run_in_ns.count()) % 1000000 << "ms\n";
     }
 
     auto last_after_sleep_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-    		last_t_after_sleep_.time_since_epoch());
+      last_t_after_sleep_.time_since_epoch());
     std::cout << "Time spent in frame: " <<
-        		(after_sleep_in_ns.count() - last_after_sleep_in_ns.count()) / 1000000 << "." <<
-    			(after_sleep_in_ns.count() - last_after_sleep_in_ns.count()) % 1000000 << "ms\n";
+    (after_sleep_in_ns.count() - last_after_sleep_in_ns.count()) / 1000000 << "." <<
+    (after_sleep_in_ns.count() - last_after_sleep_in_ns.count()) % 1000000 << "ms\n";
 
     last_t_after_sleep_ = t_after_sleep_;
   }
