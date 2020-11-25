@@ -39,11 +39,11 @@ public:
   int n_frames_, current_frame_ind_ = 0,
     verbosity_level_ = 2, analog_bit_depth_ = 16;    // a_b_d_ 12 or 16 usually
   static const int read_buffer_size_ = 65536;
-  static constexpr float ms_in_s = 1000.0;
+  static constexpr float ns_in_s = 1000000000.0;
   bool running_ = false;
   std::thread run_thread_;
   std::mutex run_cycle_mutex_;
-  float conv_rate_to_mm_ = 1.0, frame_rate_ = 1.0, analog_sample_rate_ = 600.0;
+  float conv_rate_to_mm_ = 1.0, frame_rate_ = 100.0, analog_sample_rate_ = 600.0;
   enum class PostPlayMode {backwards = -1, paused, forwards};
   int post_play_mode_ = static_cast<int>(PostPlayMode::paused);
   int post_starter_frame_ = 0, post_end_frame_;
@@ -89,7 +89,6 @@ public:
   std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> t_active_;
   std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> t_after_run_;
   std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> t_after_sleep_;
-  std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> last_t_after_sleep_;
   void run();
   bool runCycle();
   void liveRunCycle();
