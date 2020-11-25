@@ -61,21 +61,6 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
       CortexClientNode::errorMsgHandlerFunc_(log_level, log_message);
     });
 
-  // Creating output filename param
-//  typedef std::function<bool (
-//        const std::string &)> string_callback_type;
-//  auto output_filename_lambda =
-//    [this](const std::string & new_value) {
-//      return this->onOutputFilenameChangeRequest(new_value);
-//    };
-//  std::string default_output_filename = "CortexDefaultOutput.cap";
-//  kroshu_ros2_core::ROS2BaseNode::declareParameter(
-//    "output_filename",
-//    default_output_filename,
-//    kroshu_ros2_core::ParameterSetAccessRights {
-//      true, true, false, false},
-//    static_cast<string_callback_type>(output_filename_lambda));
-
   param_callback = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters)
     {return onParamChange(parameters);});
@@ -228,14 +213,14 @@ void CortexClientNode::setEmptyWithArgServices()
 }
 
 bool CortexClientNode::onOutputFilenameChangeRequest(
-  const std::string & new_value)
+  const std::string & new_value) const
 {
   cortex_client_->setOutputName(new_value);
   return true;
 }
 
 bool CortexClientNode::onPlayModeChangeRequest(
-  const std::string & new_value)
+  const std::string & new_value) const
 {
   if (new_value == "live") {cortex_client_->liveMode();} else if (new_value == "post_forward") {
     cortex_client_->postForward();

@@ -110,7 +110,7 @@ void MotionTracker::markersReceivedCallback(
   std::vector<visualization_msgs::msg::Marker> joint_markers;
   std::copy_if(
     msg->markers.begin(), msg->markers.end(), std::back_inserter(joint_markers),
-    [](const visualization_msgs::msg::Marker & marker) -> bool {
+    [](const visualization_msgs::msg::Marker & marker) {
       return marker.ns == "joint_markers";
     });
 

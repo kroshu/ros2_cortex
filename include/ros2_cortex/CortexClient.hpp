@@ -107,6 +107,14 @@ const std::map<CortexRequestWithFloatReturn, std::string> names_of_reqs_with_flo
   {CortexRequestWithFloatReturn::GetContextAnalogSampleRate, "GetContextAnalogSampleRate"},
   {CortexRequestWithFloatReturn::GetConversionToMillimeters, "GetConversionToMillimeters"}};
 
+struct OnlyOneInstanceAllowedException : std::exception
+{
+  const char * what() const noexcept
+  {
+    return "Cannot instantiate multiple times!\n";
+  }
+};
+
 class CortexClient
 {
 public:
@@ -119,12 +127,12 @@ public:
   CortexReturn setMinTimeout(int ms_timeout) const;
   int getMinTimeout() const;
   CortexReturn setErrorMsgHandlerFunc(
-    std::function<void(CortexVerbosityLevel,
-    const std::string &)> errorMsgHandlerFunc);
+    const std::function<void(CortexVerbosityLevel,
+    const std::string &)> & errorMsgHandlerFunc) const;
   static void dataHandlerFuncHelper(sFrameOfData * p_fod);
   static void errorMsgHandlerFuncHelper(int i_level, char * msg);
   CortexReturn setDataHandlerFunc(
-    std::function<void(sFrameOfData &)> dataHandlerFunc);
+    const std::function<void(sFrameOfData &)> & dataHandlerFunc) const;
   CortexReturn sendDataToClients(sFrameOfData & frame_of_data) const;
   void setClientCommunicationEnabled(bool is_enabled) const;
   bool isClientCommunicationEnabled() const;

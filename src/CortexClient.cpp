@@ -35,7 +35,7 @@ std::shared_ptr<CortexClient> CortexClient::getInstance()
   std::unique_lock<std::mutex> lock(instance_mutex_,
     std::try_to_lock);
   if (!lock.owns_lock() || is_instantiated_) {
-    throw std::runtime_error("Cannot instantiate multiple times");
+    throw OnlyOneInstanceAllowedException();
   } else {
     is_instantiated_ = true;
     return instance_;
@@ -83,8 +83,8 @@ void CortexClient::errorMsgHandlerFuncHelper(int i_level, char * msg)
 }
 
 CortexReturn CortexClient::setErrorMsgHandlerFunc(
-  std::function<void(CortexVerbosityLevel,
-  const std::string &)> errorMsgHandlerFunc)
+  const std::function<void(CortexVerbosityLevel,
+  const std::string &)> & errorMsgHandlerFunc) const
 {
   errorMsgHandlerFunc_ = errorMsgHandlerFunc;
   return static_cast<CortexReturn>(
@@ -97,7 +97,7 @@ void CortexClient::dataHandlerFuncHelper(sFrameOfData * p_fod)
 }
 
 CortexReturn CortexClient::setDataHandlerFunc(
-  std::function<void(sFrameOfData &)> dataHandlerFunc)
+  const std::function<void(sFrameOfData &)> & dataHandlerFunc) const
 {
   dataHandlerFunc_ = dataHandlerFunc;
   return static_cast<CortexReturn>(

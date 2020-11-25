@@ -571,29 +571,31 @@ void CortexMock::run()
       std::chrono::system_clock::now());
     // Time of sleep: (ms_in_s/frame_rate) -
     // (t_after_run_ - t_active_) - (t_active_ - t_after_sleep_)
-    auto t_run = t_after_run_ - t_active_;
-    time_of_sleep -= t_run;
-    std::this_thread::sleep_for(time_of_sleep);
+    std::this_thread::sleep_for(time_of_sleep - (t_after_run_ - t_active_));
     // Store time as t_after_sleep_
     t_after_sleep_ =
       std::chrono::time_point_cast<std::chrono::nanoseconds>(
       std::chrono::system_clock::now());
 
-    std::time_t time_now = std::chrono::system_clock::to_time_t(t_after_sleep_);
+    auto after_sleep_h = std::chrono::duration_cast<std::chrono::hours>(
+      t_after_sleep_.time_since_epoch()) % 24;
+    auto after_sleep_m = std::chrono::duration_cast<std::chrono::minutes>(
+      t_after_sleep_.time_since_epoch()) % 60;
+    auto after_sleep_s = std::chrono::duration_cast<std::chrono::seconds>(
+      t_after_sleep_.time_since_epoch()) % 60;
     auto after_sleep_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
       t_after_sleep_.time_since_epoch()) % 1000;
     auto after_sleep_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
       t_after_sleep_.time_since_epoch());
-    auto after_run_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      t_after_run_.time_since_epoch()) % 1000;
     auto after_run_in_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
       t_after_run_.time_since_epoch());
-    std::cout << "Time at end of the frame: " <<
-      std::put_time(std::localtime(&time_now), "%H:%M:%S");           // HH:MM:SS
-    std::cout << '.' << std::setfill('0') << std::setw(3) << after_sleep_ms.count() <<
+    std::cout << "Time at end of the frame: " << after_sleep_h.count() <<
+      ':' << std::setfill('0') << std::setw(2) << after_sleep_m.count() <<
+      ':' << std::setfill('0') << std::setw(2) << after_sleep_s.count() <<
+      '.' << std::setfill('0') << std::setw(3) << after_sleep_ms.count() <<
       '.' << std::setfill('0') << std::setw(3) << after_sleep_in_ns.count() % 1000000 << "\n";
 
-    if ((t_run + t_to_active).count() >= frame_time.count()) {
+    if ((t_after_run_ - t_active_ + t_to_active).count() >= frame_time.count()) {
       std::cout << "Time of sleep: already spent"
         "more time before sleep than needed in the whole frame.\n";
     } else {
@@ -787,7 +789,8 @@ int Cortex_Exit()
 
 int Cortex_Request(char * sz_command, void ** pp_response, int * pn_bytes)
 {
-  std::string command(sz_command), command_extra;
+  std::string command(sz_command);
+  std::string command_extra;
   size_t pos = command.find('=');
   if (pos != std::string::npos) {
     command_extra = command.substr(pos);

@@ -61,8 +61,8 @@ private:
   void setFloatServices();
   void setEmptyServices();
   void setEmptyWithArgServices();
-  bool onOutputFilenameChangeRequest(const std::string & new_value);
-  bool onPlayModeChangeRequest(const std::string & new_value);
+  bool onOutputFilenameChangeRequest(const std::string & new_value) const;
+  bool onPlayModeChangeRequest(const std::string & new_value) const;
 
   rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr post_get_play_mode_service;
   rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr

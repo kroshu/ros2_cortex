@@ -43,7 +43,7 @@ public:
   bool running_ = false;
   std::thread run_thread_;
   std::mutex run_cycle_mutex_;
-  float conv_rate_to_mm_ = 1.0, frame_rate_ = 50.0, analog_sample_rate_ = 600.0;
+  float conv_rate_to_mm_ = 1.0, frame_rate_ = 1.0, analog_sample_rate_ = 600.0;
   enum class PostPlayMode {backwards = -1, paused, forwards};
   int post_play_mode_ = static_cast<int>(PostPlayMode::paused);
   int post_starter_frame_ = 0, post_end_frame_;
