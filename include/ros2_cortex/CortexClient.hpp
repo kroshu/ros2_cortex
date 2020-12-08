@@ -109,7 +109,7 @@ const std::map<CortexRequestWithFloatReturn, std::string> names_of_reqs_with_flo
 
 struct OnlyOneInstanceAllowedException : std::exception
 {
-  const char * what() const noexcept
+  const char * what() const noexcept override
   {
     return "Cannot instantiate multiple times!\n";
   }
@@ -200,7 +200,7 @@ public:
     int rotation_order, const std::array<double, 3> & angles) const;
 
 private:
-  CortexClient() {}
+  CortexClient() = default;
   static std::shared_ptr<CortexClient> instance_;
   static std::mutex instance_mutex_;
   static bool is_instantiated_;

@@ -36,19 +36,26 @@ public:
   CortexMock(const CortexMock & other) = delete;
   CortexMock & operator=(CortexMock other) = delete;
   ~CortexMock();
-  int n_frames_, current_frame_ind_ = 0,
-    verbosity_level_ = 2, analog_bit_depth_ = 16;    // a_b_d_ 12 or 16 usually
+  int n_frames_;
+  int current_frame_ind_ = 0;
+  int verbosity_level_ = 2;
+  int analog_bit_depth_ = 16;    // a_b_d_ 12 or 16 usually
   static const int read_buffer_size_ = 65536;
   static constexpr float ns_in_s = 1000000000.0;
   bool running_ = false;
   std::thread run_thread_;
   std::mutex run_cycle_mutex_;
-  float conv_rate_to_mm_ = 1.0, frame_rate_ = 100.0, analog_sample_rate_ = 600.0;
+  float conv_rate_to_mm_ = 1.0;
+  float frame_rate_ = 100.0;
+  float analog_sample_rate_ = 600.0;
   enum class PostPlayMode {backwards = -1, paused, forwards};
   int post_play_mode_ = static_cast<int>(PostPlayMode::paused);
-  int post_starter_frame_ = 0, post_end_frame_;
-  int repeat_num_ = 0, actual_repeat_ = 0;
-  bool is_in_live_ = true, is_playing_in_live = false;
+  int post_starter_frame_ = 0;
+  int post_end_frame_;
+  int repeat_num_ = 0;
+  int actual_repeat_ = 0;
+  bool is_in_live_ = true;
+  bool is_playing_in_live = false;
   bool is_recording_in_live = false;
   enum class Request {LiveMode, Pause, SetOutputName, StartRecording,
     StopRecording, ResetIDs, PostForward, PostBackward, PostPause,
@@ -75,12 +82,7 @@ public:
   };
   enum class Axis {x = 0, y, z};
   int axis_up_ = static_cast<int>(Axis::z);
-  in_addr host_machine_address_, host_multicast_address_, talk_to_host_address_,
-    talk_to_client_address_, client_multicast_address_;
   std::string capture_file_name_;
-  int talk_to_host_port_ = 30000, host_port_ = 30001, host_multicast_port_ = 30002;
-  int talk_to_clients_request_port_ = 30003, talk_to_clients_multicast_port_ = 30004,
-    clients_multicast_port_ = 30005;
   rapidjson::Document document_;
   sFrameOfData current_frame_ = sFrameOfData();
   sBodyDefs body_defs_ = sBodyDefs();

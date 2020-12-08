@@ -40,20 +40,20 @@ class CortexClientNode : public kroshu_ros2_core::ROS2BaseNode
 {
 public:
   explicit CortexClientNode(const std::string & node_name);
-  virtual ~CortexClientNode();
+  ~CortexClientNode() override;
   virtual void dataHandlerFunc_(sFrameOfData & frame_of_data);
   virtual void errorMsgHandlerFunc_(
     CortexVerbosityLevel log_level,
     const std::string & log_message);
 
-  virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_configure(const rclcpp_lifecycle::State & state);
+  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+  on_configure(const rclcpp_lifecycle::State & state) override;
 
-  virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_activate(const rclcpp_lifecycle::State & state);
+  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+  on_activate(const rclcpp_lifecycle::State & state) override;
 
-  virtual rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_deactivate(const rclcpp_lifecycle::State & state);
+  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+  on_deactivate(const rclcpp_lifecycle::State & state) override;
 
 private:
   void setServices();
@@ -83,12 +83,13 @@ private:
 
   rclcpp::Service<cortex_interfaces::srv::CortexRequestFod>::SharedPtr get_frame_of_data_service;
 
-protected:
-  std::shared_ptr<CortexClient> cortex_client_ = CortexClient::getInstance();
   sFrameOfData current_fod_;
   std::shared_ptr<Parameter<std::string>> play_mode_;
   std::shared_ptr<Parameter<std::string>> output_filename_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback;
+
+protected:
+  std::shared_ptr<CortexClient> cortex_client_ = CortexClient::getInstance();
 };
 }  // namespace ros2_cortex
 

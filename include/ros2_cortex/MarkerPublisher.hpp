@@ -26,12 +26,12 @@ class MarkerPublisher : public CortexClientNode
 {
 public:
   MarkerPublisher();
-  void dataHandlerFunc_(sFrameOfData & frame_of_data);
+  void dataHandlerFunc_(sFrameOfData & frame_of_data) override;
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_activate(const rclcpp_lifecycle::State & state);
+  on_activate(const rclcpp_lifecycle::State & state) override;
 
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_deactivate(const rclcpp_lifecycle::State & state);
+  on_deactivate(const rclcpp_lifecycle::State & state) override;
 
 private:
   rclcpp_lifecycle::LifecyclePublisher<visualization_msgs::msg::MarkerArray>::SharedPtr
