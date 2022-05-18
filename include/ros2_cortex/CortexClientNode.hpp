@@ -26,17 +26,17 @@
 
 #include "Cortex.h"
 #include "ros2_cortex/CortexClient.hpp"
-#include "kroshu_ros2_core/ROS2BaseNode.hpp"
-#include "cortex_interfaces/srv/cortex_request_int.hpp"
-#include "cortex_interfaces/srv/cortex_request_float.hpp"
-#include "cortex_interfaces/srv/cortex_request_empty.hpp"
-#include "cortex_interfaces/srv/cortex_request_empty_with_arg.hpp"
-#include "cortex_interfaces/srv/cortex_request_fod.hpp"
+#include "kroshu_ros2_core/ROS2BaseLCNode.hpp"
+#include "ros2_cortex/srv/cortex_request_int.hpp"
+#include "ros2_cortex/srv/cortex_request_float.hpp"
+#include "ros2_cortex/srv/cortex_request_empty.hpp"
+#include "ros2_cortex/srv/cortex_request_empty_with_arg.hpp"
+#include "ros2_cortex/srv/cortex_request_fod.hpp"
 
 namespace ros2_cortex
 {
 
-class CortexClientNode : public kroshu_ros2_core::ROS2BaseNode
+class CortexClientNode : public kroshu_ros2_core::ROS2BaseLCNode
 {
 public:
   explicit CortexClientNode(const std::string & node_name);
@@ -47,13 +47,13 @@ public:
     const std::string & log_message);
 
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_configure(const rclcpp_lifecycle::State & state) override;
+  on_configure(const rclcpp_lifecycle::State &) override;
 
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_activate(const rclcpp_lifecycle::State & state) override;
+  on_activate(const rclcpp_lifecycle::State &) override;
 
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_deactivate(const rclcpp_lifecycle::State & state) override;
+  on_deactivate(const rclcpp_lifecycle::State &) override;
 
 private:
   void setServices();
@@ -61,32 +61,33 @@ private:
   void setFloatServices();
   void setEmptyServices();
   void setEmptyWithArgServices();
-  bool onOutputFilenameChangeRequest(const std::string & new_value) const;
-  bool onPlayModeChangeRequest(const std::string & new_value) const;
+  bool onOutputFilenameChangeRequest(const std::string & new_value);
+  bool onPlayModeChangeRequest(const std::string & new_value);
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr post_get_play_mode_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr
+  rclcpp::Service<ros2_cortex::srv::CortexRequestInt>::SharedPtr post_get_play_mode_service;
+  rclcpp::Service<ros2_cortex::srv::CortexRequestInt>::SharedPtr
     get_context_analog_bit_depth_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestInt>::SharedPtr get_up_axis_service;
+  rclcpp::Service<ros2_cortex::srv::CortexRequestInt>::SharedPtr get_up_axis_service;
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr
+  rclcpp::Service<ros2_cortex::srv::CortexRequestFloat>::SharedPtr
     get_context_frame_rate_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr
+  rclcpp::Service<ros2_cortex::srv::CortexRequestFloat>::SharedPtr
     get_context_analog_sample_rate_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestFloat>::SharedPtr
+  rclcpp::Service<ros2_cortex::srv::CortexRequestFloat>::SharedPtr
     get_conversion_to_millimeters_service;
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr start_recording_service;
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmpty>::SharedPtr stop_recording_service;
+  rclcpp::Service<ros2_cortex::srv::CortexRequestEmpty>::SharedPtr start_recording_service;
+  rclcpp::Service<ros2_cortex::srv::CortexRequestEmpty>::SharedPtr stop_recording_service;
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestEmptyWithArg>::SharedPtr reset_ids_service;
+  rclcpp::Service<ros2_cortex::srv::CortexRequestEmptyWithArg>::SharedPtr reset_ids_service;
 
-  rclcpp::Service<cortex_interfaces::srv::CortexRequestFod>::SharedPtr get_frame_of_data_service;
+  rclcpp::Service<ros2_cortex::srv::CortexRequestFod>::SharedPtr get_frame_of_data_service;
 
   sFrameOfData current_fod_;
-  std::shared_ptr<Parameter<std::string>> play_mode_;
-  std::shared_ptr<Parameter<std::string>> output_filename_;
-  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_;
+
+  std::string play_mode_;
+  std::string output_filename_;
 
 protected:
   std::shared_ptr<CortexClient> cortex_client_ = CortexClient::getInstance();

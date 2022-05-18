@@ -21,7 +21,7 @@
 
 #include "rclcpp/message_memory_strategy.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "kroshu_ros2_core/ROS2BaseNode.hpp"
+#include "kroshu_ros2_core/ROS2BaseLCNode.hpp"
 #include "ros2_cortex/MotionTracker.hpp"
 
 namespace ros2_cortex
@@ -33,27 +33,20 @@ double d2r(double degrees)
 }
 
 MotionTracker::MotionTracker()
-: kroshu_ros2_core::ROS2BaseNode("motion_tracker"),
+: kroshu_ros2_core::ROS2BaseLCNode("motion_tracker"),
   lower_limits_rad_(joint_num_), upper_limits_rad_(joint_num_),
-  original_joint_points_(joint_num_),
-  lower_limits_param_(std::make_shared<Parameter<std::vector<double>>>(
-      "lower_limits_deg",
-      lower_limits_deg_default_,
-      ParameterSetAccessRights {
-    true, true, true, false},
-      [this](const std::vector<double> & new_value) {
-        return this->onLowerLimitsChangeRequest(new_value);
-      }, *this)),
-  upper_limits_param_(
-    std::make_shared<Parameter<std::vector<double>>>(
-      "upper_limits_deg",
-      upper_limits_deg_default_,
-      ParameterSetAccessRights {
-    true, true, true, false},
-      [this](const std::vector<double> & new_value) {
-        return this->onUpperLimitsChangeRequest(new_value);
-      }, *this))
+  original_joint_points_(joint_num_)
 {
+  registerParameter<std::vector<double>>(
+    "lower_limits_deg", lower_limits_deg_default_, kroshu_ros2_core::ParameterSetAccessRights {true, true,
+      false, false}, [this](const std::vector<double> & new_value) {
+        return this->onLowerLimitsChangeRequest(new_value);
+      });
+  registerParameter<std::vector<double>>(
+    "upper_limits_deg", upper_limits_deg_default_, kroshu_ros2_core::ParameterSetAccessRights {true, true,
+      false, false}, [this](const std::vector<double> & new_value) {
+        return this->onUpperLimitsChangeRequest(new_value);
+      });
   original_joint_points_[0].x = 0.0;
   original_joint_points_[0].y = 0.0;
   original_joint_points_[0].z = segment_lengths_[0];
@@ -91,7 +84,7 @@ MotionTracker::MotionTracker()
 
   param_callback = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters)
-    {return onParamChange(parameters);});
+    {return getParameterHandler().onParamChange(parameters);});
 }
 
 double MotionTracker::distBetweenPoints(
@@ -161,7 +154,7 @@ MotionTracker::on_cleanup(const rclcpp_lifecycle::State & state)
 {
   reference_joint_state_->position.assign(joint_num_, 0);
   active_joint_msg_->data = 1;
-  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseLCNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -169,7 +162,7 @@ MotionTracker::on_activate(const rclcpp_lifecycle::State & state)
 {
   reference_joint_state_publisher_->on_activate();
   active_axis_changed_publisher_->on_activate();
-  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseLCNode::SUCCESS;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -178,7 +171,7 @@ MotionTracker::on_deactivate(const rclcpp_lifecycle::State & state)
   marker_array_subscriber_.reset();
   reference_joint_state_publisher_->on_deactivate();
   active_axis_changed_publisher_->on_deactivate();
-  return kroshu_ros2_core::ROS2BaseNode::SUCCESS;
+  return kroshu_ros2_core::ROS2BaseLCNode::SUCCESS;
 }
 
 bool MotionTracker::onLowerLimitsChangeRequest(

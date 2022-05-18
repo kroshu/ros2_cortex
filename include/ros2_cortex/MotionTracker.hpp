@@ -31,7 +31,7 @@
 namespace ros2_cortex
 {
 
-class MotionTracker : public kroshu_ros2_core::ROS2BaseNode
+class MotionTracker : public kroshu_ros2_core::ROS2BaseLCNode
 {
 public:
   MotionTracker();
@@ -77,8 +77,8 @@ private:
     const geometry_msgs::msg::Point & second);
   bool onLowerLimitsChangeRequest(const std::vector<double> & new_value);
   bool onUpperLimitsChangeRequest(const std::vector<double> & new_value);
-  std::shared_ptr<Parameter<std::vector<double>>> lower_limits_param_;
-  std::shared_ptr<Parameter<std::vector<double>>> upper_limits_param_;
+  std::vector<double> lower_limits_param_;
+  std::vector<double> upper_limits_param_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback;
 };
 
