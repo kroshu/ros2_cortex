@@ -27,7 +27,7 @@ find_package(kroshu_ros2_core REQUIRED)
 
 find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
-	      "msg/FrameOfData.msg"
+        "msg/FrameOfData.msg"
         "srv/CortexRequestInt.srv"
         "srv/CortexRequestFloat.srv"
         "srv/CortexRequestEmpty.srv"

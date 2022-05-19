@@ -38,15 +38,17 @@ MotionTracker::MotionTracker()
   original_joint_points_(joint_num_)
 {
   registerParameter<std::vector<double>>(
-    "lower_limits_deg", lower_limits_deg_default_, kroshu_ros2_core::ParameterSetAccessRights {true, true,
+    "lower_limits_deg", lower_limits_deg_default_, kroshu_ros2_core::ParameterSetAccessRights {true,
+      true,
       false, false}, [this](const std::vector<double> & new_value) {
-        return this->onLowerLimitsChangeRequest(new_value);
-      });
+      return this->onLowerLimitsChangeRequest(new_value);
+    });
   registerParameter<std::vector<double>>(
-    "upper_limits_deg", upper_limits_deg_default_, kroshu_ros2_core::ParameterSetAccessRights {true, true,
+    "upper_limits_deg", upper_limits_deg_default_, kroshu_ros2_core::ParameterSetAccessRights {true,
+      true,
       false, false}, [this](const std::vector<double> & new_value) {
-        return this->onUpperLimitsChangeRequest(new_value);
-      });
+      return this->onUpperLimitsChangeRequest(new_value);
+    });
   original_joint_points_[0].x = 0.0;
   original_joint_points_[0].y = 0.0;
   original_joint_points_[0].z = segment_lengths_[0];

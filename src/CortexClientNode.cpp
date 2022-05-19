@@ -35,14 +35,15 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
   registerParameter<std::string>(
     "play_mode", "live", kroshu_ros2_core::ParameterSetAccessRights {true, true,
       false, false}, [this](const std::string & new_value) {
-        return this->onPlayModeChangeRequest(new_value);
-      });
-  registerParameter<std::string>("output_filename", "CortexDefaultOutput.cap",
-      kroshu_ros2_core::ParameterSetAccessRights {
-    true, true, false, false},
-      [this](const std::string & new_value) {
-        return this->onOutputFilenameChangeRequest(new_value);
-      });
+      return this->onPlayModeChangeRequest(new_value);
+    });
+  registerParameter<std::string>(
+    "output_filename", "CortexDefaultOutput.cap",
+    kroshu_ros2_core::ParameterSetAccessRights {
+      true, true, false, false},
+    [this](const std::string & new_value) {
+      return this->onOutputFilenameChangeRequest(new_value);
+    });
 
   using namespace std::placeholders;
   cortex_client_->setDataHandlerFunc(
@@ -58,7 +59,7 @@ CortexClientNode::CortexClientNode(const std::string & node_name)
   param_callback_ = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters) {
       return getParameterHandler().onParamChange(parameters);
-  });
+    });
 }
 
 CortexClientNode::~CortexClientNode()
