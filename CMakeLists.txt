@@ -24,7 +24,15 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(kroshu_ros2_core REQUIRED)
-find_package(cortex_interfaces REQUIRED)
+
+find_package(rosidl_default_generators REQUIRED)
+rosidl_generate_interfaces(${PROJECT_NAME}
+        "msg/FrameOfData.msg"
+        "srv/CortexRequestInt.srv"
+        "srv/CortexRequestFloat.srv"
+        "srv/CortexRequestEmpty.srv"
+        "srv/CortexRequestEmptyWithArg.srv"
+        "srv/CortexRequestFod.srv")
 
 add_library(cortex_client SHARED
   src/CortexMock.cpp
@@ -34,17 +42,21 @@ add_executable(simple_fod_printer
     src/SimpleFodPrinter.cpp
     src/CortexClientNode.cpp)
 ament_target_dependencies(simple_fod_printer rclcpp rclcpp_lifecycle
-  lifecycle_msgs kroshu_ros2_core cortex_interfaces)
+  lifecycle_msgs kroshu_ros2_core)
 target_link_libraries(simple_fod_printer
   cortex_client ${kroshu_ros2_core_LIBRARIES})
+rosidl_target_interfaces(simple_fod_printer
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 add_executable(marker_publisher
     src/MarkerPublisher.cpp
     src/CortexClientNode.cpp)
 ament_target_dependencies(marker_publisher rclcpp rclcpp_lifecycle visualization_msgs
-  lifecycle_msgs kroshu_ros2_core cortex_interfaces)
+  lifecycle_msgs kroshu_ros2_core)
 target_link_libraries(marker_publisher
   cortex_client ${kroshu_ros2_core_LIBRARIES})
+rosidl_target_interfaces(marker_publisher
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 add_executable(motion_tracker
     src/MotionTracker.cpp)

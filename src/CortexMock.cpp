@@ -579,7 +579,7 @@ void CortexMock::run()
 }
 
 const char capture_file_path[] =
-  "/home/rosdeveloper/ros2_ws/src/ros2_cortex/CaptureWithPlots1.json";
+  "./../captures/CaptureWithPlots1.json";
 CortexMock mock(capture_file_path);
 
 int Cortex_GetSdkVersion(unsigned char version[4])
